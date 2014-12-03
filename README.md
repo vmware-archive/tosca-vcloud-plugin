@@ -1,4 +1,4 @@
-vcloud-tosca-provider
+tosca-vcloud-plugin
 =====================
 
 
