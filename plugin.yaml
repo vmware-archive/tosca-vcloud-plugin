@@ -1,0 +1,39 @@
+imports:
+    - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
+
+plugins:
+    vcloud:
+        executor: central_deployment_agent
+        source: https://github.com/achirko/tosca-vcloud-plugin/archive/master.zip
+
+node_types:
+    cloudify.vcloud.nodes.Server:
+        derived_from: cloudify.nodes.Compute
+        properties:
+            server:
+                name:
+                    default: ''
+                catalog:
+                    default: ''
+                template:
+                    default: ''
+            vcloud_config:
+                default: {}
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                create:
+                    implementation: vcloud.server_plugin.server.create
+                    inputs: {}
+                start:
+                    implementation: vcloud.server_plugin.server.start
+                    inputs: {}
+                stop:
+                    implementation: vcloud.server_plugin.server.stop
+                    inputs: {}
+                delete:
+                    implementation: vcloud.server_plugin.server.delete
+                    inputs: {}
+            cloudify.interfaces.host:
+                get_state:
+                    implementation: vcloud.server_plugin.server.get_state
+                    inputs: {}
