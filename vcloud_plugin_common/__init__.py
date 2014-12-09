@@ -16,18 +16,10 @@ import atexit
 from functools import wraps
 import json
 import os
-import requests
-import time
 
 from pyvcloud import vcloudair
-from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType
 
 from cloudify import ctx
-from cloudify import exceptions as cfy_exc
-
-TASK_RECHECK_TIMEOUT = 2
-TASK_STATUS_SUCCESS = 'success'
-TASK_STATUS_ERROR = 'error'
 
 
 def transform_resource_name(res, ctx):
@@ -60,12 +52,12 @@ def transform_resource_name(res, ctx):
 class Config(object):
 
     VCLOUD_CONFIG_PATH_ENV_VAR = 'VCLOUD_CONFIG_PATH'
-    VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_config.json'
+    VCLOUD_CONFIG_PATH_DEFAULT_PATH = '~/vcloud_config.json'
 
     def get(self):
         cfg = {}
         env_name = self.VCLOUD_CONFIG_PATH_ENV_VAR
-        default_location_tpl = self.VCLOUD_CONFIG_PATH_DEFAULT
+        default_location_tpl = self.VCLOUD_CONFIG_PATH_DEFAULT_PATH
         default_location = os.path.expanduser(default_location_tpl)
         config_path = os.getenv(env_name, default_location)
         try:
@@ -76,7 +68,7 @@ class Config(object):
         return cfg
 
 
-class VcloudDirectorClient(object):
+class VcloudClient(object):
 
     config = Config
 
@@ -93,19 +85,27 @@ class VcloudDirectorClient(object):
         username = cfg.get('username')
         password = cfg.get('password')
         token = cfg.get('token')
-        service = cfg.get('service')
-        vdc = cfg.get('vdc')
-        if not (all([url, token]) or all([url, username, password])):
+        if not(all([url, token]) or all([url, username, password])):
             raise cfy_exc.NonRecoverableError(
                 "Login credentials must be specified")
-        if not (service and vdc):
-            raise cfy_exc.NonRecoverableError(
-                "vCloud service and vDC must be specified")
 
-        vca = vcloudair.VCA()
-        success = vca.login(url, username, password, token)
+        client = vcloudair.VCA()
+        success = client.login(url, username, password, token)
         if success is False:
             raise cfy_exc.NonRecoverableError("Invalid login credentials")
+        else:
+            atexit.register(client.logout())
+            return client
+
+
+def with_vcloud_client(f):
+    @wraps(f)
+    def wrapper(*args, **kw):
+        config = ctx.node.properties.get('vcloud_config')
+        client = VcloudClient().get(config=config)
+        kw['vcloud_client'] = client
+        return f(*args, **kw)
+    return wrapper
         else:
             atexit.register(vca.logout)
 
