@@ -21,7 +21,8 @@ from vcloud_plugin_common import (transform_resource_name,
                                   with_vcd_client)
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
-
+STATUS_POWER_ON = 'Powered on'
+STATUS_POWER_OFF = 'Power off'
 
 @operation
 @with_vcd_client
@@ -40,8 +41,10 @@ def create(vcd_client, **kwargs):
     create_args = {
         '--deploy': True,
         '--on': True,
-        '--blocking': False
+        '--blocking': False,
+        '--network': None
         }
+    ctx.logger.info("Creating VApp with parameters: {0}".format(str(server)))
     success, result = vcd_client.create_vApp(server['name'],
                                              server['template'],
                                              server['catalog'],
@@ -59,25 +62,29 @@ def create(vcd_client, **kwargs):
 @operation
 @with_vcd_client
 def start(vcd_client, **kwargs):
-    pass
+    vapp_name = ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
+    vapp = vcd_client.get_vApp(vapp_name)
+    if _vm_is_on(vapp) is False:
+        ctx.logger.info("Power-on VApp {0}".format(vapp_name))
+        vapp.poweron({'--blocking': True, '--json': True})
 
 
 @operation
 @with_vcd_client
 def stop(vcd_client, **kwargs):
-    pass
+    vapp_name = ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
+    vapp = vcd_client.get_vApp(vapp_name)
+    ctx.logger.info("Power-off and undeploy VApp {0}".format(vapp_name))
+    vapp.undeploy({'--blocking': True, '--json': True, '--action': 'powerOff'})
 
 
 @operation
 @with_vcd_client
 def delete(vcd_client, **kwargs):
     vapp_name = ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
-    delete_args = {
-        '--blocking': True,
-        '--json': True
-        }
     vapp = vcd_client.get_vApp(vapp_name)
-    vapp.delete(delete_args)
+    ctx.logger.info("Deleting VApp {0}".format(vapp_name))
+    vapp.delete({'--blocking': True, '--json': True})
     del ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
 
 
@@ -85,3 +92,7 @@ def delete(vcd_client, **kwargs):
 @with_vcd_client
 def get_state(vcd_client, **kwargs):
     pass
+
+
+def _vm_is_on(vapp):
+    return vapp.details_of_vms()[0][1] == STATUS_POWER_ON

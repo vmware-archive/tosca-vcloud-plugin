@@ -1,0 +1,2 @@
+export VCLOUD_CONFIG_PATH="~/vcloud_config.json"
+export VCLOUD_INTEGRATION_TEST_CONFIG_PATH="~/vcloud_intergation_test_config.json"

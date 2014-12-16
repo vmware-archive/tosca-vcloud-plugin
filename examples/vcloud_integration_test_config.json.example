@@ -1,0 +1,7 @@
+{
+"server":
+    {
+        "catalog": "giga",
+        "template": "ochyrko-test-VApp"
+    }
+}
