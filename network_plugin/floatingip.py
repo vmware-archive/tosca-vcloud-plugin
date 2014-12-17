@@ -37,3 +37,13 @@ def create(vcloud_client, **kwargs):
 @with_vcloud_client
 def delete(vcloud_client, **kwargs):
     pass
+
+@operation
+@with_vcloud_client
+def connect_floatingip(vcloud_client, **kwargs):
+    pass
+
+@operation
+@with_vcloud_client
+def disconnect_floatingip(vcloud_client, **kwargs):
+    pass
