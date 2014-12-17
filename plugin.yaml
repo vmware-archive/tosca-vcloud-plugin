@@ -37,3 +37,27 @@ node_types:
                 get_state:
                     implementation: vcloud.server_plugin.server.get_state
                     inputs: {}
+
+    cloudify.openstack.nodes.FloatingIP:
+        derived_from: cloudify.nodes.VirtualIP
+            properties:
+                floatingip:
+                default: {}
+        use_external_resource:
+            default: false
+            resource_id:
+                default: ''
+            openstack_config:
+                default: {}
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                create:
+                    implementation: vcloud.network_plugin.floatingip.create
+                    inputs: {}
+                delete:
+                    implementation: vcloud.network_plugin.floatingip.delete
+                    inputs: {}
+            cloudify.interfaces.validation:
+                creation:
+                    implementation: openstack.neutron_plugin.floatingip.creation_validation
+                    inputs: {}
