@@ -1,7 +1,8 @@
 {
 "server":
     {
-        "catalog": "giga",
-        "template": "ochyrko-test-VApp"
+        "catalog": "",
+        "template": "",
+        "network": ""
     }
 }

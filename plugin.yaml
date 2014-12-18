@@ -4,7 +4,7 @@ imports:
 plugins:
     vcloud:
         executor: central_deployment_agent
-        source: https://github.com/achirko/tosca-vcloud-plugin/archive/master.zip
+        source: https://github.com/achirko/tosca-vcloud-plugin/archive/develop.zip
 
 node_types:
     cloudify.vcloud.nodes.Server:
@@ -37,3 +37,20 @@ node_types:
                 get_state:
                     implementation: vcloud.server_plugin.server.get_state
                     inputs: {}
+    cloudify.vcloud.nodes.Network:
+        derived_from: cloudify.nodes.Network
+        properties:
+            network:
+                default: {}
+            management:
+                default: false
+            use_external_resource:
+                default: false
+            resource_id:
+                default: ''
+            vcloud_config:
+                default: {}
+
+relationships:
+    cloudify.vcloud.server_connected_to_network:
+        derived_from: cloudify.relationships.connected_to

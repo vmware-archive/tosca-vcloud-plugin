@@ -16,6 +16,7 @@ from cloudify import ctx
 from cloudify.decorators import operation
 from cloudify import exceptions as cfy_exc
 
+from network_plugin.network import VCLOUD_NETWORK_NAME
 from vcloud_plugin_common import (transform_resource_name,
                                   wait_for_task,
                                   with_vcd_client)
@@ -23,6 +24,7 @@ from vcloud_plugin_common import (transform_resource_name,
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 STATUS_POWER_ON = 'Powered on'
 STATUS_POWER_OFF = 'Power off'
+
 
 @operation
 @with_vcd_client
@@ -38,11 +40,19 @@ def create(vcd_client, **kwargs):
         raise cfy_exc.NonRecoverableError(
             "{0} server properties must be specified"
             .format(list(missed_params)))
+
+    networks = _get_connected_networks()
+    network_name = \
+        (networks[0].instance.runtime_properties[VCLOUD_NETWORK_NAME]
+         if len(networks) > 0
+         else None)
+
     create_args = {
         '--deploy': True,
         '--on': True,
         '--blocking': False,
-        '--network': None
+        '--network': network_name,
+        '--fencemode': None
         }
     ctx.logger.info("Creating VApp with parameters: {0}".format(str(server)))
     success, result = vcd_client.create_vApp(server['name'],
@@ -91,8 +101,37 @@ def delete(vcd_client, **kwargs):
 @operation
 @with_vcd_client
 def get_state(vcd_client, **kwargs):
-    pass
+    vapp_name = ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
+    vapp = vcd_client.get_vApp(vapp_name)
+    nw_info = _get_vm_network_info(vapp)
+    management_network_name = _get_management_network_name()
+    networks = {}
+    for connection in nw_info:
+        networks[connection['network_name']] = connection['ip']
+        if connection['network_name'] == management_network_name:
+            if connection['ip']:
+                ctx.instance.runtime_properties['ip'] = connection['ip']
+                ctx.instance.runtime_properties['networks'] = networks
+                return True
+    return False
 
 
 def _vm_is_on(vapp):
     return vapp.details_of_vms()[0][1] == STATUS_POWER_ON
+
+
+def _get_vm_network_info(vapp):
+    return vapp.get_vms_network_info()[0]
+
+
+def _get_connected_networks():
+    return [relationship.target for relationship in ctx.instance.relationships
+            if VCLOUD_NETWORK_NAME
+            in relationship.target.instance.runtime_properties]
+
+
+def _get_management_network_name():
+    networks = _get_connected_networks()
+    for network in networks:
+        if network.node.properties['management'] is True:
+            return network.instance.runtime_properties[VCLOUD_NETWORK_NAME]
