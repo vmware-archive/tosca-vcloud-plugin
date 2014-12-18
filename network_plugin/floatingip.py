@@ -14,35 +14,38 @@
 
 from cloudify import ctx
 from cloudify.decorators import operation
-from cloudify import exceptions as cfy_exc
-from pyvcloud import gateway
 
 from vcloud_plugin_common import transform_resource_name, with_vcloud_client
 
 @operation
 @with_vcloud_client
 def create(vcloud_client, **kwargs):
-    # requirements:
-    # gateway name - > gatewayId
-    # vm private ip
-    # external ip
-    gatewayReferences = vcd.get_gateways()
-    if gatewayReferences:
-        table = []
-        for gatewayReference in gatewayReferences:
-            gatewayReferences.add_nat_rule(rule_type, original_ip, original_port,
-                                           translated_ip, translated_port, protocol)
+    ctx.instance.runtime_properties['floating_ip'] = ctx.node.properties['floatingip']
 
+    
 @operation
 @with_vcloud_client
 def delete(vcloud_client, **kwargs):
-    pass
+    del ctx.instance.runtime_properties['floating_ip']
 
+    
 @operation
 @with_vcloud_client
 def connect_floatingip(vcloud_client, **kwargs):
-    pass
+    if 'floating_ip' in  ctx.source.instance.runtime_properties:
+        translated_ip = ctx.source.instance.runtime_properties['floating_ip']
+    else:
+        raise cfy_exc.NonRecoverableError("Could not get float ip address")
+    
+    original_ip = None
+    gateway  = vcloud_client.get_gateways(ctx.node.properties['gateway'])
+    if gateway:
+            gateway.add_nat_rule("SNAT", original_ip, "ANY",
+                                 translated_ip, "ANY", "ANY")
+            gateway.add_nat_rule("DNAT", translated_ip, "ANY",
+                                 original_ip, "ANY", "ANY")
 
+            
 @operation
 @with_vcloud_client
 def disconnect_floatingip(vcloud_client, **kwargs):
