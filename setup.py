@@ -13,17 +13,24 @@
 #  * See the License for the specific language governing permissions and
 #  * limitations under the License.
 
-import mock
-import unittest
+__author__ = 'kostya13'
 
-class TestSequenceFunctions(unittest.TestCase):
+from setuptools import setup
 
-    def setUp(self):
-        pass
-
-    def test_shuffle(self):
-        print 1
-       
-    
-if __name__ == '__main__':
-    unittest.main()
+setup(
+    zip_safe=True,
+    name='cloudify-vcloud-plugin',
+    version='0.1',
+    author='kostya13',
+    author_email='Konstantin_Ilyashenko@epam.com',
+    packages=[
+        'vcloud_plugin_common',
+        'server_plugin',
+        'network_plugin'
+    ],
+    license='LICENSE',
+    description='Cloudify plugin for vmWare vCloud infrastructure.',
+    install_requires=[
+        'cloudify-plugins-common==3.1'
+    ]
+)
