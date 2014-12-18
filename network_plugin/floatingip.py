@@ -37,7 +37,12 @@ def connect_floatingip(vcloud_client, **kwargs):
     else:
         raise cfy_exc.NonRecoverableError("Could not get float ip address")
     
-    original_ip = None
+    vappName = ctx.node.properties['server']['name']
+    vapp = cloud_client.get_vApp(vappName)
+    if not vapp:
+        raise cfy_exc.NonRecoverableError("Could not find vApp")
+    vm_info = filter(lambda details: details[0] == vappName, vapp.details_of_vms())[0]
+    original_ip = vm_info[7]
     gateway  = vcloud_client.get_gateways(ctx.node.properties['gateway'])
     if gateway:
             gateway.add_nat_rule("SNAT", original_ip, "ANY",
