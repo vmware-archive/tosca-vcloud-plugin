@@ -31,6 +31,7 @@ setup(
     license='LICENSE',
     description='Cloudify plugin for vmWare vCloud infrastructure.',
     install_requires=[
-        'cloudify-plugins-common==3.1'
+        'cloudify-plugins-common==3.1',
+        'IPy==0.81'
     ]
 )

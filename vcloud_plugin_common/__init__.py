@@ -108,7 +108,6 @@ class VcloudDirectorClient(object):
             raise cfy_exc.NonRecoverableError("Invalid login credentials")
         else:
             atexit.register(vca.logout)
-
         vcloud_director = vca.get_vCloudDirector(service, vdc)
         if vcloud_director is None:
             raise cfy_exc.NonRecoverableError(

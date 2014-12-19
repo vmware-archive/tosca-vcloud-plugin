@@ -13,6 +13,7 @@
 #  * See the License for the specific language governing permissions and
 #  * limitations under the License.
 
+from cloudify.mocks import MockCloudifyContext
 import mock
 import unittest
 
