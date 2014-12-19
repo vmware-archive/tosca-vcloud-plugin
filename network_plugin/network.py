@@ -25,7 +25,7 @@ VCLOUD_NETWORK_NAME = 'vcloud_network_name'
 def create(vcd_client, **kwargs):
     if ctx.node.properties['use_external_resource'] is True:
         ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = \
-            ctx.node.properties['resource_id'] 
+            ctx.node.properties['resource_id']
 
 
 @operation

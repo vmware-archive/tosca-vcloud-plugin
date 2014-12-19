@@ -27,7 +27,7 @@ class ServerNoNetworkTestCase(TestCase):
                     'catalog': server_test_dict['catalog'],
                     'template': server_test_dict['template']
                 }
-                        }
+            }
         )
         self.ctx.instance.relationships = []
         ctx_patch1 = mock.patch('server_plugin.server.ctx', self.ctx)
@@ -107,7 +107,7 @@ class ServerWithNetworkTestCase(TestCase):
                     'catalog': server_test_dict['catalog'],
                     'template': server_test_dict['template']
                 }
-                        }
+            }
         )
         self.ctx.instance.relationships = [network_relationship]
         ctx_patch1 = mock.patch('server_plugin.server.ctx', self.ctx)
