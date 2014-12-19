@@ -11,12 +11,7 @@ node_types:
         derived_from: cloudify.nodes.Compute
         properties:
             server:
-                name:
-                    default: ''
-                catalog:
-                    default: ''
-                template:
-                    default: ''
+                default: {}
             vcloud_config:
                 default: {}
         interfaces:
