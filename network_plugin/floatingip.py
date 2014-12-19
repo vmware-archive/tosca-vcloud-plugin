@@ -33,7 +33,7 @@ def check_ip(address):
 
 
 def get_vm_ip(vcd_client, ctx):
-    vappName = ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
+    vappName = ctx.source.instance.runtime_properties[VCLOUD_VAPP_NAME]
     vmName = ctx.node.properties['vm']
     vapp = vcd_client.get_vApp(vappName)
     if not vapp:
