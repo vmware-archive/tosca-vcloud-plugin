@@ -104,6 +104,10 @@ def get_state(vcd_client, **kwargs):
     vapp_name = ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
     vapp = vcd_client.get_vApp(vapp_name)
     nw_info = _get_vm_network_info(vapp)
+    if len(nw_info) == 0:
+        ctx.instance.runtime_properties['ip'] = None
+        ctx.instance.runtime_properties['networks'] = {}
+        return True
     management_network_name = _get_management_network_name()
     networks = {}
     for connection in nw_info:
@@ -121,7 +125,8 @@ def _vm_is_on(vapp):
 
 
 def _get_vm_network_info(vapp):
-    return vapp.get_vms_network_info()[0]
+    connections = vapp.get_vms_network_info()[0]
+    return filter(lambda network: network['is_connected'], connections)
 
 
 def _get_connected_networks():

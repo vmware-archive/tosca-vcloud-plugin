@@ -1,0 +1,58 @@
+tosca_definitions_version: cloudify_dsl_1_0
+
+imports:
+    - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
+    - https://raw.githubusercontent.com/achirko/tosca-vcloud-plugin/develop/plugin.yaml
+    - http://www.getcloudify.org/spec/fabric-plugin/1.1/plugin.yaml
+
+inputs:
+    vcloud_username:
+        type: string
+
+    vcloud_password:
+        type: string
+
+    vcloud_url:
+        type: string
+
+    vcloud_service:
+        type: string
+
+    vcloud_vcd:
+        type: string
+
+    manager_server_name:
+        type: string
+
+    manager_server_catalog:
+        type: string
+
+    manager_server_template:
+        type: string
+
+node_types:
+    vcloud_configuration:
+        derived_from: cloudify.nodes.Root
+        properties:
+            vcloud_config: {}
+
+node_templates:
+    manager_server:
+        type: cloudify.vcloud.nodes.Server
+        properties:
+            install_agent: false
+            server:
+                name: { get_input: manager_server_name }
+                catalog: { get_input: manager_server_catalog }
+                template: { get_input: manager_server_template }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+
+    vcloud_configuration:
+        type: vcloud_configuration
+        properties:
+            vcloud_config:
+                username: { get_input: vcloud_username }
+                password: { get_input: vcloud_password }
+                url: { get_input: vcloud_url }
+                service: { get_input: vcloud_service }
+                vdc: { get_input: vcloud_vcd }
