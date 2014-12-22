@@ -64,9 +64,14 @@ def _get_vm_ip(vcd_client, ctx):
         raise cfy_exc.NonRecoverableError("Could not find vApp")
     try:
         vm_info = vapp.get_vms_network_info()
-        return vm_info[0][0]['ip']
+        # assume that we have 1 vm per vApp with minium 1 connection
+        connection = vm_info[0][0]
+        if connection['is_connected']:
+            return connection['ip']
+        else:
+            raise cfy_exc.NonRecoverableError("Network not connected")
     except IndexError:
-        raise cfy_exc.NonRecoverableError("Could not find vm IP address")
+        raise cfy_exc.NonRecoverableError("Could not get vm IP address")
 
 
 def _nat_operation(vcd_client, gateway, rule_type, original_ip, translated_ip,

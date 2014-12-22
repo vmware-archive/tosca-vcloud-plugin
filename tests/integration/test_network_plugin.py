@@ -1,7 +1,8 @@
 import mock
 import unittest
 
-from cloudify.mocks import MockCloudifyContext, MockContext, MockNodeContext, MockNodeInstanceContext
+from cloudify.mocks import MockCloudifyContext, MockContext,\
+    MockNodeContext, MockNodeInstanceContext
 
 from tests.integration import TestCase
 from network_plugin import floatingip
@@ -30,7 +31,7 @@ class ServerPluginTestCase(TestCase):
 #        pdb.set_trace()
 
         self.ctx.source.instance = MockNodeInstanceContext(
-            runtime_properties={VCLOUD_VAPP_NAME: 'test1'})
+            runtime_properties={VCLOUD_VAPP_NAME: 'ilyashenko'})
         self.ctx.target.node = MockNodeContext(
             properties={'floatingip': '23.92.245.236',
                         'gateway': 'M966854774-4471'})
