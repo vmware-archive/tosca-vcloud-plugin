@@ -23,7 +23,32 @@ DELETE = 2
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 
 
-def check_ip(address):
+@operation
+@with_vcd_client
+def create(vcloud_client, **kwargs):
+    # may be usefull, if use dynamic ip selection
+    pass
+
+
+@operation
+@with_vcd_client
+def delete(vcd_client, **kwargs):
+    pass
+
+
+@operation
+@with_vcd_client
+def connect_floatingip(vcd_client, **kwargs):
+    _floatingip_operation(vcd_client, ctx, CREATE)
+
+
+@operation
+@with_vcd_client
+def disconnect_floatingip(vcd_client, **kwargs):
+    _floatingip_operation(vcd_client, ctx, DELETE)
+
+
+def _check_ip(address):
     try:
         IP(address)
     except ValueError:
@@ -32,22 +57,20 @@ def check_ip(address):
     return address
 
 
-def get_vm_ip(vcd_client, ctx):
+def _get_vm_ip(vcd_client, ctx):
     vappName = ctx.source.instance.runtime_properties[VCLOUD_VAPP_NAME]
-    vmName = ctx.node.properties['vm']
     vapp = vcd_client.get_vApp(vappName)
     if not vapp:
         raise cfy_exc.NonRecoverableError("Could not find vApp")
     try:
-        vm_info = filter(lambda details:
-                         details[0] == vmName, vapp.details_of_vms())[0]
-        return vm_info[6]
+        vm_info = vapp.get_vms_network_info()
+        return vm_info[0][0]['ip']
     except IndexError:
         raise cfy_exc.NonRecoverableError("Could not find vm IP address")
 
 
-def nat_operation(vcd_client, gateway, rule_type, original_ip, translated_ip,
-                  operation):
+def _nat_operation(vcd_client, gateway, rule_type, original_ip, translated_ip,
+                   operation):
     function = None
     operation_description = None
     any_type = None
@@ -72,39 +95,14 @@ def nat_operation(vcd_client, gateway, rule_type, original_ip, translated_ip,
     wait_for_task(vcd_client, task)
 
 
-def floatingip_operation(vcd_client, ctx, operation):
-    gateway = vcd_client.get_gateway(ctx.node.properties['gateway'])
+def _floatingip_operation(vcd_client, ctx, operation):
+    gateway = vcd_client.get_gateway(ctx.target.node.properties['gateway'])
     if gateway:
-        external_ip = check_ip(ctx.node.properties['floatingip'])
-        internal_ip = check_ip(get_vm_ip(vcd_client, ctx))
-        nat_operation(vcd_client, gateway, "SNAT", internal_ip, external_ip,
-                      operation)
-        nat_operation(vcd_client, gateway, "DNAT", external_ip, internal_ip,
-                      operation)
+        external_ip = _check_ip(ctx.target.node.properties['floatingip'])
+        internal_ip = _check_ip(_get_vm_ip(vcd_client, ctx))
+        _nat_operation(vcd_client, gateway, "SNAT", internal_ip, external_ip,
+                       operation)
+        _nat_operation(vcd_client, gateway, "DNAT", external_ip, internal_ip,
+                       operation)
     else:
         raise cfy_exc.NonRecoverableError("Gateway not found")
-
-
-@operation
-@with_vcd_client
-def create(vcloud_client, **kwargs):
-    # may be usefull, if use dynamic ip selection
-    pass
-
-
-@operation
-@with_vcd_client
-def delete(vcd_client, **kwargs):
-    pass
-
-
-@operation
-@with_vcd_client
-def connect_floatingip(vcd_client, **kwargs):
-    floatingip_operation(vcd_client, ctx, CREATE)
-
-
-@operation
-@with_vcd_client
-def disconnect_floatingip(vcd_client, **kwargs):
-    floatingip_operation(vcd_client, ctx, DELETE)
