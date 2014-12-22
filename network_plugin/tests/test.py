@@ -21,10 +21,6 @@ class TestSequenceFunctions(unittest.TestCase):
 
     def setUp(self):
         pass
-
-    def test_shuffle(self):
-        print 1
-       
     
 if __name__ == '__main__':
     unittest.main()
