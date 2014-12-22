@@ -55,8 +55,6 @@ node_types:
     cloudify.vcloud.nodes.FloatingIP:
         derived_from: cloudify.nodes.VirtualIP
             properties:
-                vm:
-                    default: ''
                 gateway:
                     default: ''
                 floatingip:
