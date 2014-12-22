@@ -9,7 +9,7 @@ from network_plugin import floatingip
 from network_plugin.floatingip import VCLOUD_VAPP_NAME
 
 
-class ServerPluginTestCase(TestCase):
+class NatRulesOperationsTestCase(TestCase):
 
     def setUp(self):
         super(ServerPluginTestCase, self).setUp()
@@ -27,8 +27,6 @@ class ServerPluginTestCase(TestCase):
                 'instance': None,
                 'node': None
             }))
-#        import pdb
-#        pdb.set_trace()
 
         self.ctx.source.instance = MockNodeInstanceContext(
             runtime_properties={VCLOUD_VAPP_NAME: 'ilyashenko'})
@@ -45,7 +43,7 @@ class ServerPluginTestCase(TestCase):
     def tearDown(self):
         super(ServerPluginTestCase, self).tearDown()
 
-    def test_server_create_delete(self):
+    def test_nat_rules_create_delete(self):
         floatingip.connect_floatingip()
         floatingip.disconnect_floatingip()
 
