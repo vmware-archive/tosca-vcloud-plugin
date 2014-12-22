@@ -13,16 +13,12 @@
 #  * See the License for the specific language governing permissions and
 #  * limitations under the License.
 
-__author__ = 'kostya13'
-
 from setuptools import setup
 
 setup(
     zip_safe=True,
     name='cloudify-vcloud-plugin',
-    version='0.1',
-    author='kostya13',
-    author_email='Konstantin_Ilyashenko@epam.com',
+    version='1.0',
     packages=[
         'vcloud_plugin_common',
         'server_plugin',
@@ -31,7 +27,9 @@ setup(
     license='LICENSE',
     description='Cloudify plugin for vmWare vCloud infrastructure.',
     install_requires=[
-        'cloudify-plugins-common==3.1',
+        'cloudify-plugins-common>=3.1',
+        'pyvcloud',
+        'requests',
         'IPy==0.81'
     ]
 )

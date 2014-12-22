@@ -54,19 +54,8 @@ node_types:
 
     cloudify.vcloud.nodes.FloatingIP:
         derived_from: cloudify.nodes.VirtualIP
-            properties:
-                gateway:
-                    default: ''
-                floatingip:
-                    default: ''
-        interfaces:
-            cloudify.interfaces.lifecycle:
-                create:
-                    implementation: vcloud.network_plugin.floatingip.create
-                    inputs: {}
-                delete:
-                    implementation: vcloud.network_plugin.floatingip.delete
-                    inputs: {}
+            floatingip:
+                default: {}                
 
 relationships:
     cloudify.vcloud.server_connected_to_floating_ip:
