@@ -41,6 +41,10 @@ def create(vcd_client, **kwargs):
             "{0} server properties must be specified"
             .format(list(missed_params)))
 
+    vapp_name = server['name']
+    vapp_template = server['template']
+    vapp_catalog = server['catalog']
+
     networks = _get_connected_networks()
     network_name = \
         (networks[0].instance.runtime_properties[VCLOUD_NETWORK_NAME]
@@ -55,10 +59,8 @@ def create(vcd_client, **kwargs):
         '--fencemode': None
         }
     ctx.logger.info("Creating VApp with parameters: {0}".format(str(server)))
-    success, result = vcd_client.create_vApp(server['name'],
-                                             server['template'],
-                                             server['catalog'],
-                                             create_args)
+    success, result = vcd_client.create_vApp(
+        vapp_name, vapp_template, vapp_catalog, create_args)
 
     if success is False:
         raise cfy_exc.NonRecoverableError(
@@ -103,7 +105,7 @@ def delete(vcd_client, **kwargs):
 def get_state(vcd_client, **kwargs):
     vapp_name = ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
     vapp = vcd_client.get_vApp(vapp_name)
-    nw_info = _get_vm_network_info(vapp)
+    nw_info = _get_vm_network_connections(vapp)
     if len(nw_info) == 0:
         ctx.instance.runtime_properties['ip'] = None
         ctx.instance.runtime_properties['networks'] = {}
@@ -124,7 +126,7 @@ def _vm_is_on(vapp):
     return vapp.details_of_vms()[0][1] == STATUS_POWER_ON
 
 
-def _get_vm_network_info(vapp):
+def _get_vm_network_connections(vapp):
     connections = vapp.get_vms_network_info()[0]
     return filter(lambda network: network['is_connected'], connections)
 

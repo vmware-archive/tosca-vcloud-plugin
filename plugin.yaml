@@ -51,7 +51,7 @@ node_types:
         derived_from: cloudify.nodes.VirtualIP
         properties:        
             floatingip:
-                default: {}                
+                default: {}
 
 relationships:
     cloudify.vcloud.server_connected_to_floating_ip:

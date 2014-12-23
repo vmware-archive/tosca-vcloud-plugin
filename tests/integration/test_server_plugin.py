@@ -128,11 +128,11 @@ class ServerWithNetworkTestCase(TestCase):
 
     def test_server_create(self):
         server.create()
+        server.start()
         vapp = self.vcd_client.get_vApp(
             self.ctx.node.properties['server']['name'])
         self.assertFalse(vapp is None)
-        self.assertTrue(server._vm_is_on(vapp))
-        networks = server._get_vm_network_info(vapp)
+        networks = server._get_vm_network_connections(vapp)
         self.assertEqual(1, len(networks))
         self.assertEqual(self.network_name, networks[0]['network_name'])
         ip_valid = True
