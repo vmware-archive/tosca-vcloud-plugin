@@ -1,5 +1,6 @@
 import mock
 import socket
+import unittest
 
 from cloudify import mocks as cfy_mocks
 
@@ -140,3 +141,6 @@ class ServerWithNetworkTestCase(TestCase):
         except socket.error:
             ip_valid = False
         self.assertTrue(ip_valid)
+
+if __name__ == '__main__':
+    unittest.main()

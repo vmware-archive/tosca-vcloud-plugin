@@ -21,13 +21,15 @@ setup(
     version='1.0',
     packages=[
         'vcloud_plugin_common',
-        'server_plugin'
+        'server_plugin',
+        'network_plugin'
     ],
     license='LICENSE',
     description='Cloudify plugin for vmWare vCloud infrastructure.',
     install_requires=[
         'cloudify-plugins-common>=3.1',
         'pyvcloud',
-        'requests'
+        'requests',
+        'IPy==0.81'
     ]
 )

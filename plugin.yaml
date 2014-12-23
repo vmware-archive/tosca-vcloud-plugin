@@ -32,6 +32,7 @@ node_types:
                 get_state:
                     implementation: vcloud.server_plugin.server.get_state
                     inputs: {}
+
     cloudify.vcloud.nodes.Network:
         derived_from: cloudify.nodes.Network
         properties:
@@ -46,6 +47,22 @@ node_types:
             vcloud_config:
                 default: {}
 
+    cloudify.vcloud.nodes.FloatingIP:
+        derived_from: cloudify.nodes.VirtualIP
+        properties:        
+            floatingip:
+                default: {}                
+
 relationships:
+    cloudify.vcloud.server_connected_to_floating_ip:
+        derived_from: cloudify.relationships.connected_to
+        source_interfaces:
+            cloudify.interfaces.relationship_lifecycle:
+                establish:
+                    implementation: vcloud.network_plugin.floatingip.connect_floatingip
+                    inputs: {}
+                unlink:
+                    implementation: vcloud.network_plugin.floatingip.disconnect_floatingip
+                    inputs: {}
     cloudify.vcloud.server_connected_to_network:
         derived_from: cloudify.relationships.connected_to
