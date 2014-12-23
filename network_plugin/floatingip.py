@@ -74,9 +74,11 @@ def _nat_operation(vcd_client, gateway, rule_type, original_ip, translated_ip,
 
 
 def _floatingip_operation(vcd_client, ctx, operation):
-    gateway = vcd_client.get_gateway(ctx.target.node.properties['gateway'])
+    gateway = vcd_client.get_gateway(
+        ctx.target.node.properties['floatingip']['gateway'])
     if gateway:
-        external_ip = _check_ip(ctx.target.node.properties['floatingip'])
+        external_ip = _check_ip(
+            ctx.target.node.properties['floatingip']['public_ip'])
         internal_ip = _check_ip(_get_vm_ip(vcd_client, ctx))
         _nat_operation(vcd_client, gateway, "SNAT", internal_ip, external_ip,
                        operation)
