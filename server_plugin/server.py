@@ -68,6 +68,16 @@ def create(vcd_client, **kwargs):
 
     task = result.get_Tasks().get_Task()[0]
     wait_for_task(vcd_client, task)
+
+    if network_name:
+        vapp = vcd_client.get_vApp(vapp_name)
+        success, result = vapp.connect_network(network_name, 0, 0)
+        if success is False:
+            raise cfy_exc.NonRecoverableError(
+                "Could connect vApp {0} to network {1}: {2}"
+                .format(vapp_name, network_name, result))
+        wait_for_task(vcd_client, result)
+
     ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = server['name']
 
 
@@ -105,14 +115,14 @@ def delete(vcd_client, **kwargs):
 def get_state(vcd_client, **kwargs):
     vapp_name = ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
     vapp = vcd_client.get_vApp(vapp_name)
-    nw_info = _get_vm_network_connections(vapp)
-    if len(nw_info) == 0:
+    nw_connections = _get_vm_network_connections(vapp)
+    if len(nw_connections) == 0:
         ctx.instance.runtime_properties['ip'] = None
         ctx.instance.runtime_properties['networks'] = {}
         return True
     management_network_name = _get_management_network_name()
     networks = {}
-    for connection in nw_info:
+    for connection in nw_connections:
         networks[connection['network_name']] = connection['ip']
         if connection['network_name'] == management_network_name:
             if connection['ip']:
