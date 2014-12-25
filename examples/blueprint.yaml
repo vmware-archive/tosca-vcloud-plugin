@@ -1,0 +1,54 @@
+tosca_definitions_version: cloudify_dsl_1_0
+
+imports:
+    - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
+    - /home/achirko/workspace/vcloud/tosca-vcloud-plugin/plugin.yaml
+
+node_types:
+    vcloud_configuration:
+        derived_from: cloudify.nodes.Root
+        properties:
+            vcloud_config: {}
+
+node_templates:
+    example_server:
+        type: cloudify.vcloud.nodes.Server
+        properties:
+            install_agent: false
+            server:
+                name: cfy-plugin-example-server2
+                catalog: giga
+                template: plugin-test-VApp
+            management_network: CFY-Internal
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+        relationships:
+            - target: example_port
+              type: cloudify.vcloud.server_connected_to_port
+
+    example_port:
+        type: cloudify.vcloud.nodes.Port
+        properties:
+            port:
+                network: CFY-Internal
+                ip_address: 192.168.10.32
+                mac_address: 00:50:56:01:01:49
+                primary_interface: true
+        relationships:
+            - target: example_network
+              type: cloudify.vcloud.port_connected_to_network
+
+    example_network:
+        type: cloudify.vcloud.nodes.Network
+        properties:
+            use_external_resource: true
+            resource_id: CFY-Internal
+
+    vcloud_configuration:
+        type: vcloud_configuration
+        properties:
+            vcloud_config:
+                username: user
+                password: pw
+                url: https://vchs.vmware.com
+                service: M966854774-4471
+                vdc: M966854774-4471
