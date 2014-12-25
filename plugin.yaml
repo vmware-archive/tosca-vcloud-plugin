@@ -12,6 +12,8 @@ node_types:
         properties:
             server:
                 default: {}
+            management_network:
+                default: ''
             vcloud_config:
                 default: {}
         interfaces:
@@ -38,12 +40,18 @@ node_types:
         properties:
             network:
                 default: {}
-            management:
-                default: false
             use_external_resource:
                 default: false
             resource_id:
                 default: ''
+            vcloud_config:
+                default: {}
+
+    cloudify.vcloud.nodes.Port:
+        derived_from: cloudify.nodes.Port
+        properties:
+            port:
+                default: {}
             vcloud_config:
                 default: {}
 
@@ -64,5 +72,7 @@ relationships:
                 unlink:
                     implementation: vcloud.network_plugin.floatingip.disconnect_floatingip
                     inputs: {}
-    cloudify.vcloud.server_connected_to_network:
+    cloudify.vcloud.port_connected_to_network:
+        derived_from: cloudify.relationships.connected_to
+    cloudify.vcloud.server_connected_to_port:
         derived_from: cloudify.relationships.connected_to

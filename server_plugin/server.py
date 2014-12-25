@@ -45,17 +45,13 @@ def create(vcd_client, **kwargs):
     vapp_template = server['template']
     vapp_catalog = server['catalog']
 
-    networks = _get_connected_networks()
-    network_name = \
-        (networks[0].instance.runtime_properties[VCLOUD_NETWORK_NAME]
-         if len(networks) > 0
-         else None)
+    management_network = ctx.node.properties['management_network']
 
     create_args = {
         '--deploy': True,
         '--on': True,
         '--blocking': False,
-        '--network': network_name,
+        '--network': management_network,
         '--fencemode': None
         }
     ctx.logger.info("Creating VApp with parameters: {0}".format(str(server)))
@@ -69,14 +65,37 @@ def create(vcd_client, **kwargs):
     task = result.get_Tasks().get_Task()[0]
     wait_for_task(vcd_client, task)
 
-    if network_name:
-        vapp = vcd_client.get_vApp(vapp_name)
-        success, result = vapp.connect_network(network_name, 0, 0)
-        if success is False:
-            raise cfy_exc.NonRecoverableError(
-                "Could connect vApp {0} to network {1}: {2}"
-                .format(vapp_name, network_name, result))
-        wait_for_task(vcd_client, result)
+    ports = _get_connected_ports(ctx.instance.relationships)
+
+    if len(ports) > 0:
+        for index, port in enumerate(ports):
+            network_name = port.node.properties['port']['network']
+            connections_primary_index = None
+            if port.node.properties['port'].get('primary_interface'):
+                connections_primary_index = index
+            ip_address = port.node.properties['port'].get('ip_address')
+            mac_address = port.node.properties['port'].get('mac_address')
+            if ip_address:
+                ip_allocation_mode = 'STATIC'
+            else:
+                ip_allocation_mode = 'DHCP'
+            vapp = vcd_client.get_vApp(vapp_name)
+            connection_args = {
+                'network_name': network_name,
+                'connection_index': index,
+                'connections_primary_index': connections_primary_index,
+                'ip_allocation_mode': ip_allocation_mode,
+                'mac_address': mac_address,
+                'ip_address': ip_address
+                }
+            ctx.logger.info("Connecting network with parameters {0}"
+                            .format(str(connection_args)))
+            success, result = vapp.connect_network(**connection_args)
+            if success is False:
+                raise cfy_exc.NonRecoverableError(
+                    "Could not connect vApp {0} to network {1}: {2}"
+                    .format(vapp_name, network_name, result))
+            wait_for_task(vcd_client, result)
 
     ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = server['name']
 
@@ -120,7 +139,7 @@ def get_state(vcd_client, **kwargs):
         ctx.instance.runtime_properties['ip'] = None
         ctx.instance.runtime_properties['networks'] = {}
         return True
-    management_network_name = _get_management_network_name()
+    management_network_name = ctx.node.properties['management_network']
     networks = {}
     for connection in nw_connections:
         networks[connection['network_name']] = connection['ip']
@@ -140,9 +159,12 @@ def _get_vm_network_connections(vapp):
     connections = vapp.get_vms_network_info()[0]
     return filter(lambda network: network['is_connected'], connections)
 
+def _get_connected_ports(relationships):
+    return [relationship.target for relationship in relationships
+            if 'port' in relationship.target.node.properties]
 
-def _get_connected_networks():
-    return [relationship.target for relationship in ctx.instance.relationships
+def _get_connected_networks(relationships):
+    return [relationship.target for relationship in relationships
             if VCLOUD_NETWORK_NAME
             in relationship.target.instance.runtime_properties]
 
