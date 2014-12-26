@@ -46,6 +46,14 @@ node_types:
                 default: ''
             vcloud_config:
                 default: {}
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                create:
+                    implementation: vcloud.network_plugin.network.create
+                    inputs: {}
+                delete:
+                    implementation: vcloud.network_plugin.network.delete
+                    inputs: {}
 
     cloudify.vcloud.nodes.Port:
         derived_from: cloudify.nodes.Port
