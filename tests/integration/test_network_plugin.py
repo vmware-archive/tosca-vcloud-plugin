@@ -66,12 +66,25 @@ class NatRulesOperationsTestCase(TestCase):
                     ips.append(rule.get_TranslatedIp())
         return ips
 
+
 class OrgNetworkOperationsTestCase(TestCase):
 
     def setUp(self):
         super(OrgNetworkOperationsTestCase, self).setUp()
 
         self.net_name = "test_network"
+        self.ctx = MockCloudifyContext(
+            node_id=self.net_name,
+            node_name=self.net_name,
+            properties={"resource_id": self.net_name,
+                        "network":
+                        {"start_address": "192.168.0.100",
+                         "end_address": "192.168.0.199",
+                         "gateway_ip": "192.168.0.1",
+                         "netmask": "255.255.255.0",
+                         "dns": "10.147.115.1",
+                         "dns_duffix": "example.com"},
+                        "use_external_resource": False})
 
         ctx_patch1 = mock.patch('network_plugin.network.ctx', self.ctx)
         ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
@@ -84,15 +97,14 @@ class OrgNetworkOperationsTestCase(TestCase):
         super(OrgNetworkOperationsTestCase, self).tearDown()
 
     def test_orgnetwork_create_delete(self):
-        self.assertNotIn(self.net_name, network._get_network_list(self.vcd_client))
+        self.assertNotIn(self.net_name,
+                         network._get_network_list(self.vcd_client))
         network.create()
-        self.assertIn(self.net_name, network._get_network_list(self.vcd_client))
+        self.assertIn(self.net_name,
+                      network._get_network_list(self.vcd_client))
         network.delete()
-        self.assertNotIn(self.net_name, network._get_network_list(self.vcd_client))
-
-    def _get_network_list():
-        vdc=self.vcd_client._get_vdc()
-        return [net.name for net in  vdc.AvailableNetworks.Network]
+        self.assertNotIn(self.net_name,
+                         network._get_network_list(self.vcd_client))
 
 
 if __name__ == '__main__':

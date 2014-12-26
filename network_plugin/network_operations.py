@@ -1,6 +1,6 @@
 from cloudify import exceptions as cfy_exc
 from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType,\
-    queryRecordViewType
+    queryRecordViewType, networkType
 from pyvcloud.schema.vcd.v1_5.schemas.vcloud.networkType import OrgVdcNetworkType,\
     ReferenceType, NetworkConfigurationType, IpScopesType, IpScopeType,\
     IpRangesType, IpRangeType
@@ -35,7 +35,7 @@ def create(vcd_client, network_name, properties):
     configuration = NetworkConfigurationType(IpScopes=ipscopes,
                                              FenceMode="natRouted")
 
-    net = OrgVdcNetworkType(name=network_name, Description="test_network",
+    net = OrgVdcNetworkType(name=network_name, Description="Cloudify network",
                             EdgeGateway=gateway, Configuration=configuration,
                             IsShared=False)
 
@@ -49,7 +49,8 @@ def create(vcd_client, network_name, properties):
     headers["Content-Type"] = content_type
     response = requests.post(postlink, data=body, headers=headers)
     if response.status_code == requests.codes.created:
-        task = taskType.parseString(response.content, True)
+        network = networkType.parseString(response.content, True)
+        task = network.get_Tasks().get_Task()[0]
         return (True, task)
     else:
         return (False, response.content)

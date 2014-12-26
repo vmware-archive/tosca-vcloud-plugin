@@ -27,9 +27,11 @@ def create(vcd_client, **kwargs):
     if ctx.node.properties['use_external_resource'] is True:
         ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = \
             ctx.node.properties['resource_id']
+        ctx.logger.info("External resource has been used")
         return
     network_name = ctx.node.properties['resource_id']
     if network_name in _get_network_list(vcd_client):
+        ctx.logger.info("Network {0} already exists".format(network_name))
         return
 
     success, task = network_operations.create(vcd_client, network_name,
