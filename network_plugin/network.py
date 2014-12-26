@@ -13,9 +13,10 @@
 #  * limitations under the License.
 
 from cloudify import ctx
+from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
-
-from vcloud_plugin_common import with_vcd_client
+from vcloud_plugin_common import with_vcd_client, wait_for_task
+import network_operations
 
 VCLOUD_NETWORK_NAME = 'vcloud_network_name'
 
@@ -30,14 +31,9 @@ def create(vcd_client, **kwargs):
     network_name = ctx.node.properties['resource_id']
     if network_name in _get_network_list(vcd_client):
         return
-    ctx.node.properties["network"]["gateway_ip"]
-    ctx.node.properties["network"]["netmask"]
-    ctx.node.properties["network"]["dns"]
-    ctx.node.properties["network"]["dns_duffix"]
-    ctx.node.properties["network"]["start_address"]
-    ctx.node.properties["network"]["end_address"]
-    ctx.node.properties["network"]["use_gateway"]
-    success, task = create(vcd_client, network_name, ctx.node.properties["network"])
+
+    success, task = network_operations.create(vcd_client, network_name,
+                                              ctx.node.properties["network"])
     if not success:
         raise cfy_exc.NonRecoverableError(
             "Could not create network{0}").format(network_name)
@@ -48,12 +44,13 @@ def create(vcd_client, **kwargs):
 @with_vcd_client
 def delete(vcd_client, **kwargs):
     network_name = ctx.node.properties['resource_id']
-    success, task = delete(vcd_client, network_name)
+    success, task = network_operations.delete(vcd_client, network_name)
     if not success:
         raise cfy_exc.NonRecoverableError(
             "Could not delete network{0}").format(network_name)
     wait_for_task(vcd_client, task)
 
+
 def _get_network_list(vcd_client):
-    vdc=self.vcd_client._get_vdc()
-    return [net.name for net in  vdc.AvailableNetworks.Network]
+    vdc = vcd_client._get_vdc()
+    return [net.name for net in vdc.AvailableNetworks.Network]
