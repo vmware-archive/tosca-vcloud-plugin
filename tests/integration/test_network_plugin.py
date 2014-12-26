@@ -1,14 +1,13 @@
 import mock
 import unittest
-
 from cloudify.mocks import MockCloudifyContext, MockContext,\
     MockNodeContext, MockNodeInstanceContext
-
+from cloudify import context
 from tests.integration import TestCase
 from network_plugin import floatingip
 from network_plugin import network
 from network_plugin.floatingip import VCLOUD_VAPP_NAME
-
+import pdb
 
 class NatRulesOperationsTestCase(TestCase):
 
@@ -21,11 +20,11 @@ class NatRulesOperationsTestCase(TestCase):
             node_name=name,
             properties={},
             target=MockContext({
-                'instance': None,
+                'instance': {},
                 'node': None
             }),
             source=MockContext({
-                'instance': None,
+                'instance': {},
                 'node': None
             }))
 
@@ -41,15 +40,16 @@ class NatRulesOperationsTestCase(TestCase):
         ctx_patch2.start()
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
+        
 
     def tearDown(self):
         super(NatRulesOperationsTestCase, self).tearDown()
 
     def test_nat_rules_create_delete(self):
         self.assertNotIn(self.public_ip, self._collectExternalIps())
-        floatingip.connect_floatingip()
+        floatingip.connect_floatingip(self.ctx)
         self.assertIn(self.public_ip, self._collectExternalIps())
-        floatingip.disconnect_floatingip()
+        floatingip.disconnect_floatingip(self.ctx)
         self.assertNotIn(self.public_ip, self._collectExternalIps())
 
     def _collectExternalIps(self):
@@ -96,6 +96,7 @@ class OrgNetworkOperationsTestCase(TestCase):
     def tearDown(self):
         super(OrgNetworkOperationsTestCase, self).tearDown()
 
+    @unittest.skip("demonstrating skipping")
     def test_orgnetwork_create_delete(self):
         self.assertNotIn(self.net_name,
                          network._get_network_list(self.vcd_client))
