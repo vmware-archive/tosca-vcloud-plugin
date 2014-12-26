@@ -6,6 +6,7 @@ from cloudify.mocks import MockCloudifyContext, MockContext,\
 
 from tests.integration import TestCase
 from network_plugin import floatingip
+from network_plugin import network
 from network_plugin.floatingip import VCLOUD_VAPP_NAME
 
 
@@ -64,6 +65,34 @@ class NatRulesOperationsTestCase(TestCase):
                 else:
                     ips.append(rule.get_TranslatedIp())
         return ips
+
+class OrgNetworkOperationsTestCase(TestCase):
+
+    def setUp(self):
+        super(OrgNetworkOperationsTestCase, self).setUp()
+
+        self.net_name = "test_network"
+
+        ctx_patch1 = mock.patch('network_plugin.network.ctx', self.ctx)
+        ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
+        ctx_patch1.start()
+        ctx_patch2.start()
+        self.addCleanup(ctx_patch1.stop)
+        self.addCleanup(ctx_patch2.stop)
+
+    def tearDown(self):
+        super(OrgNetworkOperationsTestCase, self).tearDown()
+
+    def test_orgnetwork_create_delete(self):
+        self.assertNotIn(self.net_name, network._get_network_list(self.vcd_client))
+        network.create()
+        self.assertIn(self.net_name, network._get_network_list(self.vcd_client))
+        network.delete()
+        self.assertNotIn(self.net_name, network._get_network_list(self.vcd_client))
+
+    def _get_network_list():
+        vdc=self.vcd_client._get_vdc()
+        return [net.name for net in  vdc.AvailableNetworks.Network]
 
 
 if __name__ == '__main__':
