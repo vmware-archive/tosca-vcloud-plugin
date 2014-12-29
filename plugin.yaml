@@ -46,6 +46,14 @@ node_types:
                 default: ''
             vcloud_config:
                 default: {}
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                create:
+                    implementation: vcloud.network_plugin.network.create
+                    inputs: {}
+                delete:
+                    implementation: vcloud.network_plugin.network.delete
+                    inputs: {}
 
     cloudify.vcloud.nodes.Port:
         derived_from: cloudify.nodes.Port
@@ -57,21 +65,21 @@ node_types:
 
     cloudify.vcloud.nodes.FloatingIP:
         derived_from: cloudify.nodes.VirtualIP
-        properties:        
+        properties:
             floatingip:
                 default: {}
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                create:
+                    implementation: vcloud.network_plugin.floatingip.connect_floatingip
+                    inputs: {}
+                delete:
+                    implementation: vcloud.network_plugin.floatingip.disconnect_floatingip
+                    inputs: {}
 
 relationships:
     cloudify.vcloud.server_connected_to_floating_ip:
         derived_from: cloudify.relationships.connected_to
-        source_interfaces:
-            cloudify.interfaces.relationship_lifecycle:
-                establish:
-                    implementation: vcloud.network_plugin.floatingip.connect_floatingip
-                    inputs: {}
-                unlink:
-                    implementation: vcloud.network_plugin.floatingip.disconnect_floatingip
-                    inputs: {}
     cloudify.vcloud.port_connected_to_network:
         derived_from: cloudify.relationships.connected_to
     cloudify.vcloud.server_connected_to_port:
