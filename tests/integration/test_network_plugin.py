@@ -7,7 +7,10 @@ from tests.integration import TestCase
 from network_plugin import floatingip
 from network_plugin import network
 from network_plugin.floatingip import VCLOUD_VAPP_NAME
-import pdb
+
+
+# for skipping test add this before test function:
+# @unittest.skip("demonstrating skipping")
 
 class NatRulesOperationsTestCase(TestCase):
 
@@ -89,7 +92,6 @@ class OrgNetworkOperationsTestCase(TestCase):
     def tearDown(self):
         super(OrgNetworkOperationsTestCase, self).tearDown()
 
-    @unittest.skip("demonstrating skipping")
     def test_orgnetwork_create_delete(self):
         self.assertNotIn(self.net_name,
                          network._get_network_list(self.vcd_client))
