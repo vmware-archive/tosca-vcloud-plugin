@@ -6,7 +6,7 @@ from pyvcloud.schema.vcd.v1_5.schemas.vcloud.networkType import OrgVdcNetworkTyp
     IpRangesType, IpRangeType
 from pyvcloud.helper import generalHelperFunctions as ghf
 import requests
-
+from network_plugin import check_ip
 
 # draft implementation of missed method for network manipulations in pyvcloud
 def create(vcd_client, network_name, properties):
@@ -21,13 +21,13 @@ def create(vcd_client, network_name, properties):
     gateway = ReferenceType(href=vcd_client.get_gateways()[0].me.href)
     gateway.original_tagname_ = "EdgeGateway"
 
-    iprange = IpRangeType(StartAddress=properties["start_address"],
-                          EndAddress=properties["end_address"])
+    iprange = IpRangeType(StartAddress=check_ip(properties["start_address"]),
+                          EndAddress=check_ip(properties["end_address"]))
     ipranges = IpRangesType(IpRange=[iprange])
 
-    ipscope = IpScopeType(IsInherited=False, Gateway=properties["gateway_ip"],
-                          Netmask=properties["netmask"],
-                          Dns1=properties["dns"],
+    ipscope = IpScopeType(IsInherited=False, Gateway=check_ip(properties["gateway_ip"]),
+                          Netmask=check_ip(properties["netmask"]),
+                          Dns1=check_ip(properties["dns"]),
                           DnsSuffix=properties["dns_duffix"],
                           IpRanges=ipranges)
     ipscopes = IpScopesType(IpScope=[ipscope])
