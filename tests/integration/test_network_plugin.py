@@ -1,8 +1,6 @@
 import mock
 import unittest
-from cloudify.mocks import MockCloudifyContext, MockContext,\
-    MockNodeContext, MockNodeInstanceContext
-from cloudify import context
+from cloudify.mocks import MockCloudifyContext, MockNodeInstanceContext
 from tests.integration import TestCase
 from network_plugin import floatingip
 from network_plugin import network
@@ -18,7 +16,7 @@ class NatRulesOperationsTestCase(TestCase):
         super(NatRulesOperationsTestCase, self).setUp()
 
         name = "testnode"
-        self.public_ip = '23.92.245.236'        
+        self.public_ip = '23.92.245.236'
         self.ctx = MockCloudifyContext(
             node_id=name,
             node_name=name,
@@ -30,14 +28,14 @@ class NatRulesOperationsTestCase(TestCase):
         network_relationship.target.instance = MockNodeInstanceContext(
             runtime_properties={VCLOUD_VAPP_NAME: 'ilyashenko'})
         self.ctx.instance.relationships = [network_relationship]
-        
+
         ctx_patch1 = mock.patch('network_plugin.floatingip.ctx', self.ctx)
         ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
         ctx_patch1.start()
         ctx_patch2.start()
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
-        
+
     def tearDown(self):
         super(NatRulesOperationsTestCase, self).tearDown()
 
