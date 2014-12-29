@@ -30,16 +30,18 @@ def _check_ip(address):
     return address
 
 
-def _get_vapp_list(relationships):
-    return [relationship.target for relationship in relationships
-            if VCLOUD_VAPP_NAME
-            in relationship.target.instance.runtime_properties]
+def _get_vapp_name(relationships):
+    try:
+        return [relationship.target.instance.runtime_properties for relationship in relationships
+                if VCLOUD_VAPP_NAME
+                in relationship.target.instance.runtime_properties][0][VCLOUD_VAPP_NAME]
+    except (IndexError, AttributeError):
+        raise cfy_exc.NonRecoverableError("Could not find vApp by name")
 
 
 def _get_vm_ip(vcd_client, ctx):
     try:
-        vappName = _get_vapp_list(
-            ctx.instance.relationships)[0][VCLOUD_VAPP_NAME]
+        vappName = _get_vapp_name(ctx.instance.relationships)
         vapp = vcd_client.get_vApp(vappName)
         if not vapp:
             raise cfy_exc.NonRecoverableError("Could not find vApp")
@@ -82,10 +84,10 @@ def _nat_operation(vcd_client, gateway, rule_type, original_ip, translated_ip,
 
 def _floatingip_operation(vcd_client, ctx, operation):
     gateway = vcd_client.get_gateway(
-        ctx.target.node.properties['floatingip']['gateway'])
+        ctx.node.properties['floatingip']['gateway'])
     if gateway:
         external_ip = _check_ip(
-            ctx.target.node.properties['floatingip']['public_ip'])
+            ctx.node.properties['floatingip']['public_ip'])
         internal_ip = _check_ip(_get_vm_ip(vcd_client, ctx))
         _nat_operation(vcd_client, gateway, "SNAT", internal_ip, external_ip,
                        operation)
