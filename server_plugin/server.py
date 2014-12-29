@@ -136,6 +136,7 @@ def get_state(vcd_client, **kwargs):
     vapp = vcd_client.get_vApp(vapp_name)
     nw_connections = _get_vm_network_connections(vapp)
     if len(nw_connections) == 0:
+        ctx.logger.info("No networks connected")
         ctx.instance.runtime_properties['ip'] = None
         ctx.instance.runtime_properties['networks'] = {}
         return True
@@ -145,6 +146,8 @@ def get_state(vcd_client, **kwargs):
         networks[connection['network_name']] = connection['ip']
         if connection['network_name'] == management_network_name:
             if connection['ip']:
+                ctx.logger.info("Management network ip address {0}"
+                                .format(connection['ip']))
                 ctx.instance.runtime_properties['ip'] = connection['ip']
                 ctx.instance.runtime_properties['networks'] = networks
                 return True
