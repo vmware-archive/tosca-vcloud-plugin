@@ -30,6 +30,7 @@ node_templates:
         properties:
             port:
                 network: CFY-Internal
+                ip_allocation_mode: manual
                 ip_address: 192.168.10.32
                 mac_address: 00:50:56:01:01:49
                 primary_interface: true

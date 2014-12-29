@@ -49,7 +49,7 @@ def create(vcd_client, **kwargs):
 
     create_args = {
         '--deploy': True,
-        '--on': True,
+        '--on': False,
         '--blocking': False,
         '--network': management_network,
         '--fencemode': None
@@ -75,10 +75,9 @@ def create(vcd_client, **kwargs):
                 connections_primary_index = index
             ip_address = port.node.properties['port'].get('ip_address')
             mac_address = port.node.properties['port'].get('mac_address')
-            if ip_address:
-                ip_allocation_mode = 'STATIC'
-            else:
-                ip_allocation_mode = 'DHCP'
+            ip_allocation_mode = port.node.properties['port']\
+                .get('ip_allocation_mode', 'DHCP').upper()
+
             vapp = vcd_client.get_vApp(vapp_name)
             connection_args = {
                 'network_name': network_name,
@@ -145,9 +144,9 @@ def get_state(vcd_client, **kwargs):
     for connection in nw_connections:
         networks[connection['network_name']] = connection['ip']
         if connection['network_name'] == management_network_name:
+            ctx.logger.info("Management network ip address {0}"
+                            .format(connection['ip']))
             if connection['ip']:
-                ctx.logger.info("Management network ip address {0}"
-                                .format(connection['ip']))
                 ctx.instance.runtime_properties['ip'] = connection['ip']
                 ctx.instance.runtime_properties['networks'] = networks
                 return True
@@ -162,18 +161,7 @@ def _get_vm_network_connections(vapp):
     connections = vapp.get_vms_network_info()[0]
     return filter(lambda network: network['is_connected'], connections)
 
+
 def _get_connected_ports(relationships):
     return [relationship.target for relationship in relationships
             if 'port' in relationship.target.node.properties]
-
-def _get_connected_networks(relationships):
-    return [relationship.target for relationship in relationships
-            if VCLOUD_NETWORK_NAME
-            in relationship.target.instance.runtime_properties]
-
-
-def _get_management_network_name():
-    networks = _get_connected_networks()
-    for network in networks:
-        if network.node.properties['management'] is True:
-            return network.instance.runtime_properties[VCLOUD_NETWORK_NAME]
