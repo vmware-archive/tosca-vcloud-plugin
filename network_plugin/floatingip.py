@@ -30,12 +30,19 @@ def _check_ip(address):
     return address
 
 
+def _get_vapp_list(relationships):
+    return [relationship.target for relationship in relationships
+            if VCLOUD_VAPP_NAME
+            in relationship.target.instance.runtime_properties]
+
+
 def _get_vm_ip(vcd_client, ctx):
-    vappName = ctx.source.instance.runtime_properties[VCLOUD_VAPP_NAME]
-    vapp = vcd_client.get_vApp(vappName)
-    if not vapp:
-        raise cfy_exc.NonRecoverableError("Could not find vApp")
     try:
+        vappName = _get_vapp_list(
+            ctx.instance.relationships)[0][VCLOUD_VAPP_NAME]
+        vapp = vcd_client.get_vApp(vappName)
+        if not vapp:
+            raise cfy_exc.NonRecoverableError("Could not find vApp")
         vm_info = vapp.get_vms_network_info()
         # assume that we have 1 vm per vApp with minium 1 connection
         connection = vm_info[0][0]
