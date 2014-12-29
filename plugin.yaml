@@ -68,6 +68,8 @@ node_types:
         properties:
             floatingip:
                 default: {}
+            vcloud_config:
+                default: {}
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
