@@ -1,9 +1,8 @@
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
-from IPy import IP
 from vcloud_plugin_common import with_vcd_client, wait_for_task
-
+from network_plugin import check_ip
 CREATE = 1
 DELETE = 2
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
@@ -19,15 +18,6 @@ def connect_floatingip(vcd_client, **kwargs):
 @with_vcd_client
 def disconnect_floatingip(vcd_client, **kwargs):
     _floatingip_operation(vcd_client, ctx, DELETE)
-
-
-def _check_ip(address):
-    try:
-        IP(address)
-    except ValueError:
-        raise cfy_exc.NonRecoverableError(
-            "Incorrect Ip addres: {0}".format(address))
-    return address
 
 
 def _get_vapp_name(relationships):
@@ -90,9 +80,9 @@ def _floatingip_operation(vcd_client, ctx, operation):
     gateway = vcd_client.get_gateway(
         ctx.node.properties['floatingip']['gateway'])
     if gateway:
-        external_ip = _check_ip(
+        external_ip = check_ip(
             ctx.node.properties['floatingip']['public_ip'])
-        internal_ip = _check_ip(_get_vm_ip(vcd_client, ctx))
+        internal_ip = check_ip(_get_vm_ip(vcd_client, ctx))
         _nat_operation(vcd_client, gateway, "SNAT", internal_ip, external_ip,
                        operation)
         _nat_operation(vcd_client, gateway, "DNAT", external_ip, internal_ip,
