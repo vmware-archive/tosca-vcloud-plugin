@@ -30,6 +30,15 @@ inputs:
     manager_server_template:
         type: string
 
+    management_network_name:
+        type: string
+
+    floating_ip_gateway:
+        type: string
+
+    floating_ip_public_ip:
+        type: string
+
 node_types:
     vcloud_configuration:
         derived_from: cloudify.nodes.Root
@@ -45,7 +54,19 @@ node_templates:
                 name: { get_input: manager_server_name }
                 catalog: { get_input: manager_server_catalog }
                 template: { get_input: manager_server_template }
+            management_network: { get_input: management_network_name }
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+
+    manager_floating_ip:
+        type: cloudify.vcloud.nodes.FloatingIP
+        properties:
+            floatingip:
+                gateway: { get_input: floating_ip_gateway }
+                public_ip: { get_input: floating_ip_public_ip }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+        relationships:
+            - target: manager_server
+              type: cloudify.vcloud.server_connected_to_floating_ip
 
     vcloud_configuration:
         type: vcloud_configuration

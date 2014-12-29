@@ -6,5 +6,8 @@
     "vcloud_vcd": "",
     "manager_server_name": "",
     "manager_server_catalog": "",
-    "manager_server_template": ""
+    "manager_server_template": "",
+    "management_network_name": "",
+    "floating_ip_gateway": "",
+    "floating_ip_public_ip": ""
 }
