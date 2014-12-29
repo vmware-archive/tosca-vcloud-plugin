@@ -1,13 +1,13 @@
 import mock
 import unittest
-
 from cloudify.mocks import MockCloudifyContext, MockContext,\
     MockNodeContext, MockNodeInstanceContext
-
+from cloudify import context
 from tests.integration import TestCase
 from network_plugin import floatingip
+from network_plugin import network
 from network_plugin.floatingip import VCLOUD_VAPP_NAME
-
+import pdb
 
 class NatRulesOperationsTestCase(TestCase):
 
@@ -20,11 +20,11 @@ class NatRulesOperationsTestCase(TestCase):
             node_name=name,
             properties={},
             target=MockContext({
-                'instance': None,
+                'instance': {},
                 'node': None
             }),
             source=MockContext({
-                'instance': None,
+                'instance': {},
                 'node': None
             }))
 
@@ -40,15 +40,16 @@ class NatRulesOperationsTestCase(TestCase):
         ctx_patch2.start()
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
+        
 
     def tearDown(self):
         super(NatRulesOperationsTestCase, self).tearDown()
 
     def test_nat_rules_create_delete(self):
         self.assertNotIn(self.public_ip, self._collectExternalIps())
-        floatingip.connect_floatingip()
+        floatingip.connect_floatingip(self.ctx)
         self.assertIn(self.public_ip, self._collectExternalIps())
-        floatingip.disconnect_floatingip()
+        floatingip.disconnect_floatingip(self.ctx)
         self.assertNotIn(self.public_ip, self._collectExternalIps())
 
     def _collectExternalIps(self):
@@ -64,6 +65,47 @@ class NatRulesOperationsTestCase(TestCase):
                 else:
                     ips.append(rule.get_TranslatedIp())
         return ips
+
+
+class OrgNetworkOperationsTestCase(TestCase):
+
+    def setUp(self):
+        super(OrgNetworkOperationsTestCase, self).setUp()
+
+        self.net_name = "test_network"
+        self.ctx = MockCloudifyContext(
+            node_id=self.net_name,
+            node_name=self.net_name,
+            properties={"resource_id": self.net_name,
+                        "network":
+                        {"start_address": "192.168.0.100",
+                         "end_address": "192.168.0.199",
+                         "gateway_ip": "192.168.0.1",
+                         "netmask": "255.255.255.0",
+                         "dns": "10.147.115.1",
+                         "dns_duffix": "example.com"},
+                        "use_external_resource": False})
+
+        ctx_patch1 = mock.patch('network_plugin.network.ctx', self.ctx)
+        ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
+        ctx_patch1.start()
+        ctx_patch2.start()
+        self.addCleanup(ctx_patch1.stop)
+        self.addCleanup(ctx_patch2.stop)
+
+    def tearDown(self):
+        super(OrgNetworkOperationsTestCase, self).tearDown()
+
+    @unittest.skip("demonstrating skipping")
+    def test_orgnetwork_create_delete(self):
+        self.assertNotIn(self.net_name,
+                         network._get_network_list(self.vcd_client))
+        network.create()
+        self.assertIn(self.net_name,
+                      network._get_network_list(self.vcd_client))
+        network.delete()
+        self.assertNotIn(self.net_name,
+                         network._get_network_list(self.vcd_client))
 
 
 if __name__ == '__main__':
