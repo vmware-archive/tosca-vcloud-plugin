@@ -29,7 +29,9 @@ def create(vcd_client, **kwargs):
             ctx.node.properties['resource_id']
         ctx.logger.info("External resource has been used")
         return
-    network_name = ctx.node.properties['resource_id']
+    network_name = ctx.node.properties["network"]["name"]\
+        if "name" in ctx.node.properties["network"]\
+           else ctx.node.properties['resource_id']
     if network_name in _get_network_list(vcd_client):
         ctx.logger.info("Network {0} already exists".format(network_name))
         return
@@ -45,7 +47,9 @@ def create(vcd_client, **kwargs):
 @operation
 @with_vcd_client
 def delete(vcd_client, **kwargs):
-    network_name = ctx.node.properties['resource_id']
+    network_name = ctx.node.properties["network"]["name"]\
+        if "name" in ctx.node.properties["network"]\
+           else ctx.node.properties['resource_id']
     success, task = network_operations.delete(vcd_client, network_name)
     if not success:
         raise cfy_exc.NonRecoverableError(
