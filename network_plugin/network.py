@@ -47,6 +47,11 @@ def create(vcd_client, **kwargs):
 @operation
 @with_vcd_client
 def delete(vcd_client, **kwargs):
+    if ctx.node.properties['use_external_resource'] is True:
+        del ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME]
+        ctx.logger.info("Network was not deleted - external resource has"
+                        " been used")
+        return
     network_name = ctx.node.properties["network"]["name"]\
         if "name" in ctx.node.properties["network"]\
            else ctx.node.properties['resource_id']
