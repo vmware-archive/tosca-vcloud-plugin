@@ -3,6 +3,7 @@ from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import with_vcd_client, wait_for_task
 from network_plugin import check_ip, collectExternalIps
+
 CREATE = 1
 DELETE = 2
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
@@ -21,58 +22,58 @@ def disconnect_floatingip(vcd_client, **kwargs):
 
 
 def _floatingip_operation(operation, vcd_client, ctx):
+    def isExternalIpExsists():
+        return external_ip in collectExternalIps(gateway)
+
+    def showMessage(message):
+        ctx.logger.info(message.format(external_ip))
+
     gateway = vcd_client.get_gateway(
         ctx.node.properties['floatingip']['gateway'])
-    if gateway:
-        external_ip = check_ip(
-            ctx.node.properties['floatingip']['public_ip'])
-        internal_ip = check_ip(_get_vm_ip(vcd_client, ctx))
-
-        if operation == CREATE:
-            if external_ip in collectExternalIps(gateway):
-                ctx.logger.info(
-                    "Rule with IP: {0} already exists".format(external_ip))
-                return
-        elif operation == DELETE:
-            if external_ip not in collectExternalIps(gateway):
-                ctx.logger.info(
-                    "Rule with IP: {0} absent".format(external_ip))
-                return
-        else:
-            raise cfy_exc.NonRecoverableError(
-                "Unknown operation {0}").format(operation)
-
-        _nat_operation(vcd_client, gateway, "SNAT", internal_ip, external_ip,
-                       operation)
-        _nat_operation(vcd_client, gateway, "DNAT", external_ip, internal_ip,
-                       operation)
-    else:
+    if not gateway:
         raise cfy_exc.NonRecoverableError("Gateway not found")
 
-    
-def _nat_operation(vcd_client, gateway, rule_type, original_ip, translated_ip,
-                   operation):
+    external_ip = check_ip(
+        ctx.node.properties['floatingip']['public_ip'])
+    internal_ip = check_ip(_get_vm_ip(vcd_client, ctx))
+
     function = None
-    operation_description = None
+    description = None
+
+    if operation == CREATE:
+        if isExternalIpExsists():
+            showMessage("Rule with IP: {0} already exists")
+            return
+        function = gateway.add_nat_rule
+        description = "create"
+    elif operation == DELETE:
+        if not isExternalIpExsists():
+            showMessage("Rule with IP: {0} absent")
+            return
+        function = gateway.del_nat_rule
+        description = "delete"
+    else:
+        raise cfy_exc.NonRecoverableError(
+            "Unknown operation {0}").format(operation)
+
+    _nat_operation(function, description, vcd_client, "SNAT",
+                   internal_ip, external_ip)
+    _nat_operation(function, description, vcd_client, "DNAT",
+                   external_ip, internal_ip)
+
+
+def _nat_operation(function, description, vcd_client,
+                   rule_type, original_ip, translated_ip):
     any_type = None
 
     if rule_type == "DNAT":
         any_type = "Any"
 
-    if operation == CREATE:
-        function = gateway.add_nat_rule
-        operation_description = "create"
-    elif operation == DELETE:
-        function = gateway.del_nat_rule
-        operation_description = "delete"
-    else:
-        cfy_exc.NonRecoverableError("Unknown operation")
-
     success, task, _ = function(rule_type, original_ip, any_type,
                                 translated_ip, any_type, any_type)
     if not success:
         raise cfy_exc.NonRecoverableError(
-            "Could not {0} {1} rule").format(operation_description, rule_type)
+            "Could not {0} {1} rule").format(description, rule_type)
     wait_for_task(vcd_client, task)
 
 

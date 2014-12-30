@@ -41,11 +41,14 @@ class NatRulesOperationsTestCase(TestCase):
         super(NatRulesOperationsTestCase, self).tearDown()
 
     def test_nat_rules_create_delete(self):
-        self.assertNotIn(self.public_ip, collectExternalIps(self._get_gateway()))
+        self.assertNotIn(self.public_ip, collectExternalIps(
+            self._get_gateway()))
         floatingip.connect_floatingip()
-        self.assertIn(self.public_ip, collectExternalIps(self._get_gateway()))
+        self.assertIn(self.public_ip, collectExternalIps(
+            self._get_gateway()))
         floatingip.disconnect_floatingip()
-        self.assertNotIn(self.public_ip, collectExternalIps(self._get_gateway()))
+        self.assertNotIn(self.public_ip, collectExternalIps(
+            self._get_gateway()))
 
     def _get_gateway(self):
         return self.vcd_client.get_gateway(
@@ -81,7 +84,6 @@ class OrgNetworkOperationsTestCase(TestCase):
     def tearDown(self):
         super(OrgNetworkOperationsTestCase, self).tearDown()
 
-    @unittest.skip("demonstrating skipping")
     def test_orgnetwork_create_delete(self):
         self.assertNotIn(self.net_name,
                          network._get_network_list(self.vcd_client))
