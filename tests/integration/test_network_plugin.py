@@ -3,12 +3,13 @@ import unittest
 from cloudify.mocks import MockCloudifyContext, MockNodeInstanceContext
 from tests.integration import TestCase
 from network_plugin import floatingip
-from network_plugin import network
+from network_plugin import network, collectExternalIps
 from network_plugin.floatingip import VCLOUD_VAPP_NAME
 
 
 # for skipping test add this before test function:
 # @unittest.skip("demonstrating skipping")
+
 
 class NatRulesOperationsTestCase(TestCase):
 
@@ -40,25 +41,18 @@ class NatRulesOperationsTestCase(TestCase):
         super(NatRulesOperationsTestCase, self).tearDown()
 
     def test_nat_rules_create_delete(self):
-        self.assertNotIn(self.public_ip, self._collectExternalIps())
+        self.assertNotIn(self.public_ip, collectExternalIps(
+            self._get_gateway()))
         floatingip.connect_floatingip()
-        self.assertIn(self.public_ip, self._collectExternalIps())
+        self.assertIn(self.public_ip, collectExternalIps(
+            self._get_gateway()))
         floatingip.disconnect_floatingip()
-        self.assertNotIn(self.public_ip, self._collectExternalIps())
+        self.assertNotIn(self.public_ip, collectExternalIps(
+            self._get_gateway()))
 
-    def _collectExternalIps(self):
-        ips = []
-        gateway = self.vcd_client.get_gateway(
+    def _get_gateway(self):
+        return self.vcd_client.get_gateway(
             self.ctx.node.properties['floatingip']['gateway'])
-        if gateway:
-            for natRule in gateway.get_nat_rules():
-                rule = natRule.get_GatewayNatRule()
-                rule_type = natRule.get_RuleType()
-                if rule_type == "DNAT":
-                    ips.append(rule.get_OriginalIp())
-                else:
-                    ips.append(rule.get_TranslatedIp())
-        return ips
 
 
 class OrgNetworkOperationsTestCase(TestCase):
