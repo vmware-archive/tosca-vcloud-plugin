@@ -47,7 +47,7 @@ class NatRulesOperationsTestCase(TestCase):
         self.assertIn(self.public_ip, collectExternalIps(
             self._get_gateway()))
         floatingip.disconnect_floatingip()
-        selfgit.assertNotIn(self.public_ip, collectExternalIps(
+        self.assertNotIn(self.public_ip, collectExternalIps(
             self._get_gateway()))
 
     def _get_gateway(self):
