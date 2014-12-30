@@ -2,7 +2,7 @@ from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import with_vcd_client, wait_for_task
-from network_plugin import check_ip
+from network_plugin import check_ip, collectExternalIps
 CREATE = 1
 DELETE = 2
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
@@ -83,6 +83,10 @@ def _floatingip_operation(vcd_client, ctx, operation):
         external_ip = check_ip(
             ctx.node.properties['floatingip']['public_ip'])
         internal_ip = check_ip(_get_vm_ip(vcd_client, ctx))
+        if collectExternalIps(gateway):
+            ctx.logger.info(
+                "Rule with IP: {0} already exists".format(external_ip))
+            return
         _nat_operation(vcd_client, gateway, "SNAT", internal_ip, external_ip,
                        operation)
         _nat_operation(vcd_client, gateway, "DNAT", external_ip, internal_ip,
