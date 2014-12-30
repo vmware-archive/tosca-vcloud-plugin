@@ -13,6 +13,7 @@
 #  * limitations under the License.
 
 import atexit
+from collections import OrderedDict
 from functools import wraps
 import json
 import os
@@ -101,6 +102,15 @@ class VcloudDirectorClient(object):
         if not (service and vdc):
             raise cfy_exc.NonRecoverableError(
                 "vCloud service and vDC must be specified")
+
+        creds = OrderedDict([('username', username),
+                             ('password', password),
+                             ('token', token),
+                             ('url', url),
+                             ('service', service),
+                             ('vdc', vdc)])
+        ctx.logger.info("Provided vCloud credentials: {0}"
+                        .format(json.dumps(creds, indent=4)))
 
         vca = vcloudair.VCA()
         success = vca.login(url, username, password, token)
