@@ -71,8 +71,9 @@ def _nat_operation(function, description, vcd_client,
 
     ctx.logger.info("{0} floating ip NAT rule: original_ip '{1}',"
                     "translated_ip '{2}', rule type '{3}'"
-                    .format(operation_description, original_ip,
+                    .format(description, original_ip,
                             translated_ip, rule_type))
+
     success, task, _ = function(rule_type, original_ip, any_type,
                                 translated_ip, any_type, any_type)
     if not success:
