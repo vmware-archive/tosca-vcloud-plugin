@@ -5,7 +5,7 @@ from tests.integration import TestCase
 from network_plugin import floatingip
 from network_plugin import network, collectExternalIps
 from network_plugin.floatingip import VCLOUD_VAPP_NAME
-collectExternalIps
+
 
 # for skipping test add this before test function:
 # @unittest.skip("demonstrating skipping")
@@ -47,7 +47,7 @@ class NatRulesOperationsTestCase(TestCase):
         self.assertIn(self.public_ip, collectExternalIps(
             self._get_gateway()))
         floatingip.disconnect_floatingip()
-        self.assertNotIn(self.public_ip, collectExternalIps(
+        selfgit.assertNotIn(self.public_ip, collectExternalIps(
             self._get_gateway()))
 
     def _get_gateway(self):
