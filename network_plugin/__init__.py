@@ -20,4 +20,4 @@ def collectExternalIps(gateway):
                 ips.append(rule.get_OriginalIp())
             else:
                 ips.append(rule.get_TranslatedIp())
-                return ips
+    return set(ips)
