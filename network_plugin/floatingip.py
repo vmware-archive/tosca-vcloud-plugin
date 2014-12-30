@@ -3,10 +3,11 @@ from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import with_vcd_client, wait_for_task
 from network_plugin import check_ip, collectExternalIps
+from server_plugin.server import VCLOUD_VAPP_NAME
 
 CREATE = 1
 DELETE = 2
-VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
+PUBLIC_IP = 'public_ip'
 
 
 @operation
@@ -60,6 +61,11 @@ def _floatingip_operation(operation, vcd_client, ctx):
                    internal_ip, external_ip)
     _nat_operation(function, description, vcd_client, "DNAT",
                    external_ip, internal_ip)
+
+    if operation == CREATE:
+        ctx.instance.runtime_properties[PUBLIC_IP] = external_ip
+    else:
+        del ctx.instance.runtime_properties[PUBLIC_IP]
 
 
 def _nat_operation(function, description, vcd_client,
