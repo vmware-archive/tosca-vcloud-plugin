@@ -16,7 +16,6 @@ from cloudify import ctx
 from cloudify.decorators import operation
 from cloudify import exceptions as cfy_exc
 
-from network_plugin.network import VCLOUD_NETWORK_NAME
 from vcloud_plugin_common import (transform_resource_name,
                                   wait_for_task,
                                   with_vcd_client)
@@ -48,7 +47,7 @@ def create(vcd_client, **kwargs):
     management_network = ctx.node.properties['management_network']
 
     create_args = {
-        '--deploy': True,
+        '--deploy': False,
         '--on': False,
         '--blocking': False,
         '--network': management_network,
@@ -64,6 +63,7 @@ def create(vcd_client, **kwargs):
 
     task = result.get_Tasks().get_Task()[0]
     wait_for_task(vcd_client, task)
+    ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = server['name']
 
     ports = _get_connected_ports(ctx.instance.relationships)
 
@@ -95,8 +95,6 @@ def create(vcd_client, **kwargs):
                     "Could not connect vApp {0} to network {1}: {2}"
                     .format(vapp_name, network_name, result))
             wait_for_task(vcd_client, result)
-
-    ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = server['name']
 
 
 @operation
