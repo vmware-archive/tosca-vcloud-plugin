@@ -36,12 +36,12 @@ def create(vcd_client, **kwargs):
         ctx.logger.info("Network {0} already exists".format(network_name))
         return
 
-    success, task = network_operations.create(vcd_client, network_name,
-                                              ctx.node.properties["network"])
+    success, result = network_operations.create(vcd_client, network_name,
+                                                ctx.node.properties["network"])
     if not success:
         raise cfy_exc.NonRecoverableError(
-            "Could not create network{0}").format(network_name)
-    wait_for_task(vcd_client, task)
+            "Could not create network{0}: {1}".format(network_name, result))
+    wait_for_task(vcd_client, result)
 
 
 @operation

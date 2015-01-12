@@ -44,14 +44,11 @@ def create(vcd_client, **kwargs):
     vapp_template = server['template']
     vapp_catalog = server['catalog']
 
-    management_network = ctx.node.properties['management_network']
-
     create_args = {
         '--deploy': False,
         '--on': False,
         '--blocking': False,
-        '--network': management_network,
-        '--fencemode': None
+        '--network': None,
         }
     ctx.logger.info("Creating VApp with parameters: {0}".format(str(server)))
     success, result = vcd_client.create_vApp(
@@ -69,16 +66,30 @@ def create(vcd_client, **kwargs):
 
     if len(ports) > 0:
         for index, port in enumerate(ports):
-            network_name = port.node.properties['port']['network']
-            connections_primary_index = None
-            if port.node.properties['port'].get('primary_interface'):
-                connections_primary_index = index
-            ip_address = port.node.properties['port'].get('ip_address')
-            mac_address = port.node.properties['port'].get('mac_address')
-            ip_allocation_mode = port.node.properties['port']\
-                .get('ip_allocation_mode', 'DHCP').upper()
-
             vapp = vcd_client.get_vApp(vapp_name)
+            port_properties = port.node.properties['port']
+            network_name = port_properties['network']
+            network_href = vcd_client.get_network_href(network_name)
+            if network_href is None:
+                raise cfy_exc.NonRecoverableError(
+                    "Could not find network {0}".format(network_name))
+
+            success, result = vapp.add_network(network_name,
+                                               network_href,
+                                               'bridged')
+            if success is False:
+                raise cfy_exc.NonRecoverableError(
+                    "Could not add network {0} to VApp {1}: {2}"
+                    .format(network_name, vapp_name, result))
+            wait_for_task(vcd_client, result)
+
+            connections_primary_index = None
+            if port_properties.get('primary_interface'):
+                connections_primary_index = index
+            ip_address = port_properties.get('ip_address')
+            mac_address = port_properties.get('mac_address')
+            ip_allocation_mode = port_properties.get('ip_allocation_mode',
+                                                     'DHCP').upper()
             connection_args = {
                 'network_name': network_name,
                 'connection_index': index,

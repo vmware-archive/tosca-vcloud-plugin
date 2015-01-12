@@ -16,7 +16,7 @@ node_templates:
         properties:
             install_agent: false
             server:
-                name: cfy-plugin-example-server2
+                name: cfy-plugin-example-server
                 catalog: giga
                 template: plugin-test-VApp
             management_network: CFY-Internal
@@ -24,16 +24,19 @@ node_templates:
         relationships:
             - target: example_port
               type: cloudify.vcloud.server_connected_to_port
+            - target: example_port2
+              type: cloudify.vcloud.server_connected_to_port
 
     example_port:
         type: cloudify.vcloud.nodes.Port
         properties:
             port:
                 network: CFY-Internal
-                ip_allocation_mode: manual
-                ip_address: 192.168.10.32
-                mac_address: 00:50:56:01:01:49
+                ip_allocation_mode: dhcp
+                #ip_address: 192.168.10.32
+                #mac_address: 00:50:56:01:01:49
                 primary_interface: true
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
         relationships:
             - target: example_network
               type: cloudify.vcloud.port_connected_to_network
@@ -43,6 +46,33 @@ node_templates:
         properties:
             use_external_resource: true
             resource_id: CFY-Internal
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+
+    example_port2:
+        type: cloudify.vcloud.nodes.Port
+        properties:
+            port:
+                network: plugin-test-nw
+                ip_allocation_mode: manual
+                ip_address: 10.10.0.2
+                primary_interface: false
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+        relationships:
+            - target: example_network2
+              type: cloudify.vcloud.port_connected_to_network
+
+    example_network2:
+        type: cloudify.vcloud.nodes.Network
+        properties:
+            network:
+                name: plugin-test-nw
+                start_address: 10.10.0.2
+                end_address: 10.10.0.254
+                netmask: 255.255.255.0
+                gateway_ip: 10.10.0.1/24
+                dns: 10.10.0.1
+                dns_duffix: test
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
     vcloud_configuration:
         type: vcloud_configuration
