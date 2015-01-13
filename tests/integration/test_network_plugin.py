@@ -40,11 +40,27 @@ class NatRulesOperationsTestCase(TestCase):
     def tearDown(self):
         super(NatRulesOperationsTestCase, self).tearDown()
 
-    def test_nat_rules_create_delete(self):
+    def test_nat_rules_create_delete_with_explicit_ip(self):
+        self.ctx.node.properties['floatingip'].clear()
+        self.ctx.node.properties['floatingip'].update({'public_ip': self.public_ip,
+                                                       'gateway': 'M966854774-4471'})
         self.assertNotIn(self.public_ip, collectExternalIps(
             self._get_gateway()))
         floatingip.connect_floatingip()
         self.assertIn(self.public_ip, collectExternalIps(
+            self._get_gateway()))
+        floatingip.disconnect_floatingip()
+        self.assertNotIn(self.public_ip, collectExternalIps(
+            self._get_gateway()))
+
+    def test_nat_rules_create_delete_with_autoget_ip(self):
+        self.ctx.node.properties['floatingip'].clear()
+        self.ctx.node.properties['floatingip'].update({'gateway': 'M966854774-4471'})
+        floatingip.connect_floatingip()
+        public_ip = self.ctx.instance.runtime_properties['public_ip']
+        print "public ip", public_ip
+        assert(public_ip)
+        self.assertIn(public_ip, collectExternalIps(
             self._get_gateway()))
         floatingip.disconnect_floatingip()
         self.assertNotIn(self.public_ip, collectExternalIps(
