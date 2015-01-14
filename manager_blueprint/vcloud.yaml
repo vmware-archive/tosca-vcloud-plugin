@@ -2,7 +2,7 @@ tosca_definitions_version: cloudify_dsl_1_0
 
 imports:
     - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
-    - https://raw.githubusercontent.com/achirko/tosca-vcloud-plugin/develop/plugin.yaml
+    - https://raw.githubusercontent.com/cloudify-cosmo/tosca-vcloud-plugin/develop/plugin.yaml
     - http://www.getcloudify.org/spec/fabric-plugin/1.1/plugin.yaml
 
 inputs:
@@ -33,11 +33,24 @@ inputs:
     management_network_name:
         type: string
 
+    management_port_ip_allocation_mode:
+        type: string
+        default: dhcp
+
+    management_port_ip_address:
+        type: string
+        default: ''
+
+    management_port_mac_address:
+        type: string
+        default: ''
+
     floating_ip_gateway:
         type: string
 
     floating_ip_public_ip:
         type: string
+        default: ''
 
     agents_user:
         type: string
@@ -76,6 +89,27 @@ node_templates:
                 catalog: { get_input: manager_server_catalog }
                 template: { get_input: manager_server_template }
             management_network: { get_input: management_network_name }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+        relationships:
+            - target: management_port
+              type: cloudify.vcloud.server_connected_to_port
+
+    management_port:
+        type: cloudify.vcloud.nodes.Port
+        properties:
+            port:
+                network: { get_input: management_network_name }
+                ip_allocation_mode: { get_input: management_port_ip_allocation_mode }
+                ip_address: { get_input: management_port_ip_address }
+                mac_address: { get_input: management_port_mac_address }
+                primary_interface: true
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+
+    management_network:
+        type: cloudify.vcloud.nodes.Network
+        properties:
+            use_external_resource: true
+            resource_id: { get_input: management_network_name }
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
     manager_floating_ip:
