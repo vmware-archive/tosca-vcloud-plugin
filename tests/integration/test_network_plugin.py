@@ -2,10 +2,10 @@ import mock
 import unittest
 from cloudify.mocks import MockCloudifyContext, MockNodeInstanceContext
 from tests.integration import TestCase
-from network_plugin import floatingip
-from network_plugin import network, collectExternalIps
+from network_plugin import floatingip, network
 from network_plugin.floatingip import VCLOUD_VAPP_NAME
-
+from network_plugin import isExternalIpAssigned
+from cloudify import exceptions as cfy_exc
 
 # for skipping test add this before test function:
 # @unittest.skip("demonstrating skipping")
@@ -44,27 +44,26 @@ class NatRulesOperationsTestCase(TestCase):
         self.ctx.node.properties['floatingip'].clear()
         self.ctx.node.properties['floatingip'].update({'public_ip': self.public_ip,
                                                        'gateway': 'M966854774-4471'})
-        self.assertNotIn(self.public_ip, collectExternalIps(
-            self._get_gateway()))
+        check_external = lambda: isExternalIpAssigned(self.public_ip, self._get_gateway())
+        self.assertFalse(check_external())
         floatingip.connect_floatingip()
-        self.assertIn(self.public_ip, collectExternalIps(
-            self._get_gateway()))
+        self.assertTrue(check_external())
+        self.assertRaises(cfy_exc.NonRecoverableError, floatingip.connect_floatingip)
         floatingip.disconnect_floatingip()
-        self.assertNotIn(self.public_ip, collectExternalIps(
-            self._get_gateway()))
+        self.assertFalse(check_external())
 
     def test_nat_rules_create_delete_with_autoget_ip(self):
         self.ctx.node.properties['floatingip'].clear()
         self.ctx.node.properties['floatingip'].update({'gateway': 'M966854774-4471'})
+
         floatingip.connect_floatingip()
         public_ip = self.ctx.instance.runtime_properties['public_ip']
-        print "public ip", public_ip
-        assert(public_ip)
-        self.assertIn(public_ip, collectExternalIps(
-            self._get_gateway()))
+        check_external = lambda: isExternalIpAssigned(public_ip, self._get_gateway())
+        self.assertTrue(public_ip)
+        self.assertTrue(check_external())
+        self.assertRaises(cfy_exc.NonRecoverableError, floatingip.connect_floatingip)
         floatingip.disconnect_floatingip()
-        self.assertNotIn(self.public_ip, collectExternalIps(
-            self._get_gateway()))
+        self.assertFalse(check_external())
 
     def _get_gateway(self):
         return self.vcd_client.get_gateway(
@@ -100,6 +99,7 @@ class OrgNetworkOperationsTestCase(TestCase):
     def tearDown(self):
         super(OrgNetworkOperationsTestCase, self).tearDown()
 
+    @unittest.skip("demonstrating skipping")
     def test_orgnetwork_create_delete(self):
         self.assertNotIn(self.net_name,
                          network._get_network_list(self.vcd_client))
