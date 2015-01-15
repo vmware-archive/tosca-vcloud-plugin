@@ -3,10 +3,14 @@ from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType,\
     queryRecordViewType, networkType
 from pyvcloud.schema.vcd.v1_5.schemas.vcloud.networkType import OrgVdcNetworkType,\
     ReferenceType, NetworkConfigurationType, IpScopesType, IpScopeType,\
-    IpRangesType, IpRangeType
+    IpRangesType, IpRangeType, DhcpPoolServiceType
 from pyvcloud.helper import generalHelperFunctions as ghf
 import requests
 from network_plugin import check_ip
+import collections
+
+DEFAULT_LEASE = 3600
+MAX_LEASE = 7200
 
 # draft implementation of missed method for network manipulations in pyvcloud
 def create(vcd_client, network_name, properties):
@@ -85,3 +89,41 @@ def _get_network_ref(vdc, headers, name):
         for record in queryResultRecords.get_Record():
             if record.name == name:
                 return record.href
+
+
+def add_pool(vcd_client, network_name, dhcp_settings):
+    name = "my_net"
+    gateway = vcd_client.get_gateways()[0]
+    if not gateway:
+        raise cfy_exc.NonRecoverableError("Gateway not found")
+    gatewayConfiguration = gateway.me.get_Configuration()
+    edgeGatewayServiceConfiguration = gatewayConfiguration.get_EdgeGatewayServiceConfiguration()
+    dhcpService = filter(lambda service: service.__class__.__name__ == "GatewayDhcpServiceType" , edgeGatewayServiceConfiguration.get_NetworkService())[0]
+    network = filter(lambda interface: interface.get_Name() == name, gatewayConfiguration.get_GatewayInterfaces().get_GatewayInterface())[0].get_Network()
+    network.set_type("application/vnd.vmware.vcloud.orgVdcNetwork+xml")
+    existent_pools = dhcpService.get_Pool()
+    new_pool = DhcpPoolServiceType(IsEnabled=True,Network=network,DefaultLeaseTime=DEFAULT_LEASE,
+                                   MaxLeaseTime=MAX_LEASE,
+                                   LowIpAddress="192.168.0.1", HighIpAddress="192.168.0.2")
+    existent_pools.append(new_pool)
+    body = '<?xml version="1.0" encoding="UTF-8"?>' + \
+           ghf.convertPythonObjToStr(gatewayConfiguration, name = 'EdgeGatewayServiceConfiguration',
+                                     namespacedef = 'xmlns="http://www.vmware.com/vcloud/v1.5" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ')
+    content_type = "application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml"
+    link = filter(lambda link: link.get_type() == content_type, gateway.me.get_Link())
+    response = requests.post(link[0].get_href(), data=body, headers=self.headers)
+    if response.status_code == requests.codes.accepted:
+        task = taskType.parseString(response.content, True)
+        return (True, task)
+    else:
+        return (False, response.content)
+
+def split_adresses(address_range):
+    adresses = [ip.strip() for ip in address_range.split('-')]
+    IPRange = collections.namedtuple('IPRange', 'start end')
+    try:
+        return IPRange(start=adresses[0],  end=adresses[1])
+    except IndexError:
+        raise cfy_exc.NonRecoverableError("Can't parse IP range:{0}".format(address_range))
+        
+    

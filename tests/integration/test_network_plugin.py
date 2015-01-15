@@ -10,7 +10,7 @@ from cloudify import exceptions as cfy_exc
 # for skipping test add this before test function:
 # @unittest.skip("demonstrating skipping")
 
-
+@unittest.skip("demonstrating skipping")
 class NatRulesOperationsTestCase(TestCase):
 
     def setUp(self):
@@ -86,7 +86,12 @@ class OrgNetworkOperationsTestCase(TestCase):
                          "gateway_ip": "192.168.0.1",
                          "netmask": "255.255.255.0",
                          "dns": "10.147.115.1",
-                         "dns_duffix": "example.com"},
+                         "dns_duffix": "example.com",
+                         "dhcp" : {
+                             "start_address": "192.168.10.65",
+                             "end_address": "192.168.10.128",
+                             "default_lease" : 3600,
+                             "max_lease": 7200}},
                         "use_external_resource": False})
 
         ctx_patch1 = mock.patch('network_plugin.network.ctx', self.ctx)
@@ -110,6 +115,8 @@ class OrgNetworkOperationsTestCase(TestCase):
         self.assertNotIn(self.net_name,
                          network._get_network_list(self.vcd_client))
 
-
+    def test_orgnetwork_create_delete(self):
+        network.add_dhcp_pool()
+        
 if __name__ == '__main__':
     unittest.main()

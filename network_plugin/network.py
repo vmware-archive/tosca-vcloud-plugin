@@ -25,6 +25,7 @@ VCLOUD_NETWORK_NAME = 'vcloud_network_name'
 @with_vcd_client
 def create(vcd_client, **kwargs):
     if ctx.node.properties['use_external_resource'] is True:
+        # TODO add check valid resource_id        
         ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = \
             ctx.node.properties['resource_id']
         ctx.logger.info("External resource has been used")
@@ -42,6 +43,7 @@ def create(vcd_client, **kwargs):
         raise cfy_exc.NonRecoverableError(
             "Could not create network{0}: {1}".format(network_name, result))
     wait_for_task(vcd_client, result)
+    # add here setup dhcp pool if needed
 
 
 @operation
@@ -65,3 +67,17 @@ def delete(vcd_client, **kwargs):
 def _get_network_list(vcd_client):
     vdc = vcd_client._get_vdc()
     return [net.name for net in vdc.AvailableNetworks.Network]
+
+
+@operation
+@with_vcd_client
+def add_dhcp_pool(vcd_client, **kwargs):
+    success, task = network_operations.add_pool(vcd_client, network_name, dhcp_settings)
+    if not success:
+        raise cfy_exc.NonRecoverableError("Could not add DHCP pool")
+    wait_for_task(vcd_client, task)
+
+
+def delete_dhcp_pool():
+    pass
+
