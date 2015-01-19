@@ -10,7 +10,7 @@ from tests.integration import TestCase, IntegrationTestConfig
 # for skipping test add this before test function:
 # @unittest.skip("demonstrating skipping")
 
-
+@unittest.skip("demonstrating skipping")
 class NatRulesOperationsTestCase(TestCase):
 
     def setUp(self):
@@ -39,7 +39,7 @@ class NatRulesOperationsTestCase(TestCase):
     def tearDown(self):
         super(NatRulesOperationsTestCase, self).tearDown()
 
-    @unittest.skip("demonstrating skipping")
+
     def test_nat_rules_create_delete_with_explicit_ip(self):
         self.ctx.node.properties['floatingip'].clear()
         self.ctx.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
@@ -72,7 +72,6 @@ class NatRulesOperationsTestCase(TestCase):
             self.ctx.node.properties['floatingip']['gateway'])
 
 
-@unittest.skip("demonstrating skipping")
 class OrgNetworkOperationsTestCase(TestCase):
 
     def setUp(self):

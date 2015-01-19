@@ -39,7 +39,9 @@ def create(vcd_client, **kwargs):
 
     success, result = network_operations.create_network(vcd_client, network_name,
                                                         ctx.node.properties["network"])
-    if not success:
+    if success:
+        ctx.logger.info("Network {0} has been successful created.".format(network_name))
+    else:
         raise cfy_exc.NonRecoverableError(
             "Could not create network{0}: {1}".format(network_name, result))
     wait_for_task(vcd_client, result)
@@ -59,7 +61,9 @@ def delete(vcd_client, **kwargs):
         if "name" in ctx.node.properties["network"]\
            else ctx.node.properties['resource_id']
     success, task = network_operations.delete_network(vcd_client, network_name)
-    if not success:
+    if success:
+        ctx.logger.info("Network {0} has been successful deleed.".format(network_name))
+    else:
         raise cfy_exc.NonRecoverableError(
             "Could not delete network{0}").format(network_name)
     wait_for_task(vcd_client, task)
