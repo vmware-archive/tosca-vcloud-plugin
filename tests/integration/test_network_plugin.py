@@ -10,7 +10,7 @@ from tests.integration import TestCase, IntegrationTestConfig
 # for skipping test add this before test function:
 # @unittest.skip("demonstrating skipping")
 
-@unittest.skip("demonstrating skipping")
+
 class NatRulesOperationsTestCase(TestCase):
 
     def setUp(self):
@@ -82,16 +82,8 @@ class OrgNetworkOperationsTestCase(TestCase):
             node_id=self.net_name,
             node_name=self.net_name,
             properties={"resource_id": self.net_name,
-                        "network":
-                        {"static_range": "192.168.0.100-192.168.0.199",
-                         "gateway_ip": "192.168.0.1",
-                         "netmask": "255.255.255.0",
-                         "dns": "10.147.115.1",
-                         "dns_duffix": "example.com"},
-                        "dhcp": {
-                            "dhcp_range": "192.168.0.200-192.168.0.210",
-                            "default_lease": 3600,
-                            "max_lease": 7200},
+                        "network": IntegrationTestConfig().get()['network'],
+                        "dhcp": IntegrationTestConfig().get()['dhcp'],
                         "use_external_resource": False})
 
         ctx_patch1 = mock.patch('network_plugin.network.ctx', self.ctx)
