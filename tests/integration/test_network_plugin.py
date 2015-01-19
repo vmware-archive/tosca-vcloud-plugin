@@ -75,23 +75,21 @@ class OrgNetworkOperationsTestCase(TestCase):
     def setUp(self):
         super(OrgNetworkOperationsTestCase, self).setUp()
 
-        self.net_name = "test_network"
+        self.net_name = "newnet" #"test_network"
         self.ctx = MockCloudifyContext(
             node_id=self.net_name,
             node_name=self.net_name,
             properties={"resource_id": self.net_name,
                         "network":
-                        {"start_address": "192.168.0.100",
-                         "end_address": "192.168.0.199",
+                        {"static_range": "192.168.0.100-92.168.0.199",
                          "gateway_ip": "192.168.0.1",
                          "netmask": "255.255.255.0",
                          "dns": "10.147.115.1",
-                         "dns_duffix": "example.com",
+                         "dns_duffix": "example.com"},
                          "dhcp" : {
-                             "start_address": "192.168.10.65",
-                             "end_address": "192.168.10.128",
+                             "dhcp_range": "192.168.11.2-192.168.11.10",
                              "default_lease" : 3600,
-                             "max_lease": 7200}},
+                             "max_lease": 7200},
                         "use_external_resource": False})
 
         ctx_patch1 = mock.patch('network_plugin.network.ctx', self.ctx)
@@ -117,6 +115,7 @@ class OrgNetworkOperationsTestCase(TestCase):
 
     def test_orgnetwork_create_delete(self):
         network.add_dhcp_pool()
-        
+        network.delete_dhcp_pool()
+
 if __name__ == '__main__':
     unittest.main()

@@ -25,7 +25,7 @@ VCLOUD_NETWORK_NAME = 'vcloud_network_name'
 @with_vcd_client
 def create(vcd_client, **kwargs):
     if ctx.node.properties['use_external_resource'] is True:
-        # TODO add check valid resource_id        
+        # TODO add check valid resource_id
         ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = \
             ctx.node.properties['resource_id']
         ctx.logger.info("External resource has been used")
@@ -37,8 +37,8 @@ def create(vcd_client, **kwargs):
         ctx.logger.info("Network {0} already exists".format(network_name))
         return
 
-    success, result = network_operations.create(vcd_client, network_name,
-                                                ctx.node.properties["network"])
+    success, result = network_operations.create_network(vcd_client, network_name,
+                                                        ctx.node.properties["network"])
     if not success:
         raise cfy_exc.NonRecoverableError(
             "Could not create network{0}: {1}".format(network_name, result))
@@ -57,7 +57,7 @@ def delete(vcd_client, **kwargs):
     network_name = ctx.node.properties["network"]["name"]\
         if "name" in ctx.node.properties["network"]\
            else ctx.node.properties['resource_id']
-    success, task = network_operations.delete(vcd_client, network_name)
+    success, task = network_operations.delete_network(vcd_client, network_name)
     if not success:
         raise cfy_exc.NonRecoverableError(
             "Could not delete network{0}").format(network_name)
@@ -72,12 +72,26 @@ def _get_network_list(vcd_client):
 @operation
 @with_vcd_client
 def add_dhcp_pool(vcd_client, **kwargs):
-    success, task = network_operations.add_pool(vcd_client, network_name, dhcp_settings)
+    _dhcp_operation(vcd_client, ctx, network_operations.add_pool)
+
+
+@operation
+@with_vcd_client
+def delete_dhcp_pool(vcd_client, **kwargs):
+    _dhcp_operation(vcd_client, ctx, network_operations.delete_pool)
+
+
+def _dhcp_operation(vcd_client, ctx, operation):
+    if 'dhcp' not in ctx.node.properties:
+        return
+    dhcp_settings = ctx.node.properties['dhcp']
+    if not dhcp_settings:
+        return
+    network_name = ctx.node.properties['resource_id']
+
+    success, task = network_operations.dhcp_pool_operation(vcd_client, network_name,
+                                                            dhcp_settings, operation)
+
     if not success:
         raise cfy_exc.NonRecoverableError("Could not add DHCP pool")
     wait_for_task(vcd_client, task)
-
-
-def delete_dhcp_pool():
-    pass
-
