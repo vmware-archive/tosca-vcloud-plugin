@@ -43,7 +43,7 @@ def create(vcd_client, **kwargs):
         raise cfy_exc.NonRecoverableError(
             "Could not create network{0}: {1}".format(network_name, result))
     wait_for_task(vcd_client, result)
-    # add here setup dhcp pool if needed
+    _dhcp_operation(vcd_client, ctx, network_operations.add_pool)
 
 
 @operation
@@ -54,6 +54,7 @@ def delete(vcd_client, **kwargs):
         ctx.logger.info("Network was not deleted - external resource has"
                         " been used")
         return
+    _dhcp_operation(vcd_client, ctx, network_operations.delete_pool)
     network_name = ctx.node.properties["network"]["name"]\
         if "name" in ctx.node.properties["network"]\
            else ctx.node.properties['resource_id']
@@ -69,29 +70,13 @@ def _get_network_list(vcd_client):
     return [net.name for net in vdc.AvailableNetworks.Network]
 
 
-@operation
-@with_vcd_client
-def add_dhcp_pool(vcd_client, **kwargs):
-    _dhcp_operation(vcd_client, ctx, network_operations.add_pool)
-
-
-@operation
-@with_vcd_client
-def delete_dhcp_pool(vcd_client, **kwargs):
-    _dhcp_operation(vcd_client, ctx, network_operations.delete_pool)
-
-
 def _dhcp_operation(vcd_client, ctx, operation):
-    if 'dhcp' not in ctx.node.properties:
+    if 'dhcp' not in ctx.node.properties or not ctx.node.properties['dhcp']:
         return
     dhcp_settings = ctx.node.properties['dhcp']
-    if not dhcp_settings:
-        return
     network_name = ctx.node.properties['resource_id']
-
     success, task = network_operations.dhcp_pool_operation(vcd_client, network_name,
-                                                            dhcp_settings, operation)
-
+                                                           dhcp_settings, operation)
     if not success:
         raise cfy_exc.NonRecoverableError("Could not add DHCP pool")
     wait_for_task(vcd_client, task)

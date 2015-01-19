@@ -10,6 +10,7 @@ from cloudify import exceptions as cfy_exc
 # for skipping test add this before test function:
 # @unittest.skip("demonstrating skipping")
 
+
 @unittest.skip("demonstrating skipping")
 class NatRulesOperationsTestCase(TestCase):
 
@@ -75,21 +76,21 @@ class OrgNetworkOperationsTestCase(TestCase):
     def setUp(self):
         super(OrgNetworkOperationsTestCase, self).setUp()
 
-        self.net_name = "newnet" #"test_network"
+        self.net_name = "test_network"
         self.ctx = MockCloudifyContext(
             node_id=self.net_name,
             node_name=self.net_name,
             properties={"resource_id": self.net_name,
                         "network":
-                        {"static_range": "192.168.0.100-92.168.0.199",
+                        {"static_range": "192.168.0.100-192.168.0.199",
                          "gateway_ip": "192.168.0.1",
                          "netmask": "255.255.255.0",
                          "dns": "10.147.115.1",
                          "dns_duffix": "example.com"},
-                         "dhcp" : {
-                             "dhcp_range": "192.168.11.2-192.168.11.10",
-                             "default_lease" : 3600,
-                             "max_lease": 7200},
+                        "dhcp": {
+                            "dhcp_range": "192.168.0.200-192.168.0.210",
+                            "default_lease": 3600,
+                            "max_lease": 7200},
                         "use_external_resource": False})
 
         ctx_patch1 = mock.patch('network_plugin.network.ctx', self.ctx)
@@ -99,23 +100,32 @@ class OrgNetworkOperationsTestCase(TestCase):
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
 
+    def get_pools(self):
+        gateway = self.vcd_client.get_gateways()[0]
+        if not gateway:
+            raise cfy_exc.NonRecoverableError("Gateway not found")
+        gatewayConfiguration = gateway.me.get_Configuration()
+        edgeGatewayServiceConfiguration = gatewayConfiguration.get_EdgeGatewayServiceConfiguration()
+        dhcpService = filter(lambda service: service.__class__.__name__ == "GatewayDhcpServiceType",
+                             edgeGatewayServiceConfiguration.get_NetworkService())[0]
+        return dhcpService.get_Pool()
+
     def tearDown(self):
         super(OrgNetworkOperationsTestCase, self).tearDown()
 
-    @unittest.skip("demonstrating skipping")
     def test_orgnetwork_create_delete(self):
         self.assertNotIn(self.net_name,
                          network._get_network_list(self.vcd_client))
+        start_pools = len(self.get_pools())
         network.create()
         self.assertIn(self.net_name,
                       network._get_network_list(self.vcd_client))
+        self.assertEqual(start_pools + 1, len(self.get_pools()))
         network.delete()
         self.assertNotIn(self.net_name,
                          network._get_network_list(self.vcd_client))
+        self.assertEqual(start_pools, len(self.get_pools()))
 
-    def test_orgnetwork_create_delete(self):
-        network.add_dhcp_pool()
-        network.delete_dhcp_pool()
 
 if __name__ == '__main__':
     unittest.main()

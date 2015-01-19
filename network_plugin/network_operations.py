@@ -8,6 +8,7 @@ from pyvcloud.helper import generalHelperFunctions as ghf
 import requests
 from network_plugin import check_ip
 import collections
+from IPy import IP
 
 DEFAULT_LEASE = 3600
 MAX_LEASE = 7200
@@ -25,9 +26,9 @@ def create_network(vcd_client, network_name, properties):
 
     gateway = ReferenceType(href=vcd_client.get_gateways()[0].me.href)
     gateway.original_tagname_ = "EdgeGateway"
-
-    iprange = IpRangeType(StartAddress=check_ip(properties["start_address"]),
-                          EndAddress=check_ip(properties["end_address"]))
+    ip = _split_adresses(properties['static_range'])
+    iprange = IpRangeType(StartAddress=check_ip(ip.start),
+                          EndAddress=check_ip(ip.end))
     ipranges = IpRangesType(IpRange=[iprange])
 
     ipscope = IpScopeType(IsInherited=False,
@@ -149,7 +150,15 @@ def _split_adresses(address_range):
     adresses = [ip.strip() for ip in address_range.split('-')]
     IPRange = collections.namedtuple('IPRange', 'start end')
     try:
-        return IPRange(start=adresses[0],  end=adresses[1])
+        start = IP(adresses[0])
+        end = IP(adresses[1])
+        if start > end:
+            raise cfy_exc.NonRecoverableError(
+                "Start address {0} is greater than end address: {1}".format(start, end))
+        return IPRange(start=start,  end=end)
     except IndexError:
         raise cfy_exc.NonRecoverableError("Can't parse IP range:{0}".
                                           format(address_range))
+    except ValueError:
+        raise cfy_exc.NonRecoverableError(
+            "Incorrect Ip addresses: {0}".format(address_range))

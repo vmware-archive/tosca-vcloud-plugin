@@ -10,7 +10,7 @@ def check_ip(address):
         IP(address)
     except ValueError:
         raise cfy_exc.NonRecoverableError(
-            "Incorrect Ip addres: {0}".format(address))
+            "Incorrect Ip address: {0}".format(address))
     return address
 
 def isExternalIpAssigned(ip, gateway):
@@ -30,4 +30,3 @@ def collectAssignedIps(gateway):
             else:
                 ips.append(AssignedIPs(rule.get_TranslatedIp(), rule.get_OriginalIp()))
     return set(ips)
-
