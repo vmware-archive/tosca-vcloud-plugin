@@ -77,6 +77,11 @@ def _dhcp_operation(vcd_client, ctx, operation):
     network_name = ctx.node.properties['resource_id']
     success, task = network_operations.dhcp_pool_operation(vcd_client, network_name,
                                                            dhcp_settings, operation)
-    if not success:
+    if success:
+        if operation == network_operations.add_pool:
+            ctx.logger.info("DHCP rule successful created for network {0}".format(network_name))
+        if operation == network_operations.delete_pool:
+            ctx.logger.info("DHCP rule successful deleted for network {0}".format(network_name))
+    else:
         raise cfy_exc.NonRecoverableError("Could not add DHCP pool")
     wait_for_task(vcd_client, task)

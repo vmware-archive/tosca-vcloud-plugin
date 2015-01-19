@@ -8,7 +8,7 @@ from cloudify import mocks as cfy_mocks
 from network_plugin.network import VCLOUD_NETWORK_NAME
 from server_plugin import server
 
-from tests.integration import TestCase, IntegrationTestConfig
+from tests.integration import IntegrationTestConfig
 
 
 class ServerNoNetworkTestCase(TestCase):

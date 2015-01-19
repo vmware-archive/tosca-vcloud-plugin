@@ -108,7 +108,7 @@ def _get_vm_ip(vcd_client, ctx):
         vappName = _get_vapp_name(ctx.instance.relationships)
         vapp = vcd_client.get_vApp(vappName)
         if not vapp:
-            raise cfy_exc.NonRecoverableError("Could not find vApp")
+            raise cfy_exc.NonRecoverableError("Could not find vApp {0}".format(vappName))
         vm_info = vapp.get_vms_network_info()
         # assume that we have 1 vm per vApp with minium 1 connection
         connection = vm_info[0][0]
