@@ -3,6 +3,7 @@ from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import with_vcd_client, wait_for_task
 from network_plugin import check_ip, isExternalIpAssigned, isInternalIpAssigned, collectAssignedIps
+from server_plugin import VAppOperations
 from server_plugin.server import VCLOUD_VAPP_NAME
 
 CREATE = 1
@@ -109,7 +110,8 @@ def _get_vm_ip(vcd_client, ctx):
         vapp = vcd_client.get_vApp(vappName)
         if not vapp:
             raise cfy_exc.NonRecoverableError("Could not find vApp {0}".format(vappName))
-        vm_info = vapp.get_vms_network_info()
+        vapp_ops = VAppOperations(vcd_client, vapp)
+        vm_info = vapp_ops.get_vms_network_info()
         # assume that we have 1 vm per vApp with minium 1 connection
         connection = vm_info[0][0]
         if connection['is_connected']:

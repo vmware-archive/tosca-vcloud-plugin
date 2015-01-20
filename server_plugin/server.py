@@ -19,7 +19,7 @@ from cloudify import exceptions as cfy_exc
 from vcloud_plugin_common import (transform_resource_name,
                                   wait_for_task,
                                   with_vcd_client)
-
+from server_plugin import VAppOperations
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 STATUS_POWER_ON = 'Powered on'
 STATUS_POWER_OFF = 'Power off'
@@ -67,16 +67,12 @@ def create(vcd_client, **kwargs):
     if len(ports) > 0:
         for index, port in enumerate(ports):
             vapp = vcd_client.get_vApp(vapp_name)
+            vapp_ops = VAppOperations(vcd_client, vapp)
             port_properties = port.node.properties['port']
             network_name = port_properties['network']
-            network_href = vcd_client.get_network_href(network_name)
-            if network_href is None:
-                raise cfy_exc.NonRecoverableError(
-                    "Could not find network {0}".format(network_name))
 
-            success, result = vapp.add_network(network_name,
-                                               network_href,
-                                               'bridged')
+            success, result = vapp_ops.add_network(network_name,
+                                                   'bridged')
             if success is False:
                 raise cfy_exc.NonRecoverableError(
                     "Could not add network {0} to VApp {1}: {2}"
@@ -100,7 +96,7 @@ def create(vcd_client, **kwargs):
                 }
             ctx.logger.info("Connecting network with parameters {0}"
                             .format(str(connection_args)))
-            success, result = vapp.connect_network(**connection_args)
+            success, result = vapp_ops.connect_network(**connection_args)
             if success is False:
                 raise cfy_exc.NonRecoverableError(
                     "Could not connect vApp {0} to network {1}: {2}"
@@ -142,7 +138,8 @@ def delete(vcd_client, **kwargs):
 def get_state(vcd_client, **kwargs):
     vapp_name = ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
     vapp = vcd_client.get_vApp(vapp_name)
-    nw_connections = _get_vm_network_connections(vapp)
+    vapp_ops = VAppOperations(vcd_client, vapp)
+    nw_connections = _get_vm_network_connections(vapp_ops)
     if len(nw_connections) == 0:
         ctx.logger.info("No networks connected")
         ctx.instance.runtime_properties['ip'] = None
