@@ -1,11 +1,11 @@
 import mock
 import unittest
 from cloudify.mocks import MockCloudifyContext, MockNodeInstanceContext
-from tests.integration import TestCase
-from network_plugin import floatingip
-from network_plugin import network, collectExternalIps
+from network_plugin import floatingip, network
 from network_plugin.floatingip import VCLOUD_VAPP_NAME
-
+from network_plugin import isExternalIpAssigned
+from cloudify import exceptions as cfy_exc
+from tests.integration import TestCase, IntegrationTestConfig
 
 # for skipping test add this before test function:
 # @unittest.skip("demonstrating skipping")
@@ -17,17 +17,15 @@ class NatRulesOperationsTestCase(TestCase):
         super(NatRulesOperationsTestCase, self).setUp()
 
         name = "testnode"
-        self.public_ip = '23.92.245.236'
         self.ctx = MockCloudifyContext(
             node_id=name,
             node_name=name,
-            properties={'floatingip': {'public_ip': self.public_ip,
-                                       'gateway': 'M966854774-4471'}})
+            properties={'floatingip': {}})
 
         network_relationship = mock.Mock()
         network_relationship.target = mock.Mock()
         network_relationship.target.instance = MockNodeInstanceContext(
-            runtime_properties={VCLOUD_VAPP_NAME: 'ilyashenko'})
+            runtime_properties={VCLOUD_VAPP_NAME: IntegrationTestConfig().get()['test_vm']})
         self.ctx.instance.relationships = [network_relationship]
 
         ctx_patch1 = mock.patch('network_plugin.floatingip.ctx', self.ctx)
@@ -40,15 +38,31 @@ class NatRulesOperationsTestCase(TestCase):
     def tearDown(self):
         super(NatRulesOperationsTestCase, self).tearDown()
 
-    def test_nat_rules_create_delete(self):
-        self.assertNotIn(self.public_ip, collectExternalIps(
-            self._get_gateway()))
+    def test_nat_rules_create_delete_with_explicit_ip(self):
+        self.ctx.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
+        public_ip = self.ctx.node.properties['floatingip']['public_ip']
+        check_external = lambda: isExternalIpAssigned(public_ip, self._get_gateway())
+        self.assertFalse(check_external())
         floatingip.connect_floatingip()
-        self.assertIn(self.public_ip, collectExternalIps(
-            self._get_gateway()))
+        self.assertTrue(check_external())
+        self.assertRaises(cfy_exc.NonRecoverableError,
+                          floatingip.connect_floatingip)
         floatingip.disconnect_floatingip()
-        self.assertNotIn(self.public_ip, collectExternalIps(
-            self._get_gateway()))
+        self.assertFalse(check_external())
+
+    def test_nat_rules_create_delete_with_autoget_ip(self):
+        self.ctx.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
+        del self.ctx.node.properties['floatingip']['public_ip']
+
+        floatingip.connect_floatingip()
+        public_ip = self.ctx.instance.runtime_properties['public_ip']
+        check_external = lambda: isExternalIpAssigned(public_ip, self._get_gateway())
+        self.assertTrue(public_ip)
+        self.assertTrue(check_external())
+        self.assertRaises(cfy_exc.NonRecoverableError,
+                          floatingip.connect_floatingip)
+        floatingip.disconnect_floatingip()
+        self.assertFalse(check_external())
 
     def _get_gateway(self):
         return self.vcd_client.get_gateway(
@@ -65,13 +79,8 @@ class OrgNetworkOperationsTestCase(TestCase):
             node_id=self.net_name,
             node_name=self.net_name,
             properties={"resource_id": self.net_name,
-                        "network":
-                        {"start_address": "192.168.0.100",
-                         "end_address": "192.168.0.199",
-                         "gateway_ip": "192.168.0.1",
-                         "netmask": "255.255.255.0",
-                         "dns": "10.147.115.1",
-                         "dns_duffix": "example.com"},
+                        "network": IntegrationTestConfig().get()['network'],
+                        "dhcp": IntegrationTestConfig().get()['dhcp'],
                         "use_external_resource": False})
 
         ctx_patch1 = mock.patch('network_plugin.network.ctx', self.ctx)
@@ -81,18 +90,31 @@ class OrgNetworkOperationsTestCase(TestCase):
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
 
+    def get_pools(self):
+        gateway = self.vcd_client.get_gateways()[0]
+        if not gateway:
+            raise cfy_exc.NonRecoverableError("Gateway not found")
+        gatewayConfiguration = gateway.me.get_Configuration()
+        edgeGatewayServiceConfiguration = gatewayConfiguration.get_EdgeGatewayServiceConfiguration()
+        dhcpService = filter(lambda service: service.__class__.__name__ == "GatewayDhcpServiceType",
+                             edgeGatewayServiceConfiguration.get_NetworkService())[0]
+        return dhcpService.get_Pool()
+
     def tearDown(self):
         super(OrgNetworkOperationsTestCase, self).tearDown()
 
     def test_orgnetwork_create_delete(self):
         self.assertNotIn(self.net_name,
                          network._get_network_list(self.vcd_client))
+        start_pools = len(self.get_pools())
         network.create()
         self.assertIn(self.net_name,
                       network._get_network_list(self.vcd_client))
+        self.assertEqual(start_pools + 1, len(self.get_pools()))
         network.delete()
         self.assertNotIn(self.net_name,
                          network._get_network_list(self.vcd_client))
+        self.assertEqual(start_pools, len(self.get_pools()))
 
 
 if __name__ == '__main__':

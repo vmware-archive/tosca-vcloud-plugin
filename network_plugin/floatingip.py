@@ -2,7 +2,7 @@ from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import with_vcd_client, wait_for_task
-from network_plugin import check_ip, collectExternalIps
+from network_plugin import check_ip, isExternalIpAssigned, isInternalIpAssigned, collectAssignedIps
 from server_plugin.server import VCLOUD_VAPP_NAME
 
 CREATE = 1
@@ -23,39 +23,54 @@ def disconnect_floatingip(vcd_client, **kwargs):
 
 
 def _floatingip_operation(operation, vcd_client, ctx):
-    def isExternalIpExsists():
-        return external_ip in collectExternalIps(gateway)
-
-    def showMessage(message):
-        ctx.logger.info(message.format(external_ip))
+    def showMessage(message, ip):
+        ctx.logger.info(message.format(ip))
 
     gateway = vcd_client.get_gateway(
         ctx.node.properties['floatingip']['gateway'])
     if not gateway:
         raise cfy_exc.NonRecoverableError("Gateway not found")
 
-    external_ip = check_ip(
-        ctx.node.properties['floatingip']['public_ip'])
     internal_ip = check_ip(_get_vm_ip(vcd_client, ctx))
 
     function = None
     description = None
+    public_ip = None
+    if PUBLIC_IP in ctx.instance.runtime_properties:
+        public_ip = ctx.instance.runtime_properties[PUBLIC_IP]
+    elif PUBLIC_IP in ctx.node.properties['floatingip']:
+        public_ip = ctx.node.properties['floatingip'][PUBLIC_IP]
 
     if operation == CREATE:
-        if isExternalIpExsists():
-            showMessage("Rule with IP: {0} already exists")
-            return
+        if not public_ip:
+            public_ip = getFreeIP(gateway)
+            ctx.logger.info("Assign external IP {0}".format(public_ip))
+
+        if isInternalIpAssigned(internal_ip, gateway):
+            raise cfy_exc.NonRecoverableError(
+                "VM private IP {0} already has public ip assigned ".format(internal_ip))
+
+        if isExternalIpAssigned(public_ip, gateway):
+            raise cfy_exc.NonRecoverableError(
+                "Rule with IP: {0} already exists".format(public_ip))
+
         function = gateway.add_nat_rule
         description = "create"
     elif operation == DELETE:
-        if not isExternalIpExsists():
-            showMessage("Rule with IP: {0} absent")
+        if not isExternalIpAssigned(public_ip, gateway):
+            showMessage("Rule with IP: {0} absent", public_ip)
             return
+        elif not public_ip:
+            showMessage("Can't get external IP", public_ip)
+            return
+
         function = gateway.del_nat_rule
         description = "delete"
     else:
         raise cfy_exc.NonRecoverableError(
             "Unknown operation {0}").format(operation)
+
+    external_ip = check_ip(public_ip)
 
     _nat_operation(function, description, vcd_client, "SNAT",
                    internal_ip, external_ip)
@@ -93,7 +108,7 @@ def _get_vm_ip(vcd_client, ctx):
         vappName = _get_vapp_name(ctx.instance.relationships)
         vapp = vcd_client.get_vApp(vappName)
         if not vapp:
-            raise cfy_exc.NonRecoverableError("Could not find vApp")
+            raise cfy_exc.NonRecoverableError("Could not find vApp {0}".format(vappName))
         vm_info = vapp.get_vms_network_info()
         # assume that we have 1 vm per vApp with minium 1 connection
         connection = vm_info[0][0]
@@ -107,8 +122,19 @@ def _get_vm_ip(vcd_client, ctx):
 
 def _get_vapp_name(relationships):
     try:
-        return [relationship.target.instance.runtime_properties for relationship in relationships
+        return [relationship.target.instance.runtime_properties
+                for relationship in relationships
                 if VCLOUD_VAPP_NAME
                 in relationship.target.instance.runtime_properties][0][VCLOUD_VAPP_NAME]
     except (IndexError, AttributeError):
         raise cfy_exc.NonRecoverableError("Could not find vApp by name")
+
+
+def getFreeIP(gateway):
+    public_ips = set(gateway.get_public_ips())
+    allocated_ips = set([address.external for address in collectAssignedIps(gateway)])
+    available_ips = public_ips - allocated_ips
+    if not available_ips:
+        raise cfy_exc.NonRecoverableError(
+            "Can't get external IP address")
+    return list(available_ips)[0]
