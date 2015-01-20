@@ -16,7 +16,6 @@ class NatRulesOperationsTestCase(TestCase):
     def setUp(self):
         super(NatRulesOperationsTestCase, self).setUp()
 
-
         name = "testnode"
         self.ctx = MockCloudifyContext(
             node_id=name,
@@ -39,31 +38,29 @@ class NatRulesOperationsTestCase(TestCase):
     def tearDown(self):
         super(NatRulesOperationsTestCase, self).tearDown()
 
-
     def test_nat_rules_create_delete_with_explicit_ip(self):
-        self.ctx.node.properties['floatingip'].clear()
         self.ctx.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
         public_ip = self.ctx.node.properties['floatingip']['public_ip']
         check_external = lambda: isExternalIpAssigned(public_ip, self._get_gateway())
         self.assertFalse(check_external())
         floatingip.connect_floatingip()
         self.assertTrue(check_external())
-        self.assertRaises(cfy_exc.NonRecoverableError, floatingip.connect_floatingip)
+        self.assertRaises(cfy_exc.NonRecoverableError,
+                          floatingip.connect_floatingip)
         floatingip.disconnect_floatingip()
         self.assertFalse(check_external())
 
     def test_nat_rules_create_delete_with_autoget_ip(self):
-        self.ctx.node.properties['floatingip'].clear()
         self.ctx.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
         del self.ctx.node.properties['floatingip']['public_ip']
-        import pdb; pdb.set_trace()
 
         floatingip.connect_floatingip()
         public_ip = self.ctx.instance.runtime_properties['public_ip']
         check_external = lambda: isExternalIpAssigned(public_ip, self._get_gateway())
         self.assertTrue(public_ip)
         self.assertTrue(check_external())
-        self.assertRaises(cfy_exc.NonRecoverableError, floatingip.connect_floatingip)
+        self.assertRaises(cfy_exc.NonRecoverableError,
+                          floatingip.connect_floatingip)
         floatingip.disconnect_floatingip()
         self.assertFalse(check_external())
 
