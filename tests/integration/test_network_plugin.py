@@ -1,7 +1,7 @@
 import mock
 import unittest
 from cloudify.mocks import MockCloudifyContext, MockNodeInstanceContext
-from network_plugin import floatingip, network
+from network_plugin import floatingip, network, security_group
 from network_plugin.floatingip import VCLOUD_VAPP_NAME
 from network_plugin import isExternalIpAssigned
 from cloudify import exceptions as cfy_exc
@@ -10,9 +10,9 @@ from tests.integration import TestCase, IntegrationTestConfig
 # for skipping test add this before test function:
 # @unittest.skip("demonstrating skipping")
 
+
 @unittest.skip("demonstrating skipping")
 class NatRulesOperationsTestCase(TestCase):
-
     def setUp(self):
         super(NatRulesOperationsTestCase, self).setUp()
 
@@ -69,8 +69,8 @@ class NatRulesOperationsTestCase(TestCase):
             self.ctx.node.properties['floatingip']['gateway'])
 
 
+@unittest.skip("demonstrating skipping")
 class OrgNetworkOperationsTestCase(TestCase):
-
     def setUp(self):
         super(OrgNetworkOperationsTestCase, self).setUp()
 
@@ -110,11 +110,42 @@ class OrgNetworkOperationsTestCase(TestCase):
         network.create()
         self.assertIn(self.net_name,
                       network._get_network_list(self.vcd_client))
-        # self.assertEqual(start_pools + 1, len(self.get_pools()))
+        self.assertEqual(start_pools + 1, len(self.get_pools()))
         network.delete()
         self.assertNotIn(self.net_name,
                          network._get_network_list(self.vcd_client))
         self.assertEqual(start_pools, len(self.get_pools()))
+
+
+class FirewallRulesOperationsTestCase(TestCase):
+    def setUp(self):
+        super(FirewallRulesOperationsTestCase, self).setUp()
+
+        name = "testnode"
+        self.ctx = MockCloudifyContext(
+            node_id=name,
+            node_name=name,
+            properties=IntegrationTestConfig().get()['security_group'])
+
+        network_relationship = mock.Mock()
+        network_relationship.target = mock.Mock()
+        network_relationship.target.instance = MockNodeInstanceContext(
+            runtime_properties={VCLOUD_VAPP_NAME: IntegrationTestConfig().get()['test_vm']})
+        self.ctx.instance.relationships = [network_relationship]
+
+        ctx_patch1 = mock.patch('network_plugin.security_group.ctx', self.ctx)
+        ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
+        ctx_patch1.start()
+        ctx_patch2.start()
+        self.addCleanup(ctx_patch1.stop)
+        self.addCleanup(ctx_patch2.stop)
+
+    def tearDown(self):
+        super(FirewallRulesOperationsTestCase, self).tearDown()
+
+    def test_firewall_rules_create_delete(self):
+        security_group.create()
+        security_group.delete()
 
 
 if __name__ == '__main__':
