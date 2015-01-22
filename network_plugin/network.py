@@ -50,7 +50,7 @@ def create(vcd_client, **kwargs):
     netmask = check_ip(net_prop["netmask"])
     dns1 = check_ip(net_prop["dns"])
     dns2 = ""
-    dns_suffix = net_prop["dns_duffix"]
+    dns_suffix = net_prop["dns_suffix"]
     success, result = vcd_client.create_vdc_network(network_name, gateway_name, start_address,
                                                     end_address, gateway_ip, netmask,
                                                     dns1, dns2, dns_suffix)
