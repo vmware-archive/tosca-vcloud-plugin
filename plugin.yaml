@@ -86,3 +86,6 @@ relationships:
         derived_from: cloudify.relationships.connected_to
     cloudify.vcloud.server_connected_to_port:
         derived_from: cloudify.relationships.connected_to
+    cloudify.vcloud.server_connected_to_security_group:
+      derived_from: cloudify.relationships.connected_to
+
