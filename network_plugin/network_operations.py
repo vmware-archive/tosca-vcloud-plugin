@@ -43,7 +43,7 @@ class ProxyGateway(pyvcloud.gateway.Gateway):
             return (False, response.content)
 
     def add_dhcp_pool(self, network_name, low_ip_address, hight_ip_address,
-                 default_lease, max_lease):
+                      default_lease, max_lease):
         if not default_lease:
             default_lease = DEFAULT_LEASE
         if not max_lease:

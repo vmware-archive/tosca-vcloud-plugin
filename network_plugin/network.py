@@ -28,7 +28,7 @@ DELETE_POOL = 2
 @operation
 @with_vcd_client
 def create(vcd_client, **kwargs):
-    vcd_client = ProxyVCD(vcd_client) # TODO: remove when our code merged in pyvcloud
+    vcd_client = ProxyVCD(vcd_client)  # TODO: remove when our code merged in pyvcloud
     if ctx.node.properties['use_external_resource'] is True:
         # TODO add check valid resource_id
         ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = \
@@ -66,7 +66,7 @@ def create(vcd_client, **kwargs):
 @operation
 @with_vcd_client
 def delete(vcd_client, **kwargs):
-    vcd_client = ProxyVCD(vcd_client) # TODO: remove when our code merged in pyvcloud
+    vcd_client = ProxyVCD(vcd_client)  # TODO: remove when our code merged in pyvcloud
     if ctx.node.properties['use_external_resource'] is True:
         del ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME]
         ctx.logger.info("Network was not deleted - external resource has"
