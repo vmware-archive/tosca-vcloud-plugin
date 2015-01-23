@@ -1,6 +1,8 @@
 from IPy import IP
 from cloudify import exceptions as cfy_exc
 import collections
+from server_plugin import VAppOperations
+from server_plugin.server import VCLOUD_VAPP_NAME
 
 AssignedIPs = collections.namedtuple('AssignedIPs', 'external internal')
 
@@ -30,3 +32,31 @@ def collectAssignedIps(gateway):
             else:
                 ips.append(AssignedIPs(rule.get_TranslatedIp(), rule.get_OriginalIp()))
     return set(ips)
+
+
+def get_vm_ip(vcd_client, ctx):
+    try:
+        vappName = _get_vapp_name(ctx.instance.relationships)
+        vapp = vcd_client.get_vApp(vappName)
+        if not vapp:
+            raise cfy_exc.NonRecoverableError("Could not find vApp {0}".format(vappName))
+        vapp_ops = VAppOperations(vcd_client, vapp)
+        vm_info = vapp_ops.get_vms_network_info()
+        # assume that we have 1 vm per vApp with minium 1 connection
+        connection = vm_info[0][0]
+        if connection['is_connected']:
+            return connection['ip']
+        else:
+            raise cfy_exc.NonRecoverableError("Network not connected")
+    except IndexError:
+        raise cfy_exc.NonRecoverableError("Could not get vm IP address")
+
+
+def _get_vapp_name(relationships):
+    try:
+        return [relationship.target.instance.runtime_properties
+                for relationship in relationships
+                if VCLOUD_VAPP_NAME
+                in relationship.target.instance.runtime_properties][0][VCLOUD_VAPP_NAME]
+    except (IndexError, AttributeError):
+        raise cfy_exc.NonRecoverableError("Could not find vApp by name")

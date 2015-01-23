@@ -4,6 +4,7 @@ from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType,\
 from pyvcloud.schema.vcd.v1_5.schemas.vcloud.networkType import OrgVdcNetworkType,\
     ReferenceType, NetworkConfigurationType, IpScopesType, IpScopeType,\
     IpRangesType, IpRangeType, DhcpPoolServiceType
+from pyvcloud.schema.vcd.v1_5.schemas.vcloud.networkType import FirewallRuleType, ProtocolsType
 from pyvcloud.helper import generalHelperFunctions as ghf
 
 import pyvcloud.vclouddirector
@@ -23,7 +24,6 @@ class ProxyGateway(pyvcloud.gateway.Gateway):
         return dhcpService.get_Pool()
 
     def _post_configuration(self):
-        import pdb; pdb.set_trace()
         gatewayConfiguration = self.me.get_Configuration()
         edgeGatewayServiceConfiguration = gatewayConfiguration.get_EdgeGatewayServiceConfiguration()
         body = '<?xml version="1.0" encoding="UTF-8"?>' + \
@@ -34,6 +34,7 @@ class ProxyGateway(pyvcloud.gateway.Gateway):
         content_type = "application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml"
         self.headers["Content-Type"] = content_type
         response = requests.post(link[0].get_href(), data=body, headers=self.headers)
+        import pdb; pdb.set_trace()
         if response.status_code == requests.codes.accepted:
             task = taskType.parseString(response.content, True)
             return (True, task)
@@ -84,8 +85,18 @@ class ProxyGateway(pyvcloud.gateway.Gateway):
     def get_fw_rules(self):
         return self._getFirewallService().get_FirewallRule()
 
-    def add_fw_rule(self):
+    def add_fw_rule(self, description, protocol, dest_port, dest_ip,
+                    source_port, source_ip):
+        all_protocols = {"Tcp": None, "Udp": None, "Icmp": None, "Any": None}
+        all_protocols[protocol] = True
+        protocols = ProtocolsType(**all_protocols)
+        new_rule = FirewallRuleType(IsEnabled=True,
+                                    Description=description, Policy="allow", Protocols=protocols,
+                                    DestinationPortRange=dest_port, DestinationIp=dest_ip,
+                                    SourcePortRange=source_port, SourceIp=source_ip,
+                                    EnableLogging=False)
         rules = self.get_fw_rules()
+        rules.append(new_rule)
         return self._post_firewall_rules(rules)
 
 
