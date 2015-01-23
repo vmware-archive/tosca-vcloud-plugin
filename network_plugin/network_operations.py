@@ -35,7 +35,7 @@ def create_network(vcd_client, network_name, properties):
                           Gateway=check_ip(properties["gateway_ip"]),
                           Netmask=check_ip(properties["netmask"]),
                           Dns1=check_ip(properties["dns"]),
-                          DnsSuffix=properties["dns_duffix"],
+                          DnsSuffix=properties["dns_suffix"],
                           IpRanges=ipranges)
     ipscopes = IpScopesType(IpScope=[ipscope])
 
