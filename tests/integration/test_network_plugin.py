@@ -2,7 +2,7 @@ import mock
 import unittest
 from cloudify.mocks import MockCloudifyContext, MockNodeInstanceContext
 from network_plugin import floatingip, network, security_group
-from network_plugin.floatingip import VCLOUD_VAPP_NAME
+from server_plugin.server import VCLOUD_VAPP_NAME
 from network_plugin import isExternalIpAssigned
 from cloudify import exceptions as cfy_exc
 from tests.integration import TestCase, IntegrationTestConfig
