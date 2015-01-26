@@ -79,6 +79,7 @@ class Config(object):
 class VcloudDirectorClient(object):
 
     config = Config
+    LOGIN_RETRY_NUM = 5
 
     def get(self, config=None, *args, **kw):
         static_config = self.__class__.config().get()
@@ -102,18 +103,31 @@ class VcloudDirectorClient(object):
             raise cfy_exc.NonRecoverableError(
                 "vCloud service and vDC must be specified")
 
-        vca = vcloudair.VCA()
-        success = vca.login(url, username, password, token)
-        if success is False:
-            raise cfy_exc.NonRecoverableError("Invalid login credentials")
-        else:
-            atexit.register(vca.logout)
-        vcloud_director = vca.get_vCloudDirector(service, vdc)
+        vcloud_director = self.login_and_get_vcd(
+            self, url, username, password, token, service, vdc)
         if vcloud_director is None:
             raise cfy_exc.NonRecoverableError(
                 "Could not get vCloud Director reference")
         else:
             return vcloud_director
+
+    def _login_and_get_vcd(self, url, username, password, token, service, vdc):
+        vcd = None
+        login_failed = False
+        for _ in range(self.LOGIN_RETRY_NUM):
+            vca = vcloudair.VCA()
+            success = vca.login(url, username, password, token)
+            if success is False:
+                login_failed = True
+                continue
+            else:
+                atexit.register(vca.logout)
+            vcd = vca.get_vCloudDirector(service, vdc)
+            if vcd is None:
+                continue
+        if login_failed:
+            raise cfy_exc.NonRecoverableError("Invalid login credentials")
+        return vcd
 
 
 def with_vcd_client(f):
@@ -132,7 +146,7 @@ def wait_for_task(vcd_client, task):
         if status == TASK_STATUS_ERROR:
             error = task.get_Error()
             raise cfy_exc.NonRecoverableError(
-                "Error during task execution: {0}".format(error))
+                "Error during task execution: {0}".format(error.get_message()))
         else:
             time.sleep(TASK_RECHECK_TIMEOUT)
             response = requests.get(task.get_href(),
