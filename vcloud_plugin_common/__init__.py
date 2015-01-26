@@ -103,8 +103,8 @@ class VcloudDirectorClient(object):
             raise cfy_exc.NonRecoverableError(
                 "vCloud service and vDC must be specified")
 
-        vcloud_director = self.login_and_get_vcd(
-            self, url, username, password, token, service, vdc)
+        vcloud_director = self._login_and_get_vcd(
+            url, username, password, token, service, vdc)
         if vcloud_director is None:
             raise cfy_exc.NonRecoverableError(
                 "Could not get vCloud Director reference")
