@@ -71,7 +71,7 @@ node_templates:
                 netmask: 255.255.255.0
                 gateway_ip: 10.10.0.1/24
                 dns: 10.10.0.1
-                dns_duffix: test
+                dns_suffix: test
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
     vcloud_configuration:
