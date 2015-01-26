@@ -118,12 +118,10 @@ class ProxyGateway(pyvcloud.gateway.Gateway):
                              rule.get_DestinationIp(),
                              rule.get_SourcePortRange(),
                              rule.get_SourceIp())
-            import pdb; pdb.set_trace()
             if current_trait == to_delete_trait:
                 continue
             else:
                 new_rules.append(rule)
-        import pdb; pdb.set_trace()
         return self._post_firewall_rules(new_rules)
 
 

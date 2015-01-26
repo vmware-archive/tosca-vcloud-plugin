@@ -144,8 +144,21 @@ class FirewallRulesOperationsTestCase(TestCase):
         super(FirewallRulesOperationsTestCase, self).tearDown()
 
     def test_firewall_rules_create_delete(self):
-#        security_group.create()
+        rules = len(self.get_rules())
+        security_group.create()
+        self.assertEqual(rules + 1, len(self.get_rules()))
         security_group.delete()
+        self.assertEqual(rules, len(self.get_rules()))
+
+    def get_rules(self):
+        gateway = self.vcd_client.get_gateways()[0]
+        if not gateway:
+            raise cfy_exc.NonRecoverableError("Gateway not found")
+        gatewayConfiguration = gateway.me.get_Configuration()
+        edgeGatewayServiceConfiguration = gatewayConfiguration.get_EdgeGatewayServiceConfiguration()
+        firewallService = filter(lambda service: service.__class__.__name__ == "FirewallServiceType",
+                                 edgeGatewayServiceConfiguration.get_NetworkService())[0]
+        return firewallService.get_FirewallRule()
 
 
 if __name__ == '__main__':

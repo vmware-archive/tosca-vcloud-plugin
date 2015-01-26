@@ -23,6 +23,15 @@
 	{
     	"dhcp_range": "192.168.0.200-192.168.0.210",
         "default_lease": 3600,
-        "max_lease": 7200}
-
+        "max_lease": 7200},
+"security_group":
+	{
+	"gateway" : "gatewayname",
+	"rule" :
+		{
+			"description": "Rule description",
+			"protocol": "Tcp",
+			"port": 29
+		}
+	}
 }
