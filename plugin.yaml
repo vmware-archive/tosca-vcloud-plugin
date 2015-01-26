@@ -86,7 +86,7 @@ node_types:
                 default: ''
             vcloud_config:
                 default: {}
-            rules:
+            rule:
                 default: []
         interfaces:
             cloudify.interfaces.lifecycle:
