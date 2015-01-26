@@ -144,7 +144,7 @@ class FirewallRulesOperationsTestCase(TestCase):
         super(FirewallRulesOperationsTestCase, self).tearDown()
 
     def test_firewall_rules_create_delete(self):
-        security_group.create()
+#        security_group.create()
         security_group.delete()
 
 

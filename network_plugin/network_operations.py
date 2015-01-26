@@ -34,7 +34,6 @@ class ProxyGateway(pyvcloud.gateway.Gateway):
         content_type = "application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml"
         self.headers["Content-Type"] = content_type
         response = requests.post(link[0].get_href(), data=body, headers=self.headers)
-        import pdb; pdb.set_trace()
         if response.status_code == requests.codes.accepted:
             task = taskType.parseString(response.content, True)
             return (True, task)
@@ -85,19 +84,47 @@ class ProxyGateway(pyvcloud.gateway.Gateway):
     def get_fw_rules(self):
         return self._getFirewallService().get_FirewallRule()
 
-    def add_fw_rule(self, description, protocol, dest_port, dest_ip,
-                    source_port, source_ip):
-        all_protocols = {"Tcp": None, "Udp": None, "Icmp": None, "Any": None}
-        all_protocols[protocol] = True
-        protocols = ProtocolsType(**all_protocols)
-        new_rule = FirewallRuleType(IsEnabled=True,
-                                    Description=description, Policy="allow", Protocols=protocols,
+    def add_fw_rule(self, is_enable, description, policy, protocol, dest_port, dest_ip,
+                    source_port, source_ip, enable_logging):
+        protocols = _create_protocols_type(protocol)
+        new_rule = FirewallRuleType(IsEnabled=is_enable,
+                                    Description=description, Policy=policy, Protocols=protocols,
                                     DestinationPortRange=dest_port, DestinationIp=dest_ip,
                                     SourcePortRange=source_port, SourceIp=source_ip,
-                                    EnableLogging=False)
+                                    EnableLogging=enable_logging)
         rules = self.get_fw_rules()
         rules.append(new_rule)
         return self._post_firewall_rules(rules)
+
+    def delete_fw_rule(self, protocol, dest_port, dest_ip,
+                       source_port, source_ip):
+        def create_protocol_list(protocol):
+            plist = []
+            plist.append(protocol.get_Tcp())
+            plist.append(protocol.get_Any())
+            plist.append(protocol.get_Tcp())
+            plist.append(protocol.get_Udp())
+            plist.append(protocol.get_Icmp())
+            plist.append(protocol.get_Other())
+            return plist
+        rules = self.get_fw_rules()
+        new_rules = []
+        to_delete_trait = (create_protocol_list(_create_protocols_type(protocol)),
+                           dest_port, dest_ip,
+                           source_port, source_ip)
+        for rule in rules:
+            current_trait = (create_protocol_list(rule.get_Protocols()),
+                             rule.get_DestinationPortRange(),
+                             rule.get_DestinationIp(),
+                             rule.get_SourcePortRange(),
+                             rule.get_SourceIp())
+            import pdb; pdb.set_trace()
+            if current_trait == to_delete_trait:
+                continue
+            else:
+                new_rules.append(rule)
+        import pdb; pdb.set_trace()
+        return self._post_firewall_rules(new_rules)
 
 
 class ProxyVCD(pyvcloud.vclouddirector.VCD):
@@ -176,3 +203,8 @@ class ProxyVCD(pyvcloud.vclouddirector.VCD):
             return (False, response.content)
 
         raise cfy_exc.NonRecoverableError("Could not get network")
+
+def _create_protocols_type(protocol):
+    all_protocols = {"Tcp": None, "Udp": None, "Icmp": None, "Any": None}
+    all_protocols[protocol] = True
+    return ProtocolsType(**all_protocols)
