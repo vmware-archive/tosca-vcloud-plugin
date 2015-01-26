@@ -11,7 +11,6 @@ from tests.integration import TestCase, IntegrationTestConfig
 # @unittest.skip("demonstrating skipping")
 
 
-@unittest.skip("demonstrating skipping")
 class NatRulesOperationsTestCase(TestCase):
     def setUp(self):
         super(NatRulesOperationsTestCase, self).setUp()
@@ -69,7 +68,6 @@ class NatRulesOperationsTestCase(TestCase):
             self.ctx.node.properties['floatingip']['gateway'])
 
 
-@unittest.skip("demonstrating skipping")
 class OrgNetworkOperationsTestCase(TestCase):
     def setUp(self):
         super(OrgNetworkOperationsTestCase, self).setUp()
