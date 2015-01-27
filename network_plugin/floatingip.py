@@ -95,12 +95,13 @@ def _nat_operation(function, description, vcd_client,
                     .format(description, original_ip,
                             translated_ip, rule_type))
 
-    success, task, _ = function(rule_type, original_ip, any_type,
+    success, result, _ = function(rule_type, original_ip, any_type,
                                 translated_ip, any_type, any_type)
     if not success:
         raise cfy_exc.NonRecoverableError(
-            "Could not {0} {1} rule").format(description, rule_type)
-    wait_for_task(vcd_client, task)
+            "Could not {0} {1} rule: {2}"
+            .format(description, rule_type, result))
+    wait_for_task(vcd_client, result)
 
 
 def getFreeIP(gateway):
