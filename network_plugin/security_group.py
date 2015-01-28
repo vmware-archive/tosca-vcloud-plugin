@@ -27,9 +27,9 @@ def _rule_operation(operation, vcd_client):
     vcd_client = ProxyVCD(vcd_client)  # TODO: remove when our code merged in pyvcloud
     gateway = vcd_client.get_gateway(
         ctx.node.properties['gateway'])
-    protocol = _check_protocol(ctx.node.properties['rule']['protocol'])
-    dest_port = str(ctx.node.properties['rule']['port'])
-    description = ctx.node.properties['rule']['description']
+    protocol = _check_protocol(ctx.node.properties['rules']['protocol'])
+    dest_port = str(ctx.node.properties['rules']['port'])
+    description = ctx.node.properties['rules']['description']
     dest_ip = check_ip(get_vm_ip(vcd_client, ctx))
     task = None
     if operation == CREATE_RULE:

@@ -15,11 +15,14 @@ def check_ip(address):
             "Incorrect Ip address: {0}".format(address))
     return address
 
+
 def isExternalIpAssigned(ip, gateway):
     return ip in [address.external for address in collectAssignedIps(gateway)]
 
+
 def isInternalIpAssigned(ip, gateway):
     return ip in [address.internal for address in collectAssignedIps(gateway)]
+
 
 def collectAssignedIps(gateway):
     ips = []
@@ -36,7 +39,7 @@ def collectAssignedIps(gateway):
 
 def get_vm_ip(vcd_client, ctx):
     try:
-        vappName = _get_vapp_name(ctx.instance.relationships)
+        vappName = _get_vapp_name(ctx.source.instance.runtime_properties)
         vapp = vcd_client.get_vApp(vappName)
         if not vapp:
             raise cfy_exc.NonRecoverableError("Could not find vApp {0}".format(vappName))
@@ -52,11 +55,8 @@ def get_vm_ip(vcd_client, ctx):
         raise cfy_exc.NonRecoverableError("Could not get vm IP address")
 
 
-def _get_vapp_name(relationships):
+def _get_vapp_name(runtime_properties):
     try:
-        return [relationship.target.instance.runtime_properties
-                for relationship in relationships
-                if VCLOUD_VAPP_NAME
-                in relationship.target.instance.runtime_properties][0][VCLOUD_VAPP_NAME]
+        return runtime_properties[VCLOUD_VAPP_NAME]
     except (IndexError, AttributeError):
         raise cfy_exc.NonRecoverableError("Could not find vApp by name")

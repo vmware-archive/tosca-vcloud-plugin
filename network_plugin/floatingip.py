@@ -25,9 +25,8 @@ def disconnect_floatingip(vcd_client, **kwargs):
 def _floatingip_operation(operation, vcd_client, ctx):
     def showMessage(message, ip):
         ctx.logger.info(message.format(ip))
-
     gateway = vcd_client.get_gateway(
-        ctx.node.properties['floatingip']['gateway'])
+        ctx.target.node.properties['floatingip']['gateway'])
     if not gateway:
         raise cfy_exc.NonRecoverableError("Gateway not found")
 
@@ -36,10 +35,10 @@ def _floatingip_operation(operation, vcd_client, ctx):
     function = None
     description = None
     public_ip = None
-    if PUBLIC_IP in ctx.instance.runtime_properties:
-        public_ip = ctx.instance.runtime_properties[PUBLIC_IP]
-    elif PUBLIC_IP in ctx.node.properties['floatingip']:
-        public_ip = ctx.node.properties['floatingip'][PUBLIC_IP]
+    if PUBLIC_IP in ctx.target.instance.runtime_properties:
+        public_ip = ctx.target.instance.runtime_properties[PUBLIC_IP]
+    elif PUBLIC_IP in ctx.target.node.properties['floatingip']:
+        public_ip = ctx.target.node.properties['floatingip'][PUBLIC_IP]
 
     if operation == CREATE:
         if not public_ip:
@@ -78,9 +77,9 @@ def _floatingip_operation(operation, vcd_client, ctx):
                    external_ip, internal_ip)
 
     if operation == CREATE:
-        ctx.instance.runtime_properties[PUBLIC_IP] = external_ip
+        ctx.target.instance.runtime_properties[PUBLIC_IP] = external_ip
     else:
-        del ctx.instance.runtime_properties[PUBLIC_IP]
+        del ctx.target.instance.runtime_properties[PUBLIC_IP]
 
 
 def _nat_operation(function, description, vcd_client,
@@ -96,7 +95,7 @@ def _nat_operation(function, description, vcd_client,
                             translated_ip, rule_type))
 
     success, result, _ = function(rule_type, original_ip, any_type,
-                                translated_ip, any_type, any_type)
+                                  translated_ip, any_type, any_type)
     if not success:
         raise cfy_exc.NonRecoverableError(
             "Could not {0} {1} rule: {2}"
