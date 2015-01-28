@@ -46,13 +46,13 @@ class NatRulesOperationsTestCase(TestCase):
         floatingip.disconnect_floatingip()
         self.assertFalse(check_external())
 
-    @unittest.skip("demonstrating skipping")
+
     def test_nat_rules_create_delete_with_autoget_ip(self):
-        self.ctx.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
+        self.ctx.target.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
         del self.ctx.target.node.properties['floatingip']['public_ip']
 
         floatingip.connect_floatingip()
-        public_ip = self.ctx.instance.runtime_properties['public_ip']
+        public_ip = self.ctx.target.instance.runtime_properties['public_ip']
         check_external = lambda: isExternalIpAssigned(public_ip, self._get_gateway())
         self.assertTrue(public_ip)
         self.assertTrue(check_external())
