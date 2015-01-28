@@ -5,7 +5,6 @@ from vcloud_plugin_common import with_vcd_client, wait_for_task
 from network_operations import ProxyVCD
 from network_plugin import check_ip, get_vm_ip
 
-valid_protocols = ["Tcp", "Udp", "Icmp", "Any"]
 
 CREATE_RULE = 1
 DELETE_RULE = 2
@@ -26,10 +25,10 @@ def delete(vcd_client, **kwargs):
 def _rule_operation(operation, vcd_client):
     vcd_client = ProxyVCD(vcd_client)  # TODO: remove when our code merged in pyvcloud
     gateway = vcd_client.get_gateway(
-        ctx.node.properties['gateway'])
-    protocol = _check_protocol(ctx.node.properties['rules']['protocol'])
-    dest_port = str(ctx.node.properties['rules']['port'])
-    description = ctx.node.properties['rules']['description']
+        ctx.target.node.properties['gateway'])
+    protocol = _check_protocol(ctx.target.node.properties['rules']['protocol'])
+    dest_port = str(ctx.target.node.properties['rules']['port'])
+    description = ctx.target.node.properties['rules']['description']
     dest_ip = check_ip(get_vm_ip(vcd_client, ctx))
     task = None
     if operation == CREATE_RULE:
@@ -49,6 +48,7 @@ def _rule_operation(operation, vcd_client):
 
 
 def _check_protocol(protocol):
+    valid_protocols = ["Tcp", "Udp", "Icmp", "Any"]
     protocol = protocol.capitalize()
     if protocol not in valid_protocols:
         raise cfy_exc.NonRecoverableError(
