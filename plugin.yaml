@@ -68,21 +68,37 @@ node_types:
         properties:
             floatingip:
                 default: {}
-            vcloud_config:
-                default: {}
-        interfaces:
-            cloudify.interfaces.lifecycle:
-                create:
-                    implementation: vcloud.network_plugin.floatingip.connect_floatingip
-                    inputs: {}
-                delete:
-                    implementation: vcloud.network_plugin.floatingip.disconnect_floatingip
-                    inputs: {}
+
+    cloudify.vcloud.nodes.SecurityGroup:
+        derived_from: cloudify.nodes.SecurityGroup
+        properties:
+            gateway:
+                default: ''
+            rules:
+                default: []
 
 relationships:
     cloudify.vcloud.server_connected_to_floating_ip:
         derived_from: cloudify.relationships.connected_to
+        target_interfaces:
+            cloudify.interfaces.relationship_lifecycle:
+                establish:
+                    implementation: vcloud.network_plugin.floatingip.connect_floatingip
+                    inputs: {}
+                unlink:
+                    implementation: vcloud.network_plugin.floatingip.disconnect_floatingip
+                    inputs: {}
     cloudify.vcloud.port_connected_to_network:
         derived_from: cloudify.relationships.connected_to
     cloudify.vcloud.server_connected_to_port:
         derived_from: cloudify.relationships.connected_to
+    cloudify.vcloud.server_connected_to_security_group:
+      derived_from: cloudify.relationships.connected_to
+        target_interfaces:
+            cloudify.interfaces.relationship_lifecycle:
+                establish:
+                    implementation: vcloud.network_plugin.security_group.create
+                    inputs: {}
+                unlink:
+                    implementation: vcloud.network_plugin.security_group.delete
+                    inputs: {}

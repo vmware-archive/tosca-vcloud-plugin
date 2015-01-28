@@ -1,8 +1,8 @@
 import mock
 import unittest
 from cloudify.mocks import MockCloudifyContext, MockNodeInstanceContext
-from network_plugin import floatingip, network
-from network_plugin.floatingip import VCLOUD_VAPP_NAME
+from network_plugin import floatingip, network, security_group
+from server_plugin.server import VCLOUD_VAPP_NAME
 from network_plugin import isExternalIpAssigned
 from cloudify import exceptions as cfy_exc
 from tests.integration import TestCase, IntegrationTestConfig
@@ -10,24 +10,20 @@ from tests.integration import TestCase, IntegrationTestConfig
 # for skipping test add this before test function:
 # @unittest.skip("demonstrating skipping")
 
-
+@unittest.skip("demonstrating skipping")
 class NatRulesOperationsTestCase(TestCase):
-
     def setUp(self):
         super(NatRulesOperationsTestCase, self).setUp()
-
         name = "testnode"
         self.ctx = MockCloudifyContext(
             node_id=name,
             node_name=name,
-            properties={'floatingip': {}})
-
-        network_relationship = mock.Mock()
-        network_relationship.target = mock.Mock()
-        network_relationship.target.instance = MockNodeInstanceContext(
-            runtime_properties={VCLOUD_VAPP_NAME: IntegrationTestConfig().get()['test_vm']})
-        self.ctx.instance.relationships = [network_relationship]
-
+            properties={},
+            target=MockCloudifyContext(node_id="target",
+                                       properties={'floatingip': {}}),
+            source=MockCloudifyContext(node_id="source",
+                                       properties={'vcloud_config': {}},
+                                       runtime_properties={VCLOUD_VAPP_NAME: IntegrationTestConfig().get()['test_vm']}))
         ctx_patch1 = mock.patch('network_plugin.floatingip.ctx', self.ctx)
         ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
         ctx_patch1.start()
@@ -39,8 +35,8 @@ class NatRulesOperationsTestCase(TestCase):
         super(NatRulesOperationsTestCase, self).tearDown()
 
     def test_nat_rules_create_delete_with_explicit_ip(self):
-        self.ctx.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
-        public_ip = self.ctx.node.properties['floatingip']['public_ip']
+        self.ctx.target.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
+        public_ip = self.ctx.target.node.properties['floatingip']['public_ip']
         check_external = lambda: isExternalIpAssigned(public_ip, self._get_gateway())
         self.assertFalse(check_external())
         floatingip.connect_floatingip()
@@ -50,12 +46,13 @@ class NatRulesOperationsTestCase(TestCase):
         floatingip.disconnect_floatingip()
         self.assertFalse(check_external())
 
+
     def test_nat_rules_create_delete_with_autoget_ip(self):
-        self.ctx.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
-        del self.ctx.node.properties['floatingip']['public_ip']
+        self.ctx.target.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
+        del self.ctx.target.node.properties['floatingip']['public_ip']
 
         floatingip.connect_floatingip()
-        public_ip = self.ctx.instance.runtime_properties['public_ip']
+        public_ip = self.ctx.target.instance.runtime_properties['public_ip']
         check_external = lambda: isExternalIpAssigned(public_ip, self._get_gateway())
         self.assertTrue(public_ip)
         self.assertTrue(check_external())
@@ -66,11 +63,10 @@ class NatRulesOperationsTestCase(TestCase):
 
     def _get_gateway(self):
         return self.vcd_client.get_gateway(
-            self.ctx.node.properties['floatingip']['gateway'])
+            self.ctx.target.node.properties['floatingip']['gateway'])
 
 
 class OrgNetworkOperationsTestCase(TestCase):
-
     def setUp(self):
         super(OrgNetworkOperationsTestCase, self).setUp()
 
@@ -115,6 +111,48 @@ class OrgNetworkOperationsTestCase(TestCase):
         self.assertNotIn(self.net_name,
                          network._get_network_list(self.vcd_client))
         self.assertEqual(start_pools, len(self.get_pools()))
+
+
+class FirewallRulesOperationsTestCase(TestCase):
+    def setUp(self):
+        super(FirewallRulesOperationsTestCase, self).setUp()
+
+        name = "testnode"
+        self.ctx = MockCloudifyContext(
+            node_id=name,
+            node_name=name,
+            properties={},
+            target=MockCloudifyContext(node_id="target",
+                                       properties=IntegrationTestConfig().get()['security_group']),
+            source=MockCloudifyContext(node_id="source",
+                                       properties={'vcloud_config': {}},
+                                       runtime_properties={VCLOUD_VAPP_NAME: IntegrationTestConfig().get()['test_vm']}))
+        ctx_patch1 = mock.patch('network_plugin.security_group.ctx', self.ctx)
+        ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
+        ctx_patch1.start()
+        ctx_patch2.start()
+        self.addCleanup(ctx_patch1.stop)
+        self.addCleanup(ctx_patch2.stop)
+
+    def tearDown(self):
+        super(FirewallRulesOperationsTestCase, self).tearDown()
+
+    def test_firewall_rules_create_delete(self):
+        rules = len(self.get_rules())
+        security_group.create()
+        self.assertEqual(rules + 1, len(self.get_rules()))
+        security_group.delete()
+        self.assertEqual(rules, len(self.get_rules()))
+
+    def get_rules(self):
+        gateway = self.vcd_client.get_gateways()[0]
+        if not gateway:
+            raise cfy_exc.NonRecoverableError("Gateway not found")
+        gatewayConfiguration = gateway.me.get_Configuration()
+        edgeGatewayServiceConfiguration = gatewayConfiguration.get_EdgeGatewayServiceConfiguration()
+        firewallService = filter(lambda service: service.__class__.__name__ == "FirewallServiceType",
+                                 edgeGatewayServiceConfiguration.get_NetworkService())[0]
+        return firewallService.get_FirewallRule()
 
 
 if __name__ == '__main__':

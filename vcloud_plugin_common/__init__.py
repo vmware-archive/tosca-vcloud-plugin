@@ -23,6 +23,7 @@ from pyvcloud import vcloudair
 from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType
 
 from cloudify import ctx
+from cloudify import context
 from cloudify import exceptions as cfy_exc
 
 TASK_RECHECK_TIMEOUT = 2
@@ -133,7 +134,13 @@ class VcloudDirectorClient(object):
 def with_vcd_client(f):
     @wraps(f)
     def wrapper(*args, **kw):
-        config = ctx.node.properties.get('vcloud_config')
+        config = None
+        if ctx.type == context.NODE_INSTANCE:
+            config = ctx.node.properties.get('vcloud_config')
+        elif ctx.type == context.RELATIONSHIP_INSTANCE:
+            config = ctx.source.node.properties.get('vcloud_config')
+        else:
+            raise cfy_exc.NonRecoverableError("Unsupported context")
         client = VcloudDirectorClient().get(config=config)
         kw['vcd_client'] = client
         return f(*args, **kw)

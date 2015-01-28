@@ -2,9 +2,8 @@ from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import with_vcd_client, wait_for_task
-from network_plugin import check_ip, isExternalIpAssigned, isInternalIpAssigned, collectAssignedIps
-from server_plugin import VAppOperations
-from server_plugin.server import VCLOUD_VAPP_NAME
+from network_plugin import check_ip, isExternalIpAssigned, isInternalIpAssigned, collectAssignedIps, get_vm_ip
+
 
 CREATE = 1
 DELETE = 2
@@ -26,21 +25,20 @@ def disconnect_floatingip(vcd_client, **kwargs):
 def _floatingip_operation(operation, vcd_client, ctx):
     def showMessage(message, ip):
         ctx.logger.info(message.format(ip))
-
     gateway = vcd_client.get_gateway(
-        ctx.node.properties['floatingip']['gateway'])
+        ctx.target.node.properties['floatingip']['gateway'])
     if not gateway:
         raise cfy_exc.NonRecoverableError("Gateway not found")
 
-    internal_ip = check_ip(_get_vm_ip(vcd_client, ctx))
+    internal_ip = check_ip(get_vm_ip(vcd_client, ctx))
 
     function = None
     description = None
     public_ip = None
-    if PUBLIC_IP in ctx.instance.runtime_properties:
-        public_ip = ctx.instance.runtime_properties[PUBLIC_IP]
-    elif PUBLIC_IP in ctx.node.properties['floatingip']:
-        public_ip = ctx.node.properties['floatingip'][PUBLIC_IP]
+    if PUBLIC_IP in ctx.target.instance.runtime_properties:
+        public_ip = ctx.target.instance.runtime_properties[PUBLIC_IP]
+    elif PUBLIC_IP in ctx.target.node.properties['floatingip']:
+        public_ip = ctx.target.node.properties['floatingip'][PUBLIC_IP]
 
     if operation == CREATE:
         if not public_ip:
@@ -79,9 +77,9 @@ def _floatingip_operation(operation, vcd_client, ctx):
                    external_ip, internal_ip)
 
     if operation == CREATE:
-        ctx.instance.runtime_properties[PUBLIC_IP] = external_ip
+        ctx.target.instance.runtime_properties[PUBLIC_IP] = external_ip
     else:
-        del ctx.instance.runtime_properties[PUBLIC_IP]
+        del ctx.target.instance.runtime_properties[PUBLIC_IP]
 
 
 def _nat_operation(function, description, vcd_client,
@@ -97,40 +95,12 @@ def _nat_operation(function, description, vcd_client,
                             translated_ip, rule_type))
 
     success, result, _ = function(rule_type, original_ip, any_type,
-                                translated_ip, any_type, any_type)
+                                  translated_ip, any_type, any_type)
     if not success:
         raise cfy_exc.NonRecoverableError(
             "Could not {0} {1} rule: {2}"
             .format(description, rule_type, result))
     wait_for_task(vcd_client, result)
-
-
-def _get_vm_ip(vcd_client, ctx):
-    try:
-        vappName = _get_vapp_name(ctx.instance.relationships)
-        vapp = vcd_client.get_vApp(vappName)
-        if not vapp:
-            raise cfy_exc.NonRecoverableError("Could not find vApp {0}".format(vappName))
-        vapp_ops = VAppOperations(vcd_client, vapp)
-        vm_info = vapp_ops.get_vms_network_info()
-        # assume that we have 1 vm per vApp with minium 1 connection
-        connection = vm_info[0][0]
-        if connection['is_connected']:
-            return connection['ip']
-        else:
-            raise cfy_exc.NonRecoverableError("Network not connected")
-    except IndexError:
-        raise cfy_exc.NonRecoverableError("Could not get vm IP address")
-
-
-def _get_vapp_name(relationships):
-    try:
-        return [relationship.target.instance.runtime_properties
-                for relationship in relationships
-                if VCLOUD_VAPP_NAME
-                in relationship.target.instance.runtime_properties][0][VCLOUD_VAPP_NAME]
-    except (IndexError, AttributeError):
-        raise cfy_exc.NonRecoverableError("Could not find vApp by name")
 
 
 def getFreeIP(gateway):
