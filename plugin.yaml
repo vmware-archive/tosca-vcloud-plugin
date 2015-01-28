@@ -68,6 +68,8 @@ node_types:
         properties:
             floatingip:
                 default: {}
+            vcloud_config:
+                default: {}
 
     cloudify.vcloud.nodes.SecurityGroup:
         derived_from: cloudify.nodes.SecurityGroup
@@ -76,6 +78,8 @@ node_types:
                 default: ''
             rules:
                 default: []
+            vcloud_config:
+                default: {}
 
 relationships:
     cloudify.vcloud.server_connected_to_floating_ip:
@@ -93,7 +97,7 @@ relationships:
     cloudify.vcloud.server_connected_to_port:
         derived_from: cloudify.relationships.connected_to
     cloudify.vcloud.server_connected_to_security_group:
-      derived_from: cloudify.relationships.connected_to
+        derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
                 establish:
