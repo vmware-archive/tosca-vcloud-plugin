@@ -30,6 +30,10 @@ inputs:
     manager_server_template:
         type: string
 
+    management_network_use_existing:
+        type: bool
+        default: false
+
     management_network_name:
         type: string
 
@@ -41,11 +45,7 @@ inputs:
         type: string
         default: ''
 
-    management_port_mac_address:
-        type: string
-        default: ''
-
-    floating_ip_gateway:
+    edge_gateway:
         type: string
 
     floating_ip_public_ip:
@@ -93,6 +93,8 @@ node_templates:
         relationships:
             - target: management_port
               type: cloudify.vcloud.server_connected_to_port
+            - target: manager_floating_ip
+              type: cloudify.vcloud.server_connected_to_floating_ip
 
     management_port:
         type: cloudify.vcloud.nodes.Port
@@ -101,27 +103,33 @@ node_templates:
                 network: { get_input: management_network_name }
                 ip_allocation_mode: { get_input: management_port_ip_allocation_mode }
                 ip_address: { get_input: management_port_ip_address }
-                mac_address: { get_input: management_port_mac_address }
                 primary_interface: true
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+        relationships:
+            - target: management_network
+              type: cloudify.vcloud.port_connected_to_network
 
     management_network:
         type: cloudify.vcloud.nodes.Network
         properties:
-            use_external_resource: true
+            use_external_resource: { get_input: management_network_use_existing }
             resource_id: { get_input: management_network_name }
+            network:
+                gateway_name: { get_input: edge_gateway }
+                netmask: 255.255.255.0
+                gateway_ip: 10.67.79.1/24
+                dns: 10.67.79.1
+                dhcp:
+                    dhcp_range: 10.67.79.2-10.67.79.254
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
     manager_floating_ip:
         type: cloudify.vcloud.nodes.FloatingIP
         properties:
             floatingip:
-                gateway: { get_input: floating_ip_gateway }
+                gateway: { get_input: edge_gateway }
                 public_ip: { get_input: floating_ip_public_ip }
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
-        relationships:
-            - target: manager_server
-              type: cloudify.vcloud.server_connected_to_floating_ip
 
     vcloud_configuration:
         type: vcloud_configuration
