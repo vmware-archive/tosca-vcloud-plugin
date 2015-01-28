@@ -25,6 +25,16 @@ node_templates:
               type: cloudify.vcloud.server_connected_to_port
             - target: example_port2
               type: cloudify.vcloud.server_connected_to_port
+            - target: manager_floating_ip
+              type: cloudify.vcloud.server_connected_to_floating_ip
+
+    example_floating_ip:
+        type: cloudify.vcloud.nodes.FloatingIP
+        properties:
+            floatingip:
+                gateway: M000000000-1111
+                public_ip: 24.44.44.244
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
     example_port:
         type: cloudify.vcloud.nodes.Port
@@ -34,9 +44,6 @@ node_templates:
                 ip_allocation_mode: dhcp
                 primary_interface: true
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
-        relationships:
-            - target: example_network
-              type: cloudify.vcloud.port_connected_to_network
 
     example_network:
         type: cloudify.vcloud.nodes.Network
@@ -62,13 +69,17 @@ node_templates:
         type: cloudify.vcloud.nodes.Network
         properties:
             network:
+                gateway_name: M000000000-1111
                 name: plugin-test-nw
-                start_address: 10.10.0.2
-                end_address: 10.10.0.254
+                static_range: 10.10.0.2-10.10.0.128
                 netmask: 255.255.255.0
                 gateway_ip: 10.10.0.1/24
                 dns: 10.10.0.1
                 dns_suffix: test
+                dhcp:
+                    dhcp_range: 10.10.0.129-10.10.0.254
+                    default_lease: 3600
+                    max_lease: 7200
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
     vcloud_configuration:
@@ -78,5 +89,5 @@ node_templates:
                 username: user
                 password: pw
                 url: https://vchs.vmware.com
-                service: M966854774-4471
-                vdc: M966854774-4471
+                service: M000000000-1111
+                vdc: M000000000-1111
