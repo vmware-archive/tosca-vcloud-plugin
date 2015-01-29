@@ -120,11 +120,14 @@ class VcloudDirectorClient(object):
             success = vca.login(url, username, password, token)
             if success is False:
                 login_failed = True
+                ctx.logger.info("Login failed. Retrying...")
                 continue
             else:
                 atexit.register(vca.logout)
             vcd = vca.get_vCloudDirector(service, vdc)
             if vcd is None:
+                ctx.logger.info(
+                    "Could not get vCloud Director reference. Retrying...")
                 continue
         if login_failed:
             raise cfy_exc.NonRecoverableError("Invalid login credentials")
