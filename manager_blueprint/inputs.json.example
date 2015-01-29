@@ -9,6 +9,6 @@
     "manager_server_template": "",
     "management_network_use_existing": true,
     "management_network_name": "",
-    "floating_ip_gateway": "",
+    "edge_gateway": "",
     "floating_ip_public_ip": ""
 }
