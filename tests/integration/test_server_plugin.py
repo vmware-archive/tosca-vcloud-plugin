@@ -1,21 +1,29 @@
 import mock
+import random
 import socket
+import string
 import time
 import unittest
 
 from cloudify import mocks as cfy_mocks
 
 from network_plugin.network import VCLOUD_NETWORK_NAME
-from server_plugin import server
+from server_plugin import server, VAppOperations
 
 from tests.integration import TestCase, IntegrationTestConfig
+
+RANDOM_PREFIX_LENGTH = 5
 
 
 class ServerNoNetworkTestCase(TestCase):
 
     def setUp(self):
-        super(ServerNoNetworkTestCase, self).setUp()
-
+        chars = string.ascii_uppercase + string.digits
+        self.name_prefix = ('plugin_test_{0}_'
+                            .format(''.join(
+                                random.choice(chars)
+                                for _ in range(RANDOM_PREFIX_LENGTH)))
+                            )
         server_test_dict = IntegrationTestConfig().get()['server']
         name = self.name_prefix + 'server'
 
@@ -38,6 +46,7 @@ class ServerNoNetworkTestCase(TestCase):
         ctx_patch2.start()
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
+        super(ServerNoNetworkTestCase, self).setUp()
 
     def tearDown(self):
         try:
@@ -52,11 +61,6 @@ class ServerNoNetworkTestCase(TestCase):
         vapp = self.vcd_client.get_vApp(
             self.ctx.node.properties['server']['name'])
         self.assertFalse(vapp is None)
-        self.assertTrue(server._vm_is_on(vapp))
-
-        server.stop()
-        vapp = self.vcd_client.get_vApp(
-            self.ctx.node.properties['server']['name'])
         self.assertFalse(server._vm_is_on(vapp))
 
         server.delete()
@@ -69,6 +73,11 @@ class ServerNoNetworkTestCase(TestCase):
         vapp = self.vcd_client.get_vApp(
             self.ctx.node.properties['server']['name'])
         self.assertFalse(vapp is None)
+        self.assertFalse(server._vm_is_on(vapp))
+
+        server.start()
+        vapp = self.vcd_client.get_vApp(
+            self.ctx.node.properties['server']['name'])
         self.assertTrue(server._vm_is_on(vapp))
 
         server.stop()
@@ -85,22 +94,31 @@ class ServerNoNetworkTestCase(TestCase):
 class ServerWithNetworkTestCase(TestCase):
 
     def setUp(self):
-        super(ServerWithNetworkTestCase, self).setUp()
+        chars = string.ascii_uppercase + string.digits
+        self.name_prefix = ('plugin_test_{0}_'
+                            .format(''.join(
+                                random.choice(chars)
+                                for _ in range(RANDOM_PREFIX_LENGTH)))
+                            )
 
         server_test_dict = IntegrationTestConfig().get()['server']
         name = self.name_prefix + 'server'
         self.network_name = server_test_dict['network']
 
-        network_runtime_properties = {VCLOUD_NETWORK_NAME: self.network_name}
-        network_instance_context = cfy_mocks.MockNodeInstanceContext(
-            runtime_properties=network_runtime_properties)
-        network_node_context = cfy_mocks.MockNodeContext(
-            properties={'management': True})
+        port_node_context = cfy_mocks.MockNodeContext(
+            properties={
+                'port':
+                {
+                    'network': self.network_name,
+                    'ip_allocation_mode': 'pool',
+                    'primary_interface': True
+                }
+            }
+        )
 
-        network_relationship = mock.Mock()
-        network_relationship.target = mock.Mock()
-        network_relationship.target.instance = network_instance_context
-        network_relationship.target.node = network_node_context
+        port_relationship = mock.Mock()
+        port_relationship.target = mock.Mock()
+        port_relationship.target.node = port_node_context
 
         self.ctx = cfy_mocks.MockCloudifyContext(
             node_id=name,
@@ -111,16 +129,18 @@ class ServerWithNetworkTestCase(TestCase):
                     'name': name,
                     'catalog': server_test_dict['catalog'],
                     'template': server_test_dict['template']
-                }
+                },
+                'management_network': self.network_name
             }
         )
-        self.ctx.instance.relationships = [network_relationship]
+        self.ctx.instance.relationships = [port_relationship]
         ctx_patch1 = mock.patch('server_plugin.server.ctx', self.ctx)
         ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
         ctx_patch1.start()
         ctx_patch2.start()
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
+        super(ServerWithNetworkTestCase, self).setUp()
 
     def tearDown(self):
         try:
@@ -135,6 +155,7 @@ class ServerWithNetworkTestCase(TestCase):
         server.start()
         vapp = self.vcd_client.get_vApp(
             self.ctx.node.properties['server']['name'])
+        vapp = VAppOperations(self.vcd_client, vapp)
         self.assertFalse(vapp is None)
         networks = server._get_vm_network_connections(vapp)
         self.assertEqual(1, len(networks))

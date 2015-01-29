@@ -13,7 +13,6 @@ from tests.integration import TestCase, IntegrationTestConfig
 @unittest.skip("demonstrating skipping")
 class NatRulesOperationsTestCase(TestCase):
     def setUp(self):
-        super(NatRulesOperationsTestCase, self).setUp()
         name = "testnode"
         self.ctx = MockCloudifyContext(
             node_id=name,
@@ -30,6 +29,7 @@ class NatRulesOperationsTestCase(TestCase):
         ctx_patch2.start()
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
+        super(NatRulesOperationsTestCase, self).setUp()
 
     def tearDown(self):
         super(NatRulesOperationsTestCase, self).tearDown()
@@ -68,7 +68,6 @@ class NatRulesOperationsTestCase(TestCase):
 
 class OrgNetworkOperationsTestCase(TestCase):
     def setUp(self):
-        super(OrgNetworkOperationsTestCase, self).setUp()
 
         self.net_name = "test_network"
         self.ctx = MockCloudifyContext(
@@ -85,6 +84,7 @@ class OrgNetworkOperationsTestCase(TestCase):
         ctx_patch2.start()
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
+        super(OrgNetworkOperationsTestCase, self).setUp()
 
     def get_pools(self):
         gateway = self.vcd_client.get_gateways()[0]
@@ -115,7 +115,6 @@ class OrgNetworkOperationsTestCase(TestCase):
 
 class FirewallRulesOperationsTestCase(TestCase):
     def setUp(self):
-        super(FirewallRulesOperationsTestCase, self).setUp()
 
         name = "testnode"
         self.ctx = MockCloudifyContext(
@@ -133,6 +132,7 @@ class FirewallRulesOperationsTestCase(TestCase):
         ctx_patch2.start()
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
+        super(FirewallRulesOperationsTestCase, self).setUp()
 
     def tearDown(self):
         super(FirewallRulesOperationsTestCase, self).tearDown()
