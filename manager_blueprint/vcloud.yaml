@@ -18,7 +18,7 @@ inputs:
     vcloud_service:
         type: string
 
-    vcloud_vcd:
+    vcloud_vdc:
         type: string
 
     manager_server_name:
@@ -139,7 +139,7 @@ node_templates:
                 password: { get_input: vcloud_password }
                 url: { get_input: vcloud_url }
                 service: { get_input: vcloud_service }
-                vdc: { get_input: vcloud_vcd }
+                vdc: { get_input: vcloud_vdc }
 
     manager:
         type: cloudify.nodes.CloudifyManager

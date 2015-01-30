@@ -3,7 +3,7 @@
     "vcloud_password": "",
     "vcloud_url": "",
     "vcloud_service": "",
-    "vcloud_vcd": "",
+    "vcloud_vdc": "",
     "manager_server_name": "",
     "manager_server_catalog": "",
     "manager_server_template": "",
