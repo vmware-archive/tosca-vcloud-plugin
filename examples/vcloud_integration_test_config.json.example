@@ -3,7 +3,11 @@
     {
         "catalog": "",
         "template": "",
-        "network": ""
+        "network": "",
+	"guest_customization":
+	{
+	 "computer_name": "custom-name"
+	}
     },
 "floatingip":
     {

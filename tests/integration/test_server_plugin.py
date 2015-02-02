@@ -35,7 +35,8 @@ class ServerNoNetworkTestCase(TestCase):
                 {
                     'name': name,
                     'catalog': server_test_dict['catalog'],
-                    'template': server_test_dict['template']
+                    'template': server_test_dict['template'],
+                    'guest_customization': server_test_dict['guest_customization'],
                 }
             }
         )
@@ -67,6 +68,7 @@ class ServerNoNetworkTestCase(TestCase):
         vapp = self.vcd_client.get_vApp(
             self.ctx.node.properties['server']['name'])
         self.assertTrue(vapp is None)
+
 
     def test_server_stop_start(self):
         server.create()

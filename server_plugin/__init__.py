@@ -119,12 +119,23 @@ class VAppOperations(object):
             else:
                 return False, response.content
 
-    def update_guest_customization(self, customization_script=None):
+    def update_guest_customization(self, enabled=False,
+                                   admin_password=None,
+                                   computer_name=None,
+                                   customization_script=None):
         vm = self._get_vms()[0]
         customization_section = [section for section in vm.get_Section()
                                  if (section.__class__.__name__ ==
                                      "GuestCustomizationSectionType")
                                  ][0]
+        customization_section.set_Enabled(enabled)
+        customization_section.set_AdminAutoLogonEnabled(False)
+        customization_section.set_ResetPasswordRequired(False)
+        if admin_password:
+            customization_section.set_AdminPasswordEnabled(True)
+            customization_section.set_AdminPassword(admin_password)
+        if computer_name:
+            customization_section.set_ComputerName(computer_name)
         if customization_script:
             customization_section.set_CustomizationScript(customization_script)
         body = self._create_request_body(
@@ -132,7 +143,6 @@ class VAppOperations(object):
             'GuestCustomizationSectionType',
             'xmlns="http://www.vmware.com/vcloud/v1.5" '
             'xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"')
-
         response = requests.put(customization_section.get_href(),
                                 data = body,
                                 headers = self.vapp.headers)
@@ -141,6 +151,16 @@ class VAppOperations(object):
             return True, task
         else:
             return False, response.content
+
+    def customize_on_next_poweron(self):
+        vm = self._get_vms()[0]
+        link = filter(lambda link: link.get_rel() == "customizeAtNextPowerOn", vm.get_Link())
+        if link:
+            response = requests.post(link[0].get_href(), data=None,
+                                     headers=self.vapp.headers)
+            if response.status_code == requests.codes.no_content:
+                return True
+        return False
 
     def add_network(self, network_name, fence_mode):
         vApp_NetworkConfigSection = [section for section in self.vapp.me.get_Section()

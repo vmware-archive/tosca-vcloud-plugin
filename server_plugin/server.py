@@ -23,6 +23,7 @@ from server_plugin import VAppOperations
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 STATUS_POWER_ON = 'Powered on'
 STATUS_POWER_OFF = 'Power off'
+GUEST_CUSTOMIZATION = 'guest_customization'
 
 
 @operation
@@ -64,10 +65,11 @@ def create(vcd_client, **kwargs):
 
     ports = _get_connected_ports(ctx.instance.relationships)
 
+    vapp = vcd_client.get_vApp(vapp_name)
+    vapp_ops = VAppOperations(vcd_client, vapp)
+
     if len(ports) > 0:
         for index, port in enumerate(ports):
-            vapp = vcd_client.get_vApp(vapp_name)
-            vapp_ops = VAppOperations(vcd_client, vapp)
             port_properties = port.node.properties['port']
             network_name = port_properties['network']
 
@@ -102,6 +104,38 @@ def create(vcd_client, **kwargs):
                     "Could not connect vApp {0} to network {1}: {2}"
                     .format(vapp_name, network_name, result))
             wait_for_task(vcd_client, result)
+    if GUEST_CUSTOMIZATION in server and server[GUEST_CUSTOMIZATION]:
+        custom = server[GUEST_CUSTOMIZATION]
+        script = None
+        password = None
+        computer_name = None
+        if 'script' in custom:
+            script = custom['script']
+        if 'admin_password' in custom:
+            password = custom['admin_password']
+        if 'admin_password' in custom:
+            password = custom['admin_password']
+        if 'computer_name' in custom:
+            computer_name = custom['computer_name']
+        success, result = vapp_ops.update_guest_customization(enabled=True,
+                                                              admin_password=password,
+                                                              computer_name=computer_name,
+                                                              customization_script=script)
+        if success is False:
+            raise cfy_exc.NonRecoverableError(
+                "Could not set guest customization script: {}".format(result))
+        wait_for_task(vcd_client, result)
+        # This function avialable from API version 5.6
+        if vapp_ops.customize_on_next_poweron():
+            ctx.logger.info("Customizations sucsessful")
+        else:
+            raise cfy_exc.NonRecoverableError("Can't run customization in next power on")
+    else:
+        success, result = vapp_ops.update_guest_customization(enable=False)
+        if success is False:
+            raise cfy_exc.NonRecoverableError(
+                "Could not disable guest customization: {}".format(result))
+        wait_for_task(vcd_client, result)
 
 
 @operation
