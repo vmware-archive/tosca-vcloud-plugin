@@ -123,6 +123,8 @@ class VAppOperations(object):
                                    admin_password=None,
                                    computer_name=None,
                                    customization_script=None):
+        if not (admin_password or computer_name or customization_script):
+            enabled = False
         vm = self._get_vms()[0]
         customization_section = [section for section in vm.get_Section()
                                  if (section.__class__.__name__ ==
