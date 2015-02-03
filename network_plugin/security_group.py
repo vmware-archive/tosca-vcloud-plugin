@@ -25,7 +25,7 @@ def delete(vcd_client, **kwargs):
 def _rule_operation(operation, vcd_client):
     vcd_client = ProxyVCD(vcd_client)  # TODO: remove when our code merged in pyvcloud
     gateway = vcd_client.get_gateway(
-        ctx.target.node.properties['gateway'])
+        ctx.target.node.properties['edge_gateway'])
     protocol = _check_protocol(ctx.target.node.properties['rules']['protocol'])
     dest_port = str(ctx.target.node.properties['rules']['port'])
     description = ctx.target.node.properties['rules']['description']
@@ -37,12 +37,14 @@ def _rule_operation(operation, vcd_client):
         if not success:
             raise cfy_exc.NonRecoverableError(
                 "Could not add firewall rule: {0}".format(description))
+        ctx.logger.info("Firewall rule has been created {0}".format(description))
     if operation == DELETE_RULE:
         success, task = gateway.delete_fw_rule(protocol, dest_port, dest_ip,
                                                "Any", "external")
         if not success:
             raise cfy_exc.NonRecoverableError(
                 "Could not delete firewall rule: {0}".format(description))
+        ctx.logger.info("Firewall rule has been deleted {0}".format(description))
     if task:
         wait_for_task(vcd_client, task)
 

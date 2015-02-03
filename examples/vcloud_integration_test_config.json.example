@@ -12,13 +12,13 @@
 "floatingip":
     {
         "public_ip": "1.2.3.4",
-        "gateway": "gatewayname"
+        "edge_gateway": "gatewayname"
     },
 "test_vm": "vapp_name",
 "network":
 	{
 	"static_range": "192.168.0.100-192.168.0.199",
-        "gateway_name": "gatewayname",
+        "edge_gateway": "gatewayname",
         "gateway_ip": "192.168.0.1",
         "netmask": "255.255.255.0",
         "dns": "10.147.115.1",
@@ -30,7 +30,7 @@
         "max_lease": 7200},
 "security_group":
 	{
-	"gateway" : "gatewayname",
+	"edge_gateway" : "gatewayname",
 	"rule" :
 		{
 			"description": "Rule description",

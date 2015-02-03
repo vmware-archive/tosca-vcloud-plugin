@@ -32,7 +32,7 @@ node_templates:
         type: cloudify.vcloud.nodes.FloatingIP
         properties:
             floatingip:
-                gateway: M000000000-1111
+                edge_gateway: M000000000-1111
                 public_ip: 24.44.44.244
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
@@ -69,7 +69,7 @@ node_templates:
         type: cloudify.vcloud.nodes.Network
         properties:
             network:
-                gateway_name: M000000000-1111
+                edge_gateway: M000000000-1111
                 name: plugin-test-nw
                 static_range: 10.10.0.2-10.10.0.128
                 netmask: 255.255.255.0

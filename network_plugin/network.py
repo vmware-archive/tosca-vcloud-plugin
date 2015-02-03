@@ -43,7 +43,7 @@ def create(vcd_client, **kwargs):
         ctx.logger.info("Network {0} already exists".format(network_name))
         return
     ip = _split_adresses(net_prop['static_range'])
-    gateway_name = net_prop['gateway_name']
+    gateway_name = net_prop['edge_gateway']
     start_address = check_ip(ip.start)
     end_address = check_ip(ip.end)
     gateway_ip = check_ip(net_prop["gateway_ip"])
@@ -88,7 +88,7 @@ def delete(vcd_client, **kwargs):
 def _dhcp_operation(vcd_client, network_name, operation):
     if 'dhcp' not in ctx.node.properties or not ctx.node.properties['dhcp']:
         return
-    gateway_name = ctx.node.properties["network"]['gateway_name']
+    gateway_name = ctx.node.properties["network"]['edge_gateway']
     gateway = vcd_client.get_gateway(gateway_name)
     if not gateway:
                 raise cfy_exc.NonRecoverableError("Gateway {0} not found!".format(gateway_name))

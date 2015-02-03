@@ -10,7 +10,7 @@ from tests.integration import TestCase, IntegrationTestConfig
 # for skipping test add this before test function:
 # @unittest.skip("demonstrating skipping")
 
-@unittest.skip("demonstrating skipping")
+
 class NatRulesOperationsTestCase(TestCase):
     def setUp(self):
         name = "testnode"
@@ -63,7 +63,7 @@ class NatRulesOperationsTestCase(TestCase):
 
     def _get_gateway(self):
         return self.vcd_client.get_gateway(
-            self.ctx.target.node.properties['floatingip']['gateway'])
+            self.ctx.target.node.properties['floatingip']['edge_gateway'])
 
 
 class OrgNetworkOperationsTestCase(TestCase):

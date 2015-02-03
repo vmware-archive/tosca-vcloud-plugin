@@ -26,7 +26,7 @@ def _floatingip_operation(operation, vcd_client, ctx):
     def showMessage(message, ip):
         ctx.logger.info(message.format(ip))
     gateway = vcd_client.get_gateway(
-        ctx.target.node.properties['floatingip']['gateway'])
+        ctx.target.node.properties['floatingip']['edge_gateway'])
     if not gateway:
         raise cfy_exc.NonRecoverableError("Gateway not found")
 
