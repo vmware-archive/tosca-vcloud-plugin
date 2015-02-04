@@ -69,7 +69,6 @@ class ServerNoNetworkTestCase(TestCase):
             self.ctx.node.properties['server']['name'])
         self.assertTrue(vapp is None)
 
-
     def test_server_stop_start(self):
         server.create()
         vapp = self.vcd_client.get_vApp(

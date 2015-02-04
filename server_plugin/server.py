@@ -67,6 +67,10 @@ def create(vcd_client, **kwargs):
 
     vapp = vcd_client.get_vApp(vapp_name)
     vapp_ops = VAppOperations(vcd_client, vapp)
+    success, result = vapp_ops.rename_vm(server['name'])
+    if success is False:
+        raise cfy_exc.NonRecoverableError("Could not rename VM")
+    wait_for_task(vcd_client, result)
 
     if len(ports) > 0:
         for index, port in enumerate(ports):

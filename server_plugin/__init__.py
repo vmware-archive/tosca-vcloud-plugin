@@ -1,7 +1,7 @@
 import requests
-from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType, vcloudType
+from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType, vcloudType, vAppType
 from pyvcloud.helper import generalHelperFunctions as ghf
-
+import copy
 
 class VAppOperations(object):
     def __init__(self, vcd, vapp):
@@ -163,6 +163,26 @@ class VAppOperations(object):
             if response.status_code == requests.codes.no_content:
                 return True
         return False
+
+    def rename_vm(self, newname):
+        vm = self._get_vms()[0]
+        vm.set_name(newname)
+        newvm = vAppType.VmType(name=newname)
+        body = self._create_request_body(
+            newvm, 'Vm',
+            'xmlns="http://www.vmware.com/vcloud/v1.5" '
+            'xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"')
+        link = filter(lambda link: link.get_rel() == "reconfigureVm", vm.get_Link())
+        response = requests.post(link[0].get_href(),
+                                data = body,
+                                headers = self.vapp.headers)
+        if response.status_code == requests.codes.accepted:
+            task = taskType.parseString(response.content, True)
+            return True, task
+        else:
+            return False, response.content
+
+
 
     def add_network(self, network_name, fence_mode):
         vApp_NetworkConfigSection = [section for section in self.vapp.me.get_Section()
