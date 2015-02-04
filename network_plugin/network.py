@@ -72,9 +72,7 @@ def delete(vcd_client, **kwargs):
         ctx.logger.info("Network was not deleted - external resource has"
                         " been used")
         return
-    network_name = ctx.node.properties["network"]["name"]\
-        if "name" in ctx.node.properties["network"]\
-           else ctx.node.properties['resource_id']
+    network_name = _get_network_name(ctx.node.properties)
     _dhcp_operation(vcd_client, network_name, DELETE_POOL)
     success, task = vcd_client.delete_vdc_network(network_name)
     if success:
@@ -83,6 +81,18 @@ def delete(vcd_client, **kwargs):
         raise cfy_exc.NonRecoverableError(
             "Could not delete network {0}".format(network_name))
     wait_for_task(vcd_client, task)
+
+
+@operation
+@with_vcd_client
+def creation_validation(vcd_client, **kwargs):
+    vcd_client = ProxyVCD(vcd_client)  # TODO: remove when our code merged in pyvcloud
+    net_list = _get_network_list(vcd_client)
+    network_name = _get_network_name(ctx.node.properties)
+    if network_name in net_list:
+        ctx.logger.info('Network {0} is available.'.format(network_name))
+    else:
+        ctx.logger.info('Network {0} is not available.'.format(network_name))
 
 
 def _dhcp_operation(vcd_client, network_name, operation):
@@ -138,3 +148,9 @@ def _split_adresses(address_range):
 def _get_network_list(vcd_client):
     vdc = vcd_client._get_vdc()
     return [net.name for net in vdc.AvailableNetworks.Network]
+
+
+def _get_network_name(properties):
+    return properties["network"]["name"]\
+        if "name" in properties["network"]\
+           else properties['resource_id']

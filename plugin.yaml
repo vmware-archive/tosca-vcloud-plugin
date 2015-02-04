@@ -54,6 +54,9 @@ node_types:
                 delete:
                     implementation: vcloud.network_plugin.network.delete
                     inputs: {}
+            cloudify.interfaces.validation:
+                creation:
+                    implementation: vcloud.network_plugin.network.creation_validation
 
     cloudify.vcloud.nodes.Port:
         derived_from: cloudify.nodes.Port

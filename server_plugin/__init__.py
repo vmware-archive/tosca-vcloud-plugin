@@ -174,15 +174,13 @@ class VAppOperations(object):
             'xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"')
         link = filter(lambda link: link.get_rel() == "reconfigureVm", vm.get_Link())
         response = requests.post(link[0].get_href(),
-                                data = body,
-                                headers = self.vapp.headers)
+                                 data=body,
+                                 headers=self.vapp.headers)
         if response.status_code == requests.codes.accepted:
             task = taskType.parseString(response.content, True)
             return True, task
         else:
             return False, response.content
-
-
 
     def add_network(self, network_name, fence_mode):
         vApp_NetworkConfigSection = [section for section in self.vapp.me.get_Section()
