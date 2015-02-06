@@ -1,7 +1,8 @@
 import requests
 from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType, vcloudType, vAppType
 from pyvcloud.helper import generalHelperFunctions as ghf
-import copy
+from xml.etree import ElementTree as ET
+
 
 class VAppOperations(object):
     def __init__(self, vcd, vapp):
@@ -21,7 +22,7 @@ class VAppOperations(object):
         for vm in vms:
             nw_connections = []
             sections = vm.get_Section()
-            networkConnectionSection = filter(lambda section: section.__class__.__name__== "NetworkConnectionSectionType", sections)[0]
+            networkConnectionSection = filter(lambda section: section.__class__.__name__ == "NetworkConnectionSectionType", sections)[0]
             connections = networkConnectionSection.get_NetworkConnection()
             for connection in connections:
                 nw_connections.append(
@@ -52,7 +53,7 @@ class VAppOperations(object):
             section.set_PrimaryNetworkConnectionIndex(primary_index)
 
     def _create_networkConnection(self, network_name, index, ip_allocation_mode,
-                                 mac_address=None, ip_address=None):
+                                  mac_address=None, ip_address=None):
         networkConnection = vcloudType.NetworkConnectionType()
         networkConnection.set_network(network_name)
         networkConnection.set_NetworkConnectionIndex(index)
@@ -83,8 +84,8 @@ class VAppOperations(object):
             'xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"')
 
         response = requests.put(link.get_href(),
-                                data = body,
-                                headers = self.vapp.headers)
+                                data=body,
+                                headers=self.vapp.headers)
         if response.status_code == requests.codes.accepted:
             task = taskType.parseString(response.content, True)
             return True, task
@@ -111,8 +112,8 @@ class VAppOperations(object):
                 'xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"')
 
             response = requests.put(link.get_href(),
-                                    data = body,
-                                    headers = self.vapp.headers)
+                                    data=body,
+                                    headers=self.vapp.headers)
             if response.status_code == requests.codes.accepted:
                 task = taskType.parseString(response.content, True)
                 return True, task
@@ -146,8 +147,8 @@ class VAppOperations(object):
             'xmlns="http://www.vmware.com/vcloud/v1.5" '
             'xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"')
         response = requests.put(customization_section.get_href(),
-                                data = body,
-                                headers = self.vapp.headers)
+                                data=body,
+                                headers=self.vapp.headers)
         if response.status_code == requests.codes.accepted:
             task = taskType.parseString(response.content, True)
             return True, task
@@ -214,7 +215,7 @@ class VAppOperations(object):
         body = body.replace("/Info", "/ovf:Info")
         body = body.replace("vmw:", "")
 
-        response = requests.put(link.get_href(), data = body, headers = self.vapp.headers)
+        response = requests.put(link.get_href(), data=body, headers=self.vapp.headers)
         if response.status_code == requests.codes.accepted:
             task = taskType.parseString(response.content, True)
             return True, task
@@ -223,9 +224,8 @@ class VAppOperations(object):
 
     def remove_network(self, network_name):
         networkConfigSection = [section for section in self.vapp.me.get_Section()
-                                     if (section.__class__.__name__ ==
-                                         "NetworkConfigSectionType")
-                               ][0]
+                                if (section.__class__.__name__ ==
+                                    "NetworkConfigSectionType")][0]
         link = [link for link in networkConfigSection.get_Link()
                 if (link.get_type() ==
                     "application/vnd.vmware.vcloud.networkConfigSection+xml")
@@ -240,13 +240,13 @@ class VAppOperations(object):
 
             body = ghf.convertPythonObjToStr(
                 networkConfigSection,
-                name = 'NetworkConfigSection',
-                namespacedef = 'xmlns="http://www.vmware.com/vcloud/v1.5" '
+                name='NetworkConfigSection',
+                namespacedef='xmlns="http://www.vmware.com/vcloud/v1.5" '
                 'xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"')
             body = body.replace('Info xmlns:vmw="http://www.vmware.com/vcloud/v1.5" msgid=""', "ovf:Info")
             body = body.replace("/Info", "/ovf:Info")
             body = body.replace("vmw:", "")
-            response = requests.put(link.get_href(), data = body, headers = self.vapp.headers)
+            response = requests.put(link.get_href(), data=body, headers=self.vapp.headers)
             if response.status_code == requests.codes.accepted:
                 task = taskType.parseString(response.content, True)
                 return True, task
@@ -270,9 +270,8 @@ class VAppOperations(object):
     def _get_network_connection_data(self):
         vm = self._get_vms()[0]
         vm_nw_conn_section = [section for section in vm.get_Section()
-                                if (section.__class__.__name__ ==
-                                    "NetworkConnectionSectionType")
-                                     ][0]
+                              if (section.__class__.__name__ ==
+                                  "NetworkConnectionSectionType")][0]
         link = [link for link in vm_nw_conn_section.get_Link()
                 if (link.get_type() ==
                     "application/vnd.vmware.vcloud.networkConnectionSection+xml")
@@ -285,3 +284,35 @@ class VAppOperations(object):
             self.vcd.get_networkRefs())
         if len(network_refs) == 1:
             return network_refs[0].get_href()
+
+
+class MockCustomization:
+    def __init__(self, headers, cpu=None, memory=None):
+        self.headers = headers
+        self.cpu = cpu
+        self.memory = memory
+
+    def __call__(self, name, template_href, deploy="true", power="true"):
+        # template params that can be used as body of http request
+        templateParams = vcloudType.InstantiateVAppTemplateParamsType()
+        templateParams.set_name(name)
+        templateParams.set_deploy(deploy)
+        templateParams.set_powerOn(power)
+        response = requests.get(template_href, headers=self.headers)
+        if response.status_code == requests.codes.ok:
+            vAppTemplate = ET.fromstring(response.content)
+            for vm in vAppTemplate.iter('{http://www.vmware.com/vcloud/v1.5}Vm'):
+                vm_href = vm.get('href')
+
+        source = vcloudType.ReferenceType(href=vm_href)
+        hardware = vcloudType.InstantiateVmHardwareCustomizationParamsType(NumberOfCpus=self.cpu,
+                                                                           CoresPerSocket=self.cpu,
+                                                                           MemorySize=self.memory)
+        instantiation_params = vcloudType.SourcedVmInstantiationParamsType(Source=source,
+                                                                           HardwareCustomization=hardware)
+        templateParams.set_SourcedVmInstantiationParams([instantiation_params])
+        # set source of the templateParams using href of the template
+        source = vcloudType.ReferenceType(href=template_href)
+        templateParams.set_Source(source)
+        templateParams.set_AllEULAsAccepted("true")
+        return templateParams

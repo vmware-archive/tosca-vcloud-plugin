@@ -7,6 +7,11 @@
 	"guest_customization":
 	{
 	 "computer_name": "custom-name"
+	},
+	"hardware":
+	{
+	"cpu": 3,
+	"memory": 2048
 	}
     },
 "floatingip":

@@ -19,11 +19,13 @@ from cloudify import exceptions as cfy_exc
 from vcloud_plugin_common import (transform_resource_name,
                                   wait_for_task,
                                   with_vcd_client)
-from server_plugin import VAppOperations
+from server_plugin import VAppOperations, MockCustomization
+from mock import patch
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 STATUS_POWER_ON = 'Powered on'
 STATUS_POWER_OFF = 'Power off'
 GUEST_CUSTOMIZATION = 'guest_customization'
+HARDWARE = 'hardware'
 
 
 @operation
@@ -52,21 +54,31 @@ def create(vcd_client, **kwargs):
         '--network': None,
         }
     ctx.logger.info("Creating VApp with parameters: {0}".format(str(server)))
-    success, result = vcd_client.create_vApp(
-        vapp_name, vapp_template, vapp_catalog, create_args)
 
+    cpu = None
+    memory = None
+    if HARDWARE in server and server[HARDWARE]:
+        hardware = server[HARDWARE]
+        cpu = hardware.get('cpu')
+        memory = hardware.get('memory')
+    with patch('pyvcloud.vapp.VAPP.create_instantiateVAppTemplateParams',  new=MockCustomization(vcd_client.headers,
+                                                                                                 cpu=cpu, memory=memory)):
+        success, result = vcd_client.create_vApp(vapp_name, vapp_template,
+                                                 vapp_catalog, create_args)
     if success is False:
         raise cfy_exc.NonRecoverableError(
             "Could not create vApp: {0}".format(result))
 
     task = result.get_Tasks().get_Task()[0]
     wait_for_task(vcd_client, task)
+
     ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = server['name']
 
     ports = _get_connected_ports(ctx.instance.relationships)
 
     vapp = vcd_client.get_vApp(vapp_name)
     vapp_ops = VAppOperations(vcd_client, vapp)
+
     success, result = vapp_ops.rename_vm(server['name'])
     if success is False:
         raise cfy_exc.NonRecoverableError("Could not rename VM")
@@ -108,6 +120,7 @@ def create(vcd_client, **kwargs):
                     "Could not connect vApp {0} to network {1}: {2}"
                     .format(vapp_name, network_name, result))
             wait_for_task(vcd_client, result)
+
     if GUEST_CUSTOMIZATION in server and server[GUEST_CUSTOMIZATION]:
         custom = server[GUEST_CUSTOMIZATION]
         script = None
