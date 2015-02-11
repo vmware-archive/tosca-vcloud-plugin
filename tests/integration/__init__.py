@@ -1,6 +1,6 @@
 import unittest
 
-from vcloud_plugin_common import Config, VcloudDirectorClient
+from vcloud_plugin_common import Config, VcloudAirClient
 
 
 class IntegrationTestConfig(Config):
@@ -11,4 +11,4 @@ class IntegrationTestConfig(Config):
 class TestCase(unittest.TestCase):
 
     def setUp(self):
-        self.vcd_client = VcloudDirectorClient().get()
+        self.vca_client = VcloudAirClient().get()

@@ -4,15 +4,15 @@
         "catalog": "",
         "template": "",
         "network": "",
-	"guest_customization":
-	{
-	 "computer_name": "custom-name"
-	},
-	"hardware":
-	{
-	"cpu": 3,
-	"memory": 2048
-	}
+        "guest_customization":
+            {
+             "computer_name": "custom-name"
+            },
+        "hardware":
+            {
+            "cpu": 3,
+            "memory": 2048
+            }
     },
 "floatingip":
     {
@@ -21,26 +21,26 @@
     },
 "test_vm": "vapp_name",
 "network":
-	{
-	"static_range": "192.168.0.100-192.168.0.199",
-        "edge_gateway": "gatewayname",
+    {
+    "static_range": "192.168.0.100-192.168.0.199",
+        "gateway_name": "gatewayname",
         "gateway_ip": "192.168.0.1",
         "netmask": "255.255.255.0",
         "dns": "10.147.115.1",
         "dns_suffix": "example.com"},
 "dhcp":
-	{
-    	"dhcp_range": "192.168.0.200-192.168.0.210",
+    {
+        "dhcp_range": "192.168.0.200-192.168.0.210",
         "default_lease": 3600,
         "max_lease": 7200},
 "security_group":
-	{
-	"edge_gateway" : "gatewayname",
-	"rule" :
-		{
-			"description": "Rule description",
-			"protocol": "Tcp",
-			"port": 29
-		}
-	}
+    {
+    "gateway" : "gatewayname",
+    "rule" :
+        {
+            "description": "Rule description",
+            "protocol": "Tcp",
+            "port": 29
+        }
+    }
 }

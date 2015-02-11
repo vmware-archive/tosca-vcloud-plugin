@@ -1,13 +1,66 @@
 import requests
 from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType, vcloudType, vAppType
-from pyvcloud.helper import generalHelperFunctions as ghf
 from xml.etree import ElementTree as ET
+from pyvcloud.helper import CommonUtils
+
+from vcloud_plugin_common import get_vcloud_config
 
 
 class VAppOperations(object):
+    STATUS_MAP = {
+        -1 : "Could not be created",
+        0 : "Unresolved",
+        1 : "Resolved",
+        2 : "Deployed",
+        3 : "Suspended",
+        4 : "Powered on",
+        5 : "Waiting for user input",
+        6 : "Unknown state",
+        7 : "Unrecognized state",
+        8 : "Powered off",
+        9 : "Inconsistent state",
+        10 : "Children do not all have the same status",
+        11 : "Upload initiated, OVF descriptor pending",
+        12 : "Upload initiated, copying contents",
+        13 : "Upload initiated , disk contents pending",
+        14 : "Upload has been quarantined",
+        15 : "Upload quarantine period has expired"
+        }
     def __init__(self, vcd, vapp):
         self.vcd = vcd
         self.vapp = vapp
+        self.vcloud_config = get_vcloud_config()
+
+    def get_status(self):
+        return self.STATUS_MAP[self.vapp.me.get_status()]
+
+    def details_of_vms(self):
+        result = []
+        children = self.vapp.me.get_Children()
+        if children:
+            vms = children.get_Vm()
+            for vm in vms:
+                name = vm.get_name()
+                status = self.STATUS_MAP[vm.get_status()]
+                owner = self.vapp.me.get_Owner().get_User().get_name()
+                sections = vm.get_Section()
+                virtualHardwareSection = filter(lambda section: section.__class__.__name__== "VirtualHardwareSection_Type", sections)[0]
+                items = virtualHardwareSection.get_Item()
+                cpu = filter(lambda item: item.get_Description().get_valueOf_() == "Number of Virtual CPUs", items)[0]
+                cpu_capacity = cpu.get_ElementName().get_valueOf_().split(" virtual CPU(s)")[0]
+                memory = filter(lambda item: item.get_Description().get_valueOf_() == "Memory Size", items)[0]
+                memory_capacity = int(memory.get_ElementName().get_valueOf_().split(" MB of memory")[0]) / 1024
+                operatingSystemSection = filter(lambda section: section.__class__.__name__== "OperatingSystemSection_Type", sections)[0]
+                os = operatingSystemSection.get_Description().get_valueOf_()
+                result.append(
+                    {'name': name,
+                     'status': status,
+                     'cpus': cpu_capacity,
+                     'memory': memory_capacity,
+                     'os': os,
+                     'owner': owner}
+                )
+        return result
 
     def _get_vms(self):
         children = self.vapp.me.get_Children()
@@ -205,7 +258,7 @@ class VAppOperations(object):
                         .format(self.vapp.name, network_name))
             networkConfigSection.add_NetworkConfig(networkConfig)
 
-        body = ghf.convertPythonObjToStr(
+        body = CommonUtils.convertPythonObjToStr(
             networkConfigSection,
             name='NetworkConfigSection',
             namespacedef='xmlns="http://www.vmware.com/vcloud/v1.5"'
@@ -238,7 +291,7 @@ class VAppOperations(object):
         if found is None:
             networkConfigSection.NetworkConfig.pop(found)
 
-            body = ghf.convertPythonObjToStr(
+            body = CommonUtils.convertPythonObjToStr(
                 networkConfigSection,
                 name='NetworkConfigSection',
                 namespacedef='xmlns="http://www.vmware.com/vcloud/v1.5" '
@@ -256,7 +309,7 @@ class VAppOperations(object):
             return False, "Network {0} could not be found".format(network_name)
 
     def _create_request_body(self, obj, name, namespacedef):
-        body = ghf.convertPythonObjToStr(obj,
+        body = CommonUtils.convertPythonObjToStr(obj,
                                          name=name,
                                          namespacedef=namespacedef)
         body = body.replace("vmw:", "")
@@ -279,11 +332,9 @@ class VAppOperations(object):
         return vm_nw_conn_section, link
 
     def _get_network_href(self, network_name):
-        network_refs = filter(
-            lambda networkRef: (networkRef.get_name() == network_name),
-            self.vcd.get_networkRefs())
-        if len(network_refs) == 1:
-            return network_refs[0].get_href()
+        network = self.vcd.get_network(self.vcloud_config['vdc'], network_name)
+        if network:
+            return network.get_href()
 
 
 class MockCustomization:

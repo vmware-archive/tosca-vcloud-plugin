@@ -1,7 +1,7 @@
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
-from vcloud_plugin_common import with_vcd_client, wait_for_task
+from vcloud_plugin_common import with_vca_client, wait_for_task
 from network_operations import ProxyVCD
 from network_plugin import check_ip, get_vm_ip
 
@@ -11,25 +11,25 @@ DELETE_RULE = 2
 
 
 @operation
-@with_vcd_client
-def create(vcd_client, **kwargs):
-    _rule_operation(CREATE_RULE, vcd_client)
+@with_vca_client
+def create(vca_client, **kwargs):
+    _rule_operation(CREATE_RULE, vca_client)
 
 
 @operation
-@with_vcd_client
-def delete(vcd_client, **kwargs):
-    _rule_operation(DELETE_RULE, vcd_client)
+@with_vca_client
+def delete(vca_client, **kwargs):
+    _rule_operation(DELETE_RULE, vca_client)
 
 
-def _rule_operation(operation, vcd_client):
-    vcd_client = ProxyVCD(vcd_client)  # TODO: remove when our code merged in pyvcloud
-    gateway = vcd_client.get_gateway(
+def _rule_operation(operation, vca_client):
+    vca_client = ProxyVCD(vca_client)  # TODO: remove when our code merged in pyvcloud
+    gateway = vca_client.get_gateway(
         ctx.target.node.properties['edge_gateway'])
     protocol = _check_protocol(ctx.target.node.properties['rules']['protocol'])
     dest_port = str(ctx.target.node.properties['rules']['port'])
     description = ctx.target.node.properties['rules']['description']
-    dest_ip = check_ip(get_vm_ip(vcd_client, ctx))
+    dest_ip = check_ip(get_vm_ip(vca_client, ctx))
     task = None
     if operation == CREATE_RULE:
         success, task = gateway.add_fw_rule(True, description, "allow", protocol, dest_port, dest_ip,
@@ -46,7 +46,7 @@ def _rule_operation(operation, vcd_client):
                 "Could not delete firewall rule: {0}".format(description))
         ctx.logger.info("Firewall rule has been deleted {0}".format(description))
     if task:
-        wait_for_task(vcd_client, task)
+        wait_for_task(vca_client, task)
 
 
 def _check_protocol(protocol):

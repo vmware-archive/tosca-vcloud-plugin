@@ -37,13 +37,13 @@ def collectAssignedIps(gateway):
     return set(ips)
 
 
-def get_vm_ip(vcd_client, ctx):
+def get_vm_ip(vca_client, ctx):
     try:
         vappName = _get_vapp_name(ctx.source.instance.runtime_properties)
-        vapp = vcd_client.get_vApp(vappName)
+        vapp = vca_client.get_vapp(vappName)
         if not vapp:
             raise cfy_exc.NonRecoverableError("Could not find vApp {0}".format(vappName))
-        vapp_ops = VAppOperations(vcd_client, vapp)
+        vapp_ops = VAppOperations(vca_client, vapp)
         vm_info = vapp_ops.get_vms_network_info()
         # assume that we have 1 vm per vApp with minium 1 connection
         connection = vm_info[0][0]

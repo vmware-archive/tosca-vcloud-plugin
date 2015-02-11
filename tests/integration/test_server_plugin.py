@@ -9,6 +9,7 @@ from cloudify import mocks as cfy_mocks
 
 from network_plugin.network import VCLOUD_NETWORK_NAME
 from server_plugin import server, VAppOperations
+from vcloud_plugin_common import get_vcloud_config
 
 from tests.integration import TestCase, IntegrationTestConfig
 
@@ -36,7 +37,8 @@ class ServerNoNetworkTestCase(TestCase):
                     'name': name,
                     'catalog': server_test_dict['catalog'],
                     'template': server_test_dict['template'],
-                    'guest_customization': server_test_dict['guest_customization'],
+                    'guest_customization':
+                    server_test_dict.get('guest_customization'),
                 }
             }
         )
@@ -47,6 +49,7 @@ class ServerNoNetworkTestCase(TestCase):
         ctx_patch2.start()
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
+        self.vcloud_config = get_vcloud_config()
         super(ServerNoNetworkTestCase, self).setUp()
 
     def tearDown(self):
@@ -59,37 +62,46 @@ class ServerNoNetworkTestCase(TestCase):
 
     def test_server_create_delete(self):
         server.create()
-        vapp = self.vcd_client.get_vApp(
+        vdc = self.vca_client.get_vdc(self.vcloud_config['vdc'])
+        vapp = self.vca_client.get_vapp(
+            vdc,
             self.ctx.node.properties['server']['name'])
         self.assertFalse(vapp is None)
-        self.assertFalse(server._vm_is_on(vapp))
+        self.assertFalse(server._vapp_is_on(vapp))
 
+        server.stop()
         server.delete()
-        vapp = self.vcd_client.get_vApp(
+        vapp = self.vca_client.get_vapp(
+            vdc,
             self.ctx.node.properties['server']['name'])
         self.assertTrue(vapp is None)
 
     def test_server_stop_start(self):
         server.create()
-        vapp = self.vcd_client.get_vApp(
+        vdc = self.vca_client.get_vdc(self.vcloud_config['vdc'])
+        vapp = self.vca_client.get_vapp(
+            vdc,
             self.ctx.node.properties['server']['name'])
         self.assertFalse(vapp is None)
-        self.assertFalse(server._vm_is_on(vapp))
+        self.assertFalse(server._vapp_is_on(vapp))
 
         server.start()
-        vapp = self.vcd_client.get_vApp(
+        vapp = self.vca_client.get_vapp(
+            vdc,
             self.ctx.node.properties['server']['name'])
-        self.assertTrue(server._vm_is_on(vapp))
+        self.assertTrue(server._vapp_is_on(vapp))
 
         server.stop()
-        vapp = self.vcd_client.get_vApp(
+        vapp = self.vca_client.get_vapp(
+            vdc,
             self.ctx.node.properties['server']['name'])
-        self.assertFalse(server._vm_is_on(vapp))
+        self.assertFalse(server._vapp_is_on(vapp))
 
         server.start()
-        vapp = self.vcd_client.get_vApp(
+        vapp = self.vca_client.get_vapp(
+            vdc,
             self.ctx.node.properties['server']['name'])
-        self.assertTrue(server._vm_is_on(vapp))
+        self.assertTrue(server._vapp_is_on(vapp))
 
 
 class ServerWithNetworkTestCase(TestCase):
@@ -141,6 +153,7 @@ class ServerWithNetworkTestCase(TestCase):
         ctx_patch2.start()
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
+        self.vcloud_config = get_vcloud_config()
         super(ServerWithNetworkTestCase, self).setUp()
 
     def tearDown(self):
@@ -154,9 +167,11 @@ class ServerWithNetworkTestCase(TestCase):
     def test_create(self):
         server.create()
         server.start()
-        vapp = self.vcd_client.get_vApp(
+        vdc = self.vca_client.get_vdc(self.vcloud_config['vdc'])
+        vapp = self.vca_client.get_vapp(
+            vdc,
             self.ctx.node.properties['server']['name'])
-        vapp = VAppOperations(self.vcd_client, vapp)
+        vapp = VAppOperations(self.vca_client, vapp)
         self.assertFalse(vapp is None)
         networks = server._get_vm_network_connections(vapp)
         self.assertEqual(1, len(networks))

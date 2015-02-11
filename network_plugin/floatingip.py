@@ -1,9 +1,9 @@
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
-from vcloud_plugin_common import with_vcd_client, wait_for_task
+from vcloud_plugin_common import with_vca_client, wait_for_task
 from network_plugin import check_ip, isExternalIpAssigned, isInternalIpAssigned, collectAssignedIps, get_vm_ip
-
+from network_operations import ProxyVCD
 
 CREATE = 1
 DELETE = 2
@@ -11,29 +11,37 @@ PUBLIC_IP = 'public_ip'
 
 
 @operation
-@with_vcd_client
-def connect_floatingip(vcd_client, **kwargs):
-    _floatingip_operation(CREATE, vcd_client, ctx)
+@with_vca_client
+def connect_floatingip(vca_client, **kwargs):
+    _floatingip_operation(CREATE, vca_client, ctx)
 
 
 @operation
-@with_vcd_client
-def disconnect_floatingip(vcd_client, **kwargs):
-    _floatingip_operation(DELETE, vcd_client, ctx)
+@with_vca_client
+def disconnect_floatingip(vca_client, **kwargs):
+    _floatingip_operation(DELETE, vca_client, ctx)
 
 
-def _floatingip_operation(operation, vcd_client, ctx):
+def _floatingip_operation(operation, vca_client, ctx):
+    def save_gateway_configuration():
+        task = gateway.save_services_configuration()
+        if not task:
+            raise cfy_exc.NonRecoverableError(
+                "Could not save edge gateway NAT configuration")
+        wait_for_task(vca_client, task)
+
     def showMessage(message, ip):
         ctx.logger.info(message.format(ip))
-    gateway = vcd_client.get_gateway(
+
+    vca_client = ProxyVCD(vca_client)
+    gateway = vca_client.get_gateway(
         ctx.target.node.properties['floatingip']['edge_gateway'])
     if not gateway:
         raise cfy_exc.NonRecoverableError("Gateway not found")
 
-    internal_ip = check_ip(get_vm_ip(vcd_client, ctx))
+    internal_ip = check_ip(get_vm_ip(vca_client, ctx))
 
-    function = None
-    description = None
+    nat_operation = None
     public_ip = None
     if PUBLIC_IP in ctx.target.instance.runtime_properties:
         public_ip = ctx.target.instance.runtime_properties[PUBLIC_IP]
@@ -53,8 +61,7 @@ def _floatingip_operation(operation, vcd_client, ctx):
             raise cfy_exc.NonRecoverableError(
                 "Rule with IP: {0} already exists".format(public_ip))
 
-        function = gateway.add_nat_rule
-        description = "create"
+        nat_operation = _add_nat_rule
     elif operation == DELETE:
         if not isExternalIpAssigned(public_ip, gateway):
             showMessage("Rule with IP: {0} absent", public_ip)
@@ -63,18 +70,16 @@ def _floatingip_operation(operation, vcd_client, ctx):
             showMessage("Can't get external IP", public_ip)
             return
 
-        function = gateway.del_nat_rule
-        description = "delete"
+        nat_operation = _del_nat_rule
     else:
         raise cfy_exc.NonRecoverableError(
             "Unknown operation {0}").format(operation)
 
     external_ip = check_ip(public_ip)
 
-    _nat_operation(function, description, vcd_client, "SNAT",
-                   internal_ip, external_ip)
-    _nat_operation(function, description, vcd_client, "DNAT",
-                   external_ip, internal_ip)
+    nat_operation(gateway, vca_client, "SNAT", internal_ip, external_ip)
+    nat_operation(gateway, vca_client, "DNAT", external_ip, internal_ip)
+    save_gateway_configuration()
 
     if operation == CREATE:
         ctx.target.instance.runtime_properties[PUBLIC_IP] = external_ip
@@ -82,25 +87,32 @@ def _floatingip_operation(operation, vcd_client, ctx):
         del ctx.target.instance.runtime_properties[PUBLIC_IP]
 
 
-def _nat_operation(function, description, vcd_client,
-                   rule_type, original_ip, translated_ip):
+def _add_nat_rule(gateway, vca_client, rule_type, original_ip, translated_ip):
     any_type = None
 
     if rule_type == "DNAT":
         any_type = "Any"
 
-    ctx.logger.info("{0} floating ip NAT rule: original_ip '{1}',"
-                    "translated_ip '{2}', rule type '{3}'"
-                    .format(description, original_ip,
-                            translated_ip, rule_type))
+    ctx.logger.info("Create floating ip NAT rule: original_ip '{0}',"
+                    "translated_ip '{1}', rule type '{2}'"
+                    .format(original_ip, translated_ip, rule_type))
 
-    success, result, _ = function(rule_type, original_ip, any_type,
-                                  translated_ip, any_type, any_type)
-    if not success:
-        raise cfy_exc.NonRecoverableError(
-            "Could not {0} {1} rule: {2}"
-            .format(description, rule_type, result))
-    wait_for_task(vcd_client, result)
+    gateway.add_nat_rule(
+        rule_type, original_ip, any_type, translated_ip, any_type, any_type)
+
+
+def _del_nat_rule(gateway, vca_client, rule_type, original_ip, translated_ip):
+    any_type = 'any'
+
+    if rule_type == "DNAT":
+        any_type = "Any"
+
+    ctx.logger.info("Delete floating ip NAT rule: original_ip '{0}',"
+                    "translated_ip '{1}', rule type '{2}'"
+                    .format(original_ip, translated_ip, rule_type))
+
+    gateway.del_nat_rule(
+        rule_type, original_ip, any_type, translated_ip, any_type, any_type)
 
 
 def getFreeIP(gateway):

@@ -5,11 +5,13 @@ from pyvcloud.schema.vcd.v1_5.schemas.vcloud.networkType import OrgVdcNetworkTyp
     ReferenceType, NetworkConfigurationType, IpScopesType, IpScopeType,\
     IpRangesType, IpRangeType, DhcpPoolServiceType
 from pyvcloud.schema.vcd.v1_5.schemas.vcloud.networkType import FirewallRuleType, ProtocolsType
-from pyvcloud.helper import generalHelperFunctions as ghf
+from pyvcloud.helper import CommonUtils
 
-import pyvcloud.vclouddirector
+import pyvcloud.vcloudair
 import pyvcloud.gateway
 import requests
+
+from vcloud_plugin_common import get_vcloud_config
 
 DEFAULT_LEASE = 3600
 MAX_LEASE = 7200
@@ -27,7 +29,7 @@ class ProxyGateway(pyvcloud.gateway.Gateway):
         gatewayConfiguration = self.me.get_Configuration()
         edgeGatewayServiceConfiguration = gatewayConfiguration.get_EdgeGatewayServiceConfiguration()
         body = '<?xml version="1.0" encoding="UTF-8"?>' + \
-               ghf.convertPythonObjToStr(edgeGatewayServiceConfiguration, name='EdgeGatewayServiceConfiguration',
+               CommonUtils.convertPythonObjToStr(edgeGatewayServiceConfiguration, name='EdgeGatewayServiceConfiguration',
                                          namespacedef='xmlns="http://www.vmware.com/vcloud/v1.5" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ')
         content_type = "application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml"
         link = filter(lambda link: link.get_type() == content_type, self.me.get_Link())
@@ -125,14 +127,14 @@ class ProxyGateway(pyvcloud.gateway.Gateway):
         return self._post_firewall_rules(new_rules)
 
 
-class ProxyVCD(pyvcloud.vclouddirector.VCD):
-    def __init__(self, vcd_client):
-        super(ProxyVCD, self).__init__(vcd_client.token, vcd_client.href,
-                                       vcd_client.version, vcd_client.service,
-                                       vcd_client.vdc)
+class ProxyVCD(object):
+    def __init__(self, vca_client):
+        self.vca_client = vca_client
+        self.vcloud_session = vca_client.vcloud_session
+        self.vdc_name = get_vcloud_config()['vdc']
 
     def get_gateway(self, gatewayId):
-        gateway = super(ProxyVCD, self).get_gateway(gatewayId)
+        gateway = self.vca_client.get_gateway(self.vdc_name, gatewayId)
         if gateway:
             # replace type with own implementation
             gateway.__class__ = ProxyGateway
@@ -177,7 +179,7 @@ class ProxyVCD(pyvcloud.vclouddirector.VCD):
         namespacedef = 'xmlns="http://www.vmware.com/vcloud/v1.5"'
         content_type = "application/vnd.vmware.vcloud.orgVdcNetwork+xml"
         body = '<?xml version="1.0" encoding="UTF-8"?>{0}'.format(
-            ghf.convertPythonObjToStr(net, name='OrgVdcNetwork',
+            CommonUtils.convertPythonObjToStr(net, name='OrgVdcNetwork',
                                       namespacedef=namespacedef))
         postlink = filter(lambda link: link.get_type() == content_type,
                           vdc.get_Link())[0].href
@@ -201,6 +203,11 @@ class ProxyVCD(pyvcloud.vclouddirector.VCD):
             return (False, response.content)
 
         raise cfy_exc.NonRecoverableError("Could not get network")
+
+    def get_vapp(self, vapp_name):
+        vdc = self.vca_client.get_vdc(get_vcloud_config()['vdc'])
+        return self.vca_client.get_vapp(vdc, vapp_name)
+
 
 def _create_protocols_type(protocol):
     all_protocols = {"Tcp": None, "Udp": None, "Icmp": None, "Any": None}

@@ -6,7 +6,7 @@ from server_plugin.server import VCLOUD_VAPP_NAME
 from network_plugin import isExternalIpAssigned
 from cloudify import exceptions as cfy_exc
 from tests.integration import TestCase, IntegrationTestConfig
-
+from network_plugin.network_operations import ProxyVCD
 # for skipping test add this before test function:
 # @unittest.skip("demonstrating skipping")
 
@@ -46,7 +46,6 @@ class NatRulesOperationsTestCase(TestCase):
         floatingip.disconnect_floatingip()
         self.assertFalse(check_external())
 
-
     def test_nat_rules_create_delete_with_autoget_ip(self):
         self.ctx.target.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
         del self.ctx.target.node.properties['floatingip']['public_ip']
@@ -62,7 +61,8 @@ class NatRulesOperationsTestCase(TestCase):
         self.assertFalse(check_external())
 
     def _get_gateway(self):
-        return self.vcd_client.get_gateway(
+        vca_client = ProxyVCD(self.vca_client)
+        return vca_client.get_gateway(
             self.ctx.target.node.properties['floatingip']['edge_gateway'])
 
 
@@ -87,7 +87,7 @@ class OrgNetworkOperationsTestCase(TestCase):
         super(OrgNetworkOperationsTestCase, self).setUp()
 
     def get_pools(self):
-        gateway = self.vcd_client.get_gateways()[0]
+        gateway = self.vca_client.get_gateways()[0]
         if not gateway:
             raise cfy_exc.NonRecoverableError("Gateway not found")
         gatewayConfiguration = gateway.me.get_Configuration()
@@ -101,15 +101,15 @@ class OrgNetworkOperationsTestCase(TestCase):
 
     def test_orgnetwork_create_delete(self):
         self.assertNotIn(self.net_name,
-                         network._get_network_list(self.vcd_client))
+                         network._get_network_list(self.vca_client))
         start_pools = len(self.get_pools())
         network.create()
         self.assertIn(self.net_name,
-                      network._get_network_list(self.vcd_client))
+                      network._get_network_list(self.vca_client))
         self.assertEqual(start_pools + 1, len(self.get_pools()))
         network.delete()
         self.assertNotIn(self.net_name,
-                         network._get_network_list(self.vcd_client))
+                         network._get_network_list(self.vca_client))
         self.assertEqual(start_pools, len(self.get_pools()))
 
 
@@ -145,7 +145,7 @@ class FirewallRulesOperationsTestCase(TestCase):
         self.assertEqual(rules, len(self.get_rules()))
 
     def get_rules(self):
-        gateway = self.vcd_client.get_gateways()[0]
+        gateway = self.vca_client.get_gateways()[0]
         if not gateway:
             raise cfy_exc.NonRecoverableError("Gateway not found")
         gatewayConfiguration = gateway.me.get_Configuration()

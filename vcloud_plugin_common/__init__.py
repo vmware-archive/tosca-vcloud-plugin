@@ -77,10 +77,10 @@ class Config(object):
         return cfg
 
 
-class VcloudDirectorClient(object):
+class VcloudAirClient(object):
 
     config = Config
-    LOGIN_RETRY_NUM = 5
+    LOGIN_RETRY_NUM = 10
 
     def get(self, config=None, *args, **kw):
         static_config = self.__class__.config().get()
@@ -104,37 +104,52 @@ class VcloudDirectorClient(object):
             raise cfy_exc.NonRecoverableError(
                 "vCloud service and vDC must be specified")
 
-        vcloud_director = self._login_and_get_vcd(
+        vcloud_air = self._login_and_get_vca(
             url, username, password, token, service, vdc)
-        if vcloud_director is None:
-            raise cfy_exc.NonRecoverableError(
-                "Could not get vCloud Director reference")
-        else:
-            return vcloud_director
+        return vcloud_air
 
-    def _login_and_get_vcd(self, url, username, password, token, service, vdc):
-        vcd = None
+    def _login_and_get_vca(self, url, username, password, token, service, vdc):
+        vca = None
         login_failed = False
+        vdc_login_failed = False
+
         for _ in range(self.LOGIN_RETRY_NUM):
-            vca = vcloudair.VCA()
-            success = vca.login(url, username, password, token)
-            if success is False:
-                login_failed = True
-                ctx.logger.info("Login failed. Retrying...")
-                continue
+            vca = vcloudair.VCA(
+                url, username, service_type='subscription', version='5.6')
+            if token:
+                success = vca.login(token=token)
+                if success is False:
+                    login_failed = True
+                    ctx.logger.info("Login failed. Retrying...")
+                    continue
             else:
-                atexit.register(vca.logout)
-            vcd = vca.get_vCloudDirector(service, vdc)
-            if vcd is None:
-                ctx.logger.info(
-                    "Could not get vCloud Director reference. Retrying...")
+                success = vca.login(password)
+                if success is False:
+                    login_failed = True
+                    ctx.logger.info("Login failed. Retrying...")
+                    continue
+                #NOTE(achirko) workaround for pyvcloud v6 bug
+                success = vca.login(token=vca.token)
+                if success is False:
+                    login_failed = True
+                    ctx.logger.info("Login failed. Retrying...")
+                    continue
+            atexit.register(vca.logout)
+        for _ in range(self.LOGIN_RETRY_NUM):
+            success = vca.login_to_org(service, vdc)
+            if success is False:
+                vdc_login_failed = True
+                ctx.logger.info("Login to VDC failed. Retrying...")
                 continue
+
         if login_failed:
             raise cfy_exc.NonRecoverableError("Invalid login credentials")
-        return vcd
+        if vdc_login_failed:
+            raise cfy_exc.NonRecoverableError("Could not login to VDC")
+        return vca
 
 
-def with_vcd_client(f):
+def with_vca_client(f):
     @wraps(f)
     def wrapper(*args, **kw):
         config = None
@@ -144,13 +159,13 @@ def with_vcd_client(f):
             config = ctx.source.node.properties.get('vcloud_config')
         else:
             raise cfy_exc.NonRecoverableError("Unsupported context")
-        client = VcloudDirectorClient().get(config=config)
-        kw['vcd_client'] = client
+        client = VcloudAirClient().get(config=config)
+        kw['vca_client'] = client
         return f(*args, **kw)
     return wrapper
 
 
-def wait_for_task(vcd_client, task):
+def wait_for_task(vca_client, task):
     status = task.get_status()
     while status != TASK_STATUS_SUCCESS:
         if status == TASK_STATUS_ERROR:
@@ -159,7 +174,22 @@ def wait_for_task(vcd_client, task):
                 "Error during task execution: {0}".format(error.get_message()))
         else:
             time.sleep(TASK_RECHECK_TIMEOUT)
-            response = requests.get(task.get_href(),
-                                    headers=vcd_client.headers)
+            response = requests.get(
+                task.get_href(),
+                headers=vca_client.vcloud_session.get_vcloud_headers())
             task = taskType.parseString(response.content, True)
             status = task.get_status()
+
+
+def get_vcloud_config():
+    config = None
+    if ctx.type == context.NODE_INSTANCE:
+        config = ctx.node.properties.get('vcloud_config')
+    elif ctx.type == context.RELATIONSHIP_INSTANCE:
+        config = ctx.source.node.properties.get('vcloud_config')
+    else:
+        raise cfy_exc.NonRecoverableError("Unsupported context")
+    static_config = Config().get()
+    if config:
+        static_config.update(config)
+    return static_config
