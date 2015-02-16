@@ -15,7 +15,7 @@
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
-from vcloud_plugin_common import with_vca_client, wait_for_task
+from vcloud_plugin_common import with_vca_client, wait_for_task, get_vcloud_config
 import collections
 from network_plugin import check_ip
 from network_operations import ProxyVCD
@@ -39,7 +39,7 @@ def create(vca_client, **kwargs):
     network_name = net_prop["name"]\
         if "name" in net_prop\
            else ctx.node.properties['resource_id']
-    if network_name in _get_network_list(vca_client):
+    if network_name in _get_network_list(vca_client, get_vcloud_config()['vdc']):
         ctx.logger.info("Network {0} already exists".format(network_name))
         return
     ip = _split_adresses(net_prop['static_range'])
@@ -51,7 +51,7 @@ def create(vca_client, **kwargs):
     dns1 = check_ip(net_prop["dns"])
     dns2 = ""
     dns_suffix = net_prop["dns_suffix"]
-    success, result = vca_client.create_vdc_network(network_name, gateway_name, start_address,
+    success, result = vca_client.create_vdc_network(get_vcloud_config()['vdc'], network_name, gateway_name, start_address,
                                                     end_address, gateway_ip, netmask,
                                                     dns1, dns2, dns_suffix)
     if success:
@@ -87,7 +87,7 @@ def delete(vca_client, **kwargs):
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
     vca_client = ProxyVCD(vca_client)  # TODO: remove when our code merged in pyvcloud
-    net_list = _get_network_list(vca_client)
+    net_list = _get_network_list(vca_client, get_vcloud_config()['vdc'])
     network_name = _get_network_name(ctx.node.properties)
     if network_name in net_list:
         ctx.logger.info('Network {0} is available.'.format(network_name))
@@ -99,7 +99,7 @@ def _dhcp_operation(vca_client, network_name, operation):
     if 'dhcp' not in ctx.node.properties or not ctx.node.properties['dhcp']:
         return
     gateway_name = ctx.node.properties["network"]['edge_gateway']
-    gateway = vca_client.get_gateway(gateway_name)
+    gateway = vca_client.get_gateway(get_vcloud_config()['vdc'], gateway_name)
     if not gateway:
                 raise cfy_exc.NonRecoverableError("Gateway {0} not found!".format(gateway_name))
     dhcp_settings = ctx.node.properties['dhcp']
@@ -145,8 +145,8 @@ def _split_adresses(address_range):
             "Incorrect Ip addresses: {0}".format(address_range))
 
 
-def _get_network_list(vca_client):
-    vdc = vca_client._get_vdc()
+def _get_network_list(vca_client, vdc_name):
+    vdc = vca_client.get_vdc(vdc_name)
     return [net.name for net in vdc.AvailableNetworks.Network]
 
 

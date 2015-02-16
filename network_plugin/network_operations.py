@@ -133,8 +133,11 @@ class ProxyVCD(object):
         self.vcloud_session = vca_client.vcloud_session
         self.vdc_name = get_vcloud_config()['vdc']
 
-    def get_gateway(self, gatewayId):
-        gateway = self.vca_client.get_gateway(self.vdc_name, gatewayId)
+    def get_vdc(self, vdc_name):
+        return self.vca_client.get_vdc(vdc_name)
+
+    def get_gateway(self, vdc_name, gatewayId):
+        gateway = self.vca_client.get_gateway(vdc_name, gatewayId)
         if gateway:
             # replace type with own implementation
             gateway.__class__ = ProxyGateway
@@ -144,7 +147,7 @@ class ProxyVCD(object):
         vdc = self._get_vdc()
         link = filter(lambda link: link.get_rel() == "orgVdcNetworks",
                       vdc.get_Link())
-        response = requests.get(link[0].get_href(), headers=self.headers)
+        response = requests.get(link[0].get_href(), headers=self.vca_client._get_vcloud_headers())
         queryResultRecords = queryRecordViewType.parseString(response.content,
                                                              True)
         if response.status_code == requests.codes.ok:
@@ -152,11 +155,11 @@ class ProxyVCD(object):
                 if record.name == network_name:
                     return record.href
 
-    def create_vdc_network(self, network_name, gateway_name, start_address,
+    def create_vdc_network(self, vdc_name, network_name, gateway_name, start_address,
                            end_address, gateway_ip, netmask,
                            dns1, dns2, dns_suffix):
-        vdc = self._get_vdc()
-        gateway = ReferenceType(href=self.get_gateway(gateway_name).me.href)
+        vdc = self.get_vdc(vdc_name)
+        gateway = ReferenceType(href=self.get_gateway(vdc_name, gateway_name).me.href)
         gateway.original_tagname_ = "EdgeGateway"
 
         iprange = IpRangeType(StartAddress=start_address,
@@ -183,8 +186,9 @@ class ProxyVCD(object):
                                       namespacedef=namespacedef))
         postlink = filter(lambda link: link.get_type() == content_type,
                           vdc.get_Link())[0].href
-        headers = self.headers
+        headers = self.vca_client._get_vcloud_headers()
         headers["Content-Type"] = content_type
+        print headers
         response = requests.post(postlink, data=body, headers=headers)
         if response.status_code == requests.codes.created:
             network = networkType.parseString(response.content, True)
@@ -195,7 +199,7 @@ class ProxyVCD(object):
 
     def delete_vdc_network(self, network_name):
         netref = self.get_admin_network_href(network_name)
-        response = requests.delete(netref, headers=self.headers)
+        response = requests.delete(netref, headers=self.vca_client._get_vcloud_headers())
         if response.status_code == requests.codes.accepted:
             task = taskType.parseString(response.content, True)
             return (True, task)

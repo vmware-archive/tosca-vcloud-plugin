@@ -132,8 +132,6 @@ def create(vca_client, **kwargs):
             script = custom['script']
         if 'admin_password' in custom:
             password = custom['admin_password']
-        if 'admin_password' in custom:
-            password = custom['admin_password']
         if 'computer_name' in custom:
             computer_name = custom['computer_name']
         success, result = vapp_ops.update_guest_customization(

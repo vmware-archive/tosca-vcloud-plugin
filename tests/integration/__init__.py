@@ -7,6 +7,9 @@ class IntegrationTestConfig(Config):
     VCLOUD_CONFIG_PATH_ENV_VAR = 'VCLOUD_INTEGRATION_TEST_CONFIG_PATH'
     VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_integration_test_config.json'
 
+class VcloudTestConfig(Config):
+    VCLOUD_CONFIG_PATH_ENV_VAR = 'VCLOUD_CONFIG_PATH'
+    VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_config.json'
 
 class TestCase(unittest.TestCase):
 
