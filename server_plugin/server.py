@@ -19,13 +19,10 @@ from cloudify import exceptions as cfy_exc
 from vcloud_plugin_common import (get_vcloud_config,
                                   transform_resource_name,
                                   wait_for_task,
-                                  with_vca_client)
-from server_plugin import VAppOperations, MockCustomization
+                                  with_vca_client,
+                                  STATUS_POWERED_ON)
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
-STATUS_POWER_ON = 'Powered on'
-STATUS_POWER_OFF = 'Power off'
-STATUS_DEPLOYED = 'Deployed'
 GUEST_CUSTOMIZATION = 'guest_customization'
 HARDWARE = 'hardware'
 
@@ -83,7 +80,6 @@ def create(vca_client, **kwargs):
             if vapp is None:
                 raise cfy_exc.NonRecoverableError(
                     "vApp {0} could not be found".format(vapp_name))
-            vapp_ops = VAppOperations(vca_client, vapp)
             port_properties = port.node.properties['port']
             network_name = port_properties['network']
 
@@ -113,48 +109,37 @@ def create(vca_client, **kwargs):
                 }
             ctx.logger.info("Connecting network with parameters {0}"
                             .format(str(connection_args)))
-            success, result = vapp_ops.connect_network(**connection_args)
-            if success is False:
+            task = vapp.connect_vms(**connection_args)
+            if task is None:
                 raise cfy_exc.NonRecoverableError(
-                    "Could not connect vApp {0} to network {1}: {2}"
-                    .format(vapp_name, network_name, result))
-            wait_for_task(vca_client, result)
+                    "Could not connect vApp {0} to network {1}"
+                    .format(vapp_name, network_name))
+            wait_for_task(vca_client, task)
 
-    vdc = vca_client.get_vdc(config['vdc'])
-    vapp = vca_client.get_vapp(vdc, vapp_name)
-    vapp_ops = VAppOperations(vca_client, vapp)
     custom = server.get(GUEST_CUSTOMIZATION)
     if custom:
-        script = None
-        password = None
-        computer_name = None
-        if 'script' in custom:
-            script = custom['script']
-        if 'admin_password' in custom:
-            password = custom['admin_password']
-        if 'computer_name' in custom:
-            computer_name = custom['computer_name']
-        success, result = vapp_ops.update_guest_customization(
-            enabled=True,
-            admin_password=password,
+        vdc = vca_client.get_vdc(config['vdc'])
+        vapp = vca_client.get_vapp(vdc, vapp_name)
+        script = custom.get('script')
+        password = custom.get('admin_password')
+        computer_name = custom.get('computer_name')
+
+        task = vapp.customize_guest_os(
+            vapp_name,
+            customization_script=script,
             computer_name=computer_name,
-            customization_script=script)
-        if success is False:
+            admin_password=password
+            )
+        if task is None:
             raise cfy_exc.NonRecoverableError(
-                "Could not set guest customization script: {}".format(result))
-        wait_for_task(vca_client, result)
+                "Could not set guest customization parameters")
+        wait_for_task(vca_client, task)
         # This function avialable from API version 5.6
-        if vapp_ops.customize_on_next_poweron():
-            ctx.logger.info("Customizations sucsessful")
+        if vapp.customize_on_next_poweron():
+            ctx.logger.info("Customizations successful")
         else:
             raise cfy_exc.NonRecoverableError(
                 "Can't run customization in next power on")
-    else:
-        success, result = vapp_ops.update_guest_customization(enabled=False)
-        if success is False:
-            raise cfy_exc.NonRecoverableError(
-                "Could not disable guest customization: {}".format(result))
-        wait_for_task(vca_client, result)
 
 
 @operation
@@ -208,8 +193,7 @@ def get_state(vca_client, **kwargs):
     config = get_vcloud_config()
     vdc = vca_client.get_vdc(config['vdc'])
     vapp = vca_client.get_vapp(vdc, vapp_name)
-    vapp_ops = VAppOperations(vca_client, vapp)
-    nw_connections = _get_vm_network_connections(vapp_ops)
+    nw_connections = _get_vm_network_connections(vapp)
     if len(nw_connections) == 0:
         ctx.logger.info("No networks connected")
         ctx.instance.runtime_properties['ip'] = None
@@ -229,10 +213,8 @@ def get_state(vca_client, **kwargs):
     return False
 
 
-@with_vca_client
-def _vapp_is_on(vapp, vca_client):
-    vapp_ops = VAppOperations(vca_client, vapp)
-    return vapp_ops.get_status() == STATUS_POWER_ON
+def _vapp_is_on(vapp):
+    return vapp.me.get_status() == STATUS_POWERED_ON
 
 
 def _get_vm_network_connections(vapp):

@@ -30,6 +30,38 @@ TASK_RECHECK_TIMEOUT = 2
 TASK_STATUS_SUCCESS = 'success'
 TASK_STATUS_ERROR = 'error'
 
+STATUS_COULD_NOT_BE_CREATED = -1
+STATUS_UNRESOLVED = 0
+STATUS_RESOLVED = 1
+STATUS_DEPLOYED = 2
+STATUS_SUSPENDED = 3
+STATUS_POWERED_ON = 4
+STATUS_POWERED_OFF = 8
+STATUS_WAITING_FOR_USER_INPUT = 5
+STATUS_UNKNOWN_STATE = 6
+STATUS_UNRECOGNIZED_STATE = 7
+STATUS_INCONSISTENT_STATE = 9
+
+VCLOUD_STATUS_MAP = {
+    -1 : "Could not be created",
+    0 : "Unresolved",
+    1 : "Resolved",
+    2 : "Deployed",
+    3 : "Suspended",
+    4 : "Powered on",
+    5 : "Waiting for user input",
+    6 : "Unknown state",
+    7 : "Unrecognized state",
+    8 : "Powered off",
+    9 : "Inconsistent state",
+    10 : "Children do not all have the same status",
+    11 : "Upload initiated, OVF descriptor pending",
+    12 : "Upload initiated, copying contents",
+    13 : "Upload initiated , disk contents pending",
+    14 : "Upload has been quarantined",
+    15 : "Upload quarantine period has expired"
+    }
+
 
 def transform_resource_name(res, ctx):
 
@@ -128,12 +160,7 @@ class VcloudAirClient(object):
                     login_failed = True
                     ctx.logger.info("Login failed. Retrying...")
                     continue
-                #NOTE(achirko) workaround for pyvcloud v6 bug
-                success = vca.login(token=vca.token)
-                if success is False:
-                    login_failed = True
-                    ctx.logger.info("Login failed. Retrying...")
-                    continue
+
             atexit.register(vca.logout)
         for _ in range(self.LOGIN_RETRY_NUM):
             success = vca.login_to_org(service, vdc)

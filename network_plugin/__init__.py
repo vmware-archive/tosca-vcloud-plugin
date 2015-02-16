@@ -1,7 +1,7 @@
 from IPy import IP
 from cloudify import exceptions as cfy_exc
 import collections
-from server_plugin import VAppOperations
+
 from server_plugin.server import VCLOUD_VAPP_NAME
 from vcloud_plugin_common import wait_for_task, get_vcloud_config
 
@@ -45,8 +45,8 @@ def get_vm_ip(vca_client, ctx):
         vapp = vca_client.get_vapp(vdc, vappName)
         if not vapp:
             raise cfy_exc.NonRecoverableError("Could not find vApp {0}".format(vappName))
-        vapp_ops = VAppOperations(vca_client, vapp)
-        vm_info = vapp_ops.get_vms_network_info()
+ 
+        vm_info = vapp.get_vms_network_info()
         # assume that we have 1 vm per vApp with minium 1 connection
         connection = vm_info[0][0]
         if connection['is_connected']:

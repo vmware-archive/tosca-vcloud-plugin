@@ -7,8 +7,7 @@ import unittest
 
 from cloudify import mocks as cfy_mocks
 
-from network_plugin.network import VCLOUD_NETWORK_NAME
-from server_plugin import server, VAppOperations
+from server_plugin import server
 from vcloud_plugin_common import get_vcloud_config
 
 from tests.integration import TestCase, IntegrationTestConfig
@@ -171,7 +170,6 @@ class ServerWithNetworkTestCase(TestCase):
         vapp = self.vca_client.get_vapp(
             vdc,
             self.ctx.node.properties['server']['name'])
-        vapp = VAppOperations(self.vca_client, vapp)
         self.assertFalse(vapp is None)
         networks = server._get_vm_network_connections(vapp)
         self.assertEqual(1, len(networks))
