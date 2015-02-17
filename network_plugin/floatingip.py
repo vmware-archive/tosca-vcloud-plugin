@@ -1,9 +1,9 @@
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
-from vcloud_plugin_common import with_vca_client, wait_for_task
+from vcloud_plugin_common import with_vca_client, wait_for_task, get_vcloud_config
 from network_plugin import check_ip, isExternalIpAssigned, isInternalIpAssigned, collectAssignedIps, get_vm_ip
-from network_operations import ProxyVCD
+from network_operations import ProxyVCA
 
 CREATE = 1
 DELETE = 2
@@ -33,8 +33,8 @@ def _floatingip_operation(operation, vca_client, ctx):
     def showMessage(message, ip):
         ctx.logger.info(message.format(ip))
 
-    vca_client = ProxyVCD(vca_client)
-    gateway = vca_client.get_gateway(
+    vca_client = ProxyVCA(vca_client)
+    gateway = vca_client.get_gateway(get_vcloud_config()['vdc'],
         ctx.target.node.properties['floatingip']['edge_gateway'])
     if not gateway:
         raise cfy_exc.NonRecoverableError("Gateway not found")

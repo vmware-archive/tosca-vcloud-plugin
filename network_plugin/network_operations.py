@@ -6,6 +6,7 @@ from pyvcloud.schema.vcd.v1_5.schemas.vcloud.networkType import OrgVdcNetworkTyp
     IpRangesType, IpRangeType, DhcpPoolServiceType
 from pyvcloud.schema.vcd.v1_5.schemas.vcloud.networkType import FirewallRuleType, ProtocolsType
 from pyvcloud.helper import CommonUtils
+from iptools import  IpRange
 
 import pyvcloud.vcloudair
 import pyvcloud.gateway
@@ -30,7 +31,7 @@ class ProxyGateway(pyvcloud.gateway.Gateway):
         edgeGatewayServiceConfiguration = gatewayConfiguration.get_EdgeGatewayServiceConfiguration()
         body = '<?xml version="1.0" encoding="UTF-8"?>' + \
                CommonUtils.convertPythonObjToStr(edgeGatewayServiceConfiguration, name='EdgeGatewayServiceConfiguration',
-                                         namespacedef='xmlns="http://www.vmware.com/vcloud/v1.5" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ')
+                                                 namespacedef='xmlns="http://www.vmware.com/vcloud/v1.5" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ')
         content_type = "application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml"
         link = filter(lambda link: link.get_type() == content_type, self.me.get_Link())
         content_type = "application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml"
@@ -126,8 +127,23 @@ class ProxyGateway(pyvcloud.gateway.Gateway):
                 new_rules.append(rule)
         return self._post_firewall_rules(new_rules)
 
+    def get_public_ips(self):
+        result = []
+        for gatewayInterface in self.get_interfaces('uplink'):
+            for subnetParticipation in gatewayInterface.get_SubnetParticipation():
+                ipRanges = subnetParticipation.get_IpRanges()
+                if ipRanges:
+                    for ipRange in ipRanges.get_IpRange():
+                        startAddress = ipRange.get_StartAddress()
+                        endAddress = ipRange.get_EndAddress()
+                        addresses = IpRange(startAddress, endAddress)
+                        for address in addresses:
+                            result.append(address)
+        result = list(set(result))
+        return result
 
-class ProxyVCD(object):
+
+class ProxyVCA(object):
     def __init__(self, vca_client):
         self.vca_client = vca_client
         self.vcloud_session = vca_client.vcloud_session
@@ -144,10 +160,10 @@ class ProxyVCD(object):
         return gateway
 
     def get_admin_network_href(self, network_name):
-        vdc = self._get_vdc()
+        vdc = self.get_vdc(self.vdc_name)
         link = filter(lambda link: link.get_rel() == "orgVdcNetworks",
                       vdc.get_Link())
-        response = requests.get(link[0].get_href(), headers=self.vca_client._get_vcloud_headers())
+        response = requests.get(link[0].get_href(), headers=self.vca_client.vcloud_session.get_vcloud_headers())
         queryResultRecords = queryRecordViewType.parseString(response.content,
                                                              True)
         if response.status_code == requests.codes.ok:
@@ -183,12 +199,11 @@ class ProxyVCD(object):
         content_type = "application/vnd.vmware.vcloud.orgVdcNetwork+xml"
         body = '<?xml version="1.0" encoding="UTF-8"?>{0}'.format(
             CommonUtils.convertPythonObjToStr(net, name='OrgVdcNetwork',
-                                      namespacedef=namespacedef))
+                                              namespacedef=namespacedef))
         postlink = filter(lambda link: link.get_type() == content_type,
                           vdc.get_Link())[0].href
-        headers = self.vca_client._get_vcloud_headers()
+        headers = self.vca_client.vcloud_session.get_vcloud_headers()
         headers["Content-Type"] = content_type
-        print headers
         response = requests.post(postlink, data=body, headers=headers)
         if response.status_code == requests.codes.created:
             network = networkType.parseString(response.content, True)
@@ -199,7 +214,7 @@ class ProxyVCD(object):
 
     def delete_vdc_network(self, network_name):
         netref = self.get_admin_network_href(network_name)
-        response = requests.delete(netref, headers=self.vca_client._get_vcloud_headers())
+        response = requests.delete(netref, headers=self.vca_client.vcloud_session.get_vcloud_headers())
         if response.status_code == requests.codes.accepted:
             task = taskType.parseString(response.content, True)
             return (True, task)

@@ -5,8 +5,8 @@ from network_plugin import floatingip, network, security_group
 from server_plugin.server import VCLOUD_VAPP_NAME
 from network_plugin import isExternalIpAssigned
 from cloudify import exceptions as cfy_exc
-from tests.integration import TestCase, IntegrationTestConfig
-from network_plugin.network_operations import ProxyVCD
+from tests.integration import TestCase, IntegrationTestConfig, VcloudTestConfig
+from network_plugin.network_operations import ProxyVCA
 # for skipping test add this before test function:
 # @unittest.skip("demonstrating skipping")
 
@@ -61,8 +61,8 @@ class NatRulesOperationsTestCase(TestCase):
         self.assertFalse(check_external())
 
     def _get_gateway(self):
-        vca_client = ProxyVCD(self.vca_client)
-        return vca_client.get_gateway(
+        vca_client = ProxyVCA(self.vca_client)
+        return vca_client.get_gateway(VcloudTestConfig().get()["vdc"],
             self.ctx.target.node.properties['floatingip']['edge_gateway'])
 
 
@@ -76,8 +76,9 @@ class OrgNetworkOperationsTestCase(TestCase):
             properties={"resource_id": self.net_name,
                         "network": IntegrationTestConfig().get()['network'],
                         "dhcp": IntegrationTestConfig().get()['dhcp'],
+                        "vcloud_config" : VcloudTestConfig().get(),
                         "use_external_resource": False})
-
+        self.vdc_name = VcloudTestConfig().get()["vdc"]
         ctx_patch1 = mock.patch('network_plugin.network.ctx', self.ctx)
         ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
         ctx_patch1.start()
@@ -86,8 +87,9 @@ class OrgNetworkOperationsTestCase(TestCase):
         self.addCleanup(ctx_patch2.stop)
         super(OrgNetworkOperationsTestCase, self).setUp()
 
+
     def get_pools(self):
-        gateway = self.vca_client.get_gateways()[0]
+        gateway = self.vca_client.get_gateways(self.vdc_name)[0]
         if not gateway:
             raise cfy_exc.NonRecoverableError("Gateway not found")
         gatewayConfiguration = gateway.me.get_Configuration()
@@ -101,15 +103,15 @@ class OrgNetworkOperationsTestCase(TestCase):
 
     def test_orgnetwork_create_delete(self):
         self.assertNotIn(self.net_name,
-                         network._get_network_list(self.vca_client))
+                         network._get_network_list(self.vca_client, self.vdc_name))
         start_pools = len(self.get_pools())
         network.create()
         self.assertIn(self.net_name,
-                      network._get_network_list(self.vca_client))
+                      network._get_network_list(self.vca_client, self.vdc_name))
         self.assertEqual(start_pools + 1, len(self.get_pools()))
         network.delete()
         self.assertNotIn(self.net_name,
-                         network._get_network_list(self.vca_client))
+                         network._get_network_list(self.vca_client, self.vdc_name))
         self.assertEqual(start_pools, len(self.get_pools()))
 
 
@@ -124,7 +126,7 @@ class FirewallRulesOperationsTestCase(TestCase):
             target=MockCloudifyContext(node_id="target",
                                        properties=IntegrationTestConfig().get()['security_group']),
             source=MockCloudifyContext(node_id="source",
-                                       properties={'vcloud_config': {}},
+                                       properties={'vcloud_config': VcloudTestConfig().get()},
                                        runtime_properties={VCLOUD_VAPP_NAME: IntegrationTestConfig().get()['test_vm']}))
         ctx_patch1 = mock.patch('network_plugin.security_group.ctx', self.ctx)
         ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
@@ -132,6 +134,7 @@ class FirewallRulesOperationsTestCase(TestCase):
         ctx_patch2.start()
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
+        self.vdc_name = VcloudTestConfig().get()["vdc"]
         super(FirewallRulesOperationsTestCase, self).setUp()
 
     def tearDown(self):
@@ -145,7 +148,7 @@ class FirewallRulesOperationsTestCase(TestCase):
         self.assertEqual(rules, len(self.get_rules()))
 
     def get_rules(self):
-        gateway = self.vca_client.get_gateways()[0]
+        gateway = self.vca_client.get_gateways(self.vdc_name)[0]
         if not gateway:
             raise cfy_exc.NonRecoverableError("Gateway not found")
         gatewayConfiguration = gateway.me.get_Configuration()

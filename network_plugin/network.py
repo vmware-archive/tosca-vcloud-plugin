@@ -18,7 +18,7 @@ from cloudify.decorators import operation
 from vcloud_plugin_common import with_vca_client, wait_for_task, get_vcloud_config
 import collections
 from network_plugin import check_ip
-from network_operations import ProxyVCD
+from network_operations import ProxyVCA
 
 VCLOUD_NETWORK_NAME = 'vcloud_network_name'
 ADD_POOL = 1
@@ -28,7 +28,7 @@ DELETE_POOL = 2
 @operation
 @with_vca_client
 def create(vca_client, **kwargs):
-    vca_client = ProxyVCD(vca_client)  # TODO: remove when our code merged in pyvcloud
+    vca_client = ProxyVCA(vca_client)  # TODO: remove when our code merged in pyvcloud
     if ctx.node.properties['use_external_resource'] is True:
         # TODO add check valid resource_id
         ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = \
@@ -66,7 +66,7 @@ def create(vca_client, **kwargs):
 @operation
 @with_vca_client
 def delete(vca_client, **kwargs):
-    vca_client = ProxyVCD(vca_client)  # TODO: remove when our code merged in pyvcloud
+    vca_client = ProxyVCA(vca_client)  # TODO: remove when our code merged in pyvcloud
     if ctx.node.properties['use_external_resource'] is True:
         del ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME]
         ctx.logger.info("Network was not deleted - external resource has"
@@ -86,7 +86,7 @@ def delete(vca_client, **kwargs):
 @operation
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
-    vca_client = ProxyVCD(vca_client)  # TODO: remove when our code merged in pyvcloud
+    vca_client = ProxyVCA(vca_client)  # TODO: remove when our code merged in pyvcloud
     net_list = _get_network_list(vca_client, get_vcloud_config()['vdc'])
     network_name = _get_network_name(ctx.node.properties)
     if network_name in net_list:
