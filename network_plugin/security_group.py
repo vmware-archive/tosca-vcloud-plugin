@@ -2,7 +2,6 @@ from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import with_vca_client, get_vcloud_config
-from network_operations import ProxyVCA
 from network_plugin import check_ip, get_vm_ip, save_gateway_configuration
 
 
@@ -23,7 +22,6 @@ def delete(vca_client, **kwargs):
 
 
 def _rule_operation(operation, vca_client):
-    vca_client = ProxyVCA(vca_client)  # TODO: remove when our code merged in pyvcloud
     gateway = vca_client.get_gateway(get_vcloud_config()['vdc'],
                                      ctx.target.node.properties['edge_gateway'])
     protocol = _check_protocol(ctx.target.node.properties['rules']['protocol'])

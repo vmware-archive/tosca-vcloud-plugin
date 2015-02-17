@@ -18,7 +18,7 @@ from cloudify.decorators import operation
 from vcloud_plugin_common import with_vca_client, wait_for_task, get_vcloud_config
 import collections
 from network_plugin import check_ip, save_gateway_configuration
-from network_operations import ProxyVCA
+
 
 VCLOUD_NETWORK_NAME = 'vcloud_network_name'
 ADD_POOL = 1
@@ -28,7 +28,6 @@ DELETE_POOL = 2
 @operation
 @with_vca_client
 def create(vca_client, **kwargs):
-    vca_client = ProxyVCA(vca_client)  # TODO: remove when our code merged in pyvcloud
     if ctx.node.properties['use_external_resource'] is True:
         # TODO add check valid resource_id
         ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = \
@@ -66,7 +65,6 @@ def create(vca_client, **kwargs):
 @operation
 @with_vca_client
 def delete(vca_client, **kwargs):
-    vca_client = ProxyVCA(vca_client)  # TODO: remove when our code merged in pyvcloud
     if ctx.node.properties['use_external_resource'] is True:
         del ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME]
         ctx.logger.info("Network was not deleted - external resource has"
@@ -74,7 +72,7 @@ def delete(vca_client, **kwargs):
         return
     network_name = _get_network_name(ctx.node.properties)
     _dhcp_operation(vca_client, network_name, DELETE_POOL)
-    success, task = vca_client.delete_vdc_network(network_name)
+    success, task = vca_client.delete_vdc_network(get_vcloud_config()['vdc'], network_name)
     if success:
         ctx.logger.info("Network {0} has been successful deleted.".format(network_name))
     else:
@@ -86,7 +84,6 @@ def delete(vca_client, **kwargs):
 @operation
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
-    vca_client = ProxyVCA(vca_client)  # TODO: remove when our code merged in pyvcloud
     net_list = _get_network_list(vca_client, get_vcloud_config()['vdc'])
     network_name = _get_network_name(ctx.node.properties)
     if network_name in net_list:

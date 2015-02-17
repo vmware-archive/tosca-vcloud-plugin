@@ -3,7 +3,7 @@ from cloudify import exceptions as cfy_exc
 import collections
 from server_plugin import VAppOperations
 from server_plugin.server import VCLOUD_VAPP_NAME
-from vcloud_plugin_common import wait_for_task
+from vcloud_plugin_common import wait_for_task, get_vcloud_config
 
 AssignedIPs = collections.namedtuple('AssignedIPs', 'external internal')
 
@@ -41,7 +41,8 @@ def collectAssignedIps(gateway):
 def get_vm_ip(vca_client, ctx):
     try:
         vappName = _get_vapp_name(ctx.source.instance.runtime_properties)
-        vapp = vca_client.get_vapp(vappName)
+        vdc = vca_client.get_vdc(get_vcloud_config()['vdc'])
+        vapp = vca_client.get_vapp(vdc, vappName)
         if not vapp:
             raise cfy_exc.NonRecoverableError("Could not find vApp {0}".format(vappName))
         vapp_ops = VAppOperations(vca_client, vapp)

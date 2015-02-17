@@ -6,7 +6,6 @@ from server_plugin.server import VCLOUD_VAPP_NAME
 from network_plugin import isExternalIpAssigned
 from cloudify import exceptions as cfy_exc
 from tests.integration import TestCase, IntegrationTestConfig, VcloudTestConfig
-from network_plugin.network_operations import ProxyVCA
 # for skipping test add this before test function:
 # @unittest.skip("demonstrating skipping")
 
@@ -61,8 +60,7 @@ class NatRulesOperationsTestCase(TestCase):
         self.assertFalse(check_external())
 
     def _get_gateway(self):
-        vca_client = ProxyVCA(self.vca_client)
-        return vca_client.get_gateway(VcloudTestConfig().get()["vdc"],
+        return self.vca_client.get_gateway(VcloudTestConfig().get()["vdc"],
                                       self.ctx.target.node.properties['floatingip']['edge_gateway'])
 
 
