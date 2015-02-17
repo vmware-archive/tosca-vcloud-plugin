@@ -1,6 +1,6 @@
 import mock
 import unittest
-from cloudify.mocks import MockCloudifyContext, MockNodeInstanceContext
+from cloudify.mocks import MockCloudifyContext
 from network_plugin import floatingip, network, security_group
 from server_plugin.server import VCLOUD_VAPP_NAME
 from network_plugin import isExternalIpAssigned
@@ -63,7 +63,7 @@ class NatRulesOperationsTestCase(TestCase):
     def _get_gateway(self):
         vca_client = ProxyVCA(self.vca_client)
         return vca_client.get_gateway(VcloudTestConfig().get()["vdc"],
-            self.ctx.target.node.properties['floatingip']['edge_gateway'])
+                                      self.ctx.target.node.properties['floatingip']['edge_gateway'])
 
 
 class OrgNetworkOperationsTestCase(TestCase):
@@ -76,7 +76,7 @@ class OrgNetworkOperationsTestCase(TestCase):
             properties={"resource_id": self.net_name,
                         "network": IntegrationTestConfig().get()['network'],
                         "dhcp": IntegrationTestConfig().get()['dhcp'],
-                        "vcloud_config" : VcloudTestConfig().get(),
+                        "vcloud_config": VcloudTestConfig().get(),
                         "use_external_resource": False})
         self.vdc_name = VcloudTestConfig().get()["vdc"]
         ctx_patch1 = mock.patch('network_plugin.network.ctx', self.ctx)
@@ -86,7 +86,6 @@ class OrgNetworkOperationsTestCase(TestCase):
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
         super(OrgNetworkOperationsTestCase, self).setUp()
-
 
     def get_pools(self):
         gateway = self.vca_client.get_gateways(self.vdc_name)[0]

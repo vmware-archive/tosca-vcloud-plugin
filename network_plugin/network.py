@@ -17,7 +17,7 @@ from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import with_vca_client, wait_for_task, get_vcloud_config
 import collections
-from network_plugin import check_ip
+from network_plugin import check_ip, save_gateway_configuration
 from network_operations import ProxyVCA
 
 VCLOUD_NETWORK_NAME = 'vcloud_network_name'
@@ -103,28 +103,23 @@ def _dhcp_operation(vca_client, network_name, operation):
     if not gateway:
                 raise cfy_exc.NonRecoverableError("Gateway {0} not found!".format(gateway_name))
     dhcp_settings = ctx.node.properties['dhcp']
-    task = None
     if operation == ADD_POOL:
         ip = _split_adresses(dhcp_settings['dhcp_range'])
         low_ip_address = check_ip(ip.start)
         hight_ip_address = check_ip(ip.end)
         default_lease = dhcp_settings['default_lease'] if 'default_lease' in dhcp_settings else None
         max_lease = dhcp_settings['max_lease'] if 'max_lease' in dhcp_settings else None
-        success, task = gateway.add_dhcp_pool(network_name, low_ip_address, hight_ip_address,
-                                              default_lease, max_lease)
-        if success:
-            ctx.logger.info("DHCP rule successful created for network {0}".format(network_name))
-        else:
-            raise cfy_exc.NonRecoverableError("Could not add DHCP pool")
+        gateway.add_dhcp_pool(network_name, low_ip_address, hight_ip_address,
+                              default_lease, max_lease)
+        ctx.logger.info("DHCP rule successful created for network {0}".format(network_name))
+        error_message = "Could not add DHCP pool"
 
     if operation == DELETE_POOL:
-        success, task = gateway.delete_dhcp_pool(network_name)
-        if success:
-            ctx.logger.info("DHCP rule successful deleted for network {0}".format(network_name))
-        else:
-            raise cfy_exc.NonRecoverableError("Could not delete DHCP pool")
-    if task:
-        wait_for_task(vca_client, task)
+        gateway.delete_dhcp_pool(network_name)
+        ctx.logger.info("DHCP rule successful deleted for network {0}".format(network_name))
+        error_message = "Could not delete DHCP pool"
+
+    save_gateway_configuration(gateway, vca_client, error_message)
 
 
 def _split_adresses(address_range):

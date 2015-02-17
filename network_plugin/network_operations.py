@@ -6,7 +6,7 @@ from pyvcloud.schema.vcd.v1_5.schemas.vcloud.networkType import OrgVdcNetworkTyp
     IpRangesType, IpRangeType, DhcpPoolServiceType
 from pyvcloud.schema.vcd.v1_5.schemas.vcloud.networkType import FirewallRuleType, ProtocolsType
 from pyvcloud.helper import CommonUtils
-from iptools import  IpRange
+from iptools import IpRange
 
 import pyvcloud.vcloudair
 import pyvcloud.gateway
@@ -19,37 +19,14 @@ MAX_LEASE = 7200
 
 
 class ProxyGateway(pyvcloud.gateway.Gateway):
+    def _getDhcpService(self):
+        edgeGatewayServiceConfiguration = self.me.get_Configuration().get_EdgeGatewayServiceConfiguration()
+        dhcpService = filter(lambda service: service.__class__.__name__ == "GatewayDhcpServiceType",
+                             edgeGatewayServiceConfiguration.get_NetworkService())[0]
+        return dhcpService
+
     def get_dhcp_pools(self):
-        gatewayConfiguration = self.me.get_Configuration()
-        edgeGatewayServiceConfiguration = gatewayConfiguration.get_EdgeGatewayServiceConfiguration()
-        dhcpService = filter(lambda service: service.__class__.__name__ == "GatewayDhcpServiceType",
-                             edgeGatewayServiceConfiguration.get_NetworkService())[0]
-        return dhcpService.get_Pool()
-
-    def _post_configuration(self):
-        gatewayConfiguration = self.me.get_Configuration()
-        edgeGatewayServiceConfiguration = gatewayConfiguration.get_EdgeGatewayServiceConfiguration()
-        body = '<?xml version="1.0" encoding="UTF-8"?>' + \
-               CommonUtils.convertPythonObjToStr(edgeGatewayServiceConfiguration, name='EdgeGatewayServiceConfiguration',
-                                                 namespacedef='xmlns="http://www.vmware.com/vcloud/v1.5" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ')
-        content_type = "application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml"
-        link = filter(lambda link: link.get_type() == content_type, self.me.get_Link())
-        content_type = "application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml"
-        self.headers["Content-Type"] = content_type
-        response = requests.post(link[0].get_href(), data=body, headers=self.headers)
-        if response.status_code == requests.codes.accepted:
-            task = taskType.parseString(response.content, True)
-            return (True, task)
-        else:
-            return (False, response.content)
-
-    def _post_dhcp_pools(self, pools):
-        gatewayConfiguration = self.me.get_Configuration()
-        edgeGatewayServiceConfiguration = gatewayConfiguration.get_EdgeGatewayServiceConfiguration()
-        dhcpService = filter(lambda service: service.__class__.__name__ == "GatewayDhcpServiceType",
-                             edgeGatewayServiceConfiguration.get_NetworkService())[0]
-        dhcpService.set_Pool(pools)
-        return self._post_configuration()
+        return self._getDhcpService().get_Pool()
 
     def add_dhcp_pool(self, network_name, low_ip_address, hight_ip_address,
                       default_lease, max_lease):
@@ -68,21 +45,17 @@ class ProxyGateway(pyvcloud.gateway.Gateway):
                                        HighIpAddress=hight_ip_address)
         pools = self.get_dhcp_pools()
         pools.append(new_pool)
-        return self._post_dhcp_pools(pools)
+        self._getDhcpService().set_Pool(pools)
 
     def delete_dhcp_pool(self, network_name):
         pools = [p for p in self.get_dhcp_pools() if p.get_Network().name != network_name]
-        return self._post_dhcp_pools(pools)
+        self._getDhcpService().set_Pool(pools)
 
     def _getFirewallService(self):
         gatewayConfiguration = self.me.get_Configuration()
         edgeGatewayServiceConfiguration = gatewayConfiguration.get_EdgeGatewayServiceConfiguration()
         return filter(lambda service: service.__class__.__name__ == "FirewallServiceType",
                       edgeGatewayServiceConfiguration.get_NetworkService())[0]
-
-    def _post_firewall_rules(self, rules):
-        self._getFirewallService().set_FirewallRule(rules)
-        return self._post_configuration()
 
     def get_fw_rules(self):
         return self._getFirewallService().get_FirewallRule()
@@ -97,7 +70,7 @@ class ProxyGateway(pyvcloud.gateway.Gateway):
                                     EnableLogging=enable_logging)
         rules = self.get_fw_rules()
         rules.append(new_rule)
-        return self._post_firewall_rules(rules)
+        self._getFirewallService().set_FirewallRule(rules)
 
     def delete_fw_rule(self, protocol, dest_port, dest_ip,
                        source_port, source_ip):
@@ -110,6 +83,7 @@ class ProxyGateway(pyvcloud.gateway.Gateway):
             plist.append(protocol.get_Icmp())
             plist.append(protocol.get_Other())
             return plist
+
         rules = self.get_fw_rules()
         new_rules = []
         to_delete_trait = (create_protocol_list(_create_protocols_type(protocol)),
@@ -125,7 +99,7 @@ class ProxyGateway(pyvcloud.gateway.Gateway):
                 continue
             else:
                 new_rules.append(rule)
-        return self._post_firewall_rules(new_rules)
+        self._getFirewallService().set_FirewallRule(new_rules)
 
     def get_public_ips(self):
         result = []

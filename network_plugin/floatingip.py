@@ -1,8 +1,8 @@
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
-from vcloud_plugin_common import with_vca_client, wait_for_task, get_vcloud_config
-from network_plugin import check_ip, isExternalIpAssigned, isInternalIpAssigned, collectAssignedIps, get_vm_ip
+from vcloud_plugin_common import with_vca_client, get_vcloud_config
+from network_plugin import check_ip, isExternalIpAssigned, isInternalIpAssigned, collectAssignedIps, get_vm_ip, save_gateway_configuration
 from network_operations import ProxyVCA
 
 CREATE = 1
@@ -23,19 +23,13 @@ def disconnect_floatingip(vca_client, **kwargs):
 
 
 def _floatingip_operation(operation, vca_client, ctx):
-    def save_gateway_configuration():
-        task = gateway.save_services_configuration()
-        if not task:
-            raise cfy_exc.NonRecoverableError(
-                "Could not save edge gateway NAT configuration")
-        wait_for_task(vca_client, task)
 
     def showMessage(message, ip):
         ctx.logger.info(message.format(ip))
 
     vca_client = ProxyVCA(vca_client)
     gateway = vca_client.get_gateway(get_vcloud_config()['vdc'],
-        ctx.target.node.properties['floatingip']['edge_gateway'])
+                                     ctx.target.node.properties['floatingip']['edge_gateway'])
     if not gateway:
         raise cfy_exc.NonRecoverableError("Gateway not found")
 
@@ -79,7 +73,7 @@ def _floatingip_operation(operation, vca_client, ctx):
 
     nat_operation(gateway, vca_client, "SNAT", internal_ip, external_ip)
     nat_operation(gateway, vca_client, "DNAT", external_ip, internal_ip)
-    save_gateway_configuration()
+    save_gateway_configuration(gateway, vca_client, "Could not save edge gateway NAT configuration")
 
     if operation == CREATE:
         ctx.target.instance.runtime_properties[PUBLIC_IP] = external_ip

@@ -3,6 +3,7 @@ from cloudify import exceptions as cfy_exc
 import collections
 from server_plugin import VAppOperations
 from server_plugin.server import VCLOUD_VAPP_NAME
+from vcloud_plugin_common import wait_for_task
 
 AssignedIPs = collections.namedtuple('AssignedIPs', 'external internal')
 
@@ -60,3 +61,11 @@ def _get_vapp_name(runtime_properties):
         return runtime_properties[VCLOUD_VAPP_NAME]
     except (IndexError, AttributeError):
         raise cfy_exc.NonRecoverableError("Could not find vApp by name")
+
+
+def save_gateway_configuration(gateway, vca_client, message):
+    task = gateway.save_services_configuration()
+    if not task:
+        raise cfy_exc.NonRecoverableError(
+            message)
+    wait_for_task(vca_client, task)
