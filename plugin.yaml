@@ -74,6 +74,14 @@ node_types:
             vcloud_config:
                 default: {}
 
+    cloudify.vcloud.nodes.PublicNAT:
+        derived_from: cloudify.nodes.VirtualIP
+        properties:
+            nat:
+                default: {}
+            rules:
+                default: []
+
     cloudify.vcloud.nodes.SecurityGroup:
         derived_from: cloudify.nodes.SecurityGroup
         properties:
@@ -108,4 +116,22 @@ relationships:
                     inputs: {}
                 unlink:
                     implementation: vcloud.network_plugin.security_group.delete
+                    inputs: {}
+    cloudify.vcloud.public_nat_connected_to_network:
+        target_interfaces:
+            cloudify.interfaces.relationship_lifecycle:
+                establish:
+                    implementation: vcloud.network_plugin.public_nat.connect_nat_to_network
+                    inputs: {}
+                unlink:
+                    implementation: vcloud.network_plugin.public_nat.disconnect_nat_from_network
+                    inputs: {}
+    cloudify.vcloud.public_nat_connected_to_port:
+        target_interfaces:
+            cloudify.interfaces.relationship_lifecycle:
+                establish:
+                    implementation: vcloud.network_plugin.public_nat.connect_nat_to_port
+                    inputs: {}
+                unlink:
+                    implementation: vcloud.network_plugin.public_nat.disconnect_nat_from_port
                     inputs: {}
