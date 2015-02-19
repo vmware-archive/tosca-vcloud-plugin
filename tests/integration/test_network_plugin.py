@@ -1,7 +1,7 @@
 import mock
 import unittest
 from cloudify.mocks import MockCloudifyContext
-from network_plugin import floatingip, network, security_group
+from network_plugin import floatingip, network, security_group, public_nat
 from server_plugin.server import VCLOUD_VAPP_NAME
 from network_plugin import isExternalIpAssigned
 from cloudify import exceptions as cfy_exc
@@ -9,8 +9,8 @@ from tests.integration import TestCase, IntegrationTestConfig, VcloudTestConfig
 # for skipping test add this before test function:
 # @unittest.skip("demonstrating skipping")
 
-
-class NatRulesOperationsTestCase(TestCase):
+@unittest.skip("demonstrating skipping")
+class FloatingIPOperationsTestCase(TestCase):
     def setUp(self):
         name = "testnode"
         self.ctx = MockCloudifyContext(
@@ -28,12 +28,12 @@ class NatRulesOperationsTestCase(TestCase):
         ctx_patch2.start()
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
-        super(NatRulesOperationsTestCase, self).setUp()
+        super(FloatingIPOperationsTestCase, self).setUp()
 
     def tearDown(self):
-        super(NatRulesOperationsTestCase, self).tearDown()
+        super(FloatingIPOperationsTestCase, self).tearDown()
 
-    def test_nat_rules_create_delete_with_explicit_ip(self):
+    def test_floating_ip_create_delete_with_explicit_ip(self):
         self.ctx.target.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
         public_ip = self.ctx.target.node.properties['floatingip']['public_ip']
         check_external = lambda: isExternalIpAssigned(public_ip, self._get_gateway())
@@ -45,7 +45,7 @@ class NatRulesOperationsTestCase(TestCase):
         floatingip.disconnect_floatingip()
         self.assertFalse(check_external())
 
-    def test_nat_rules_create_delete_with_autoget_ip(self):
+    def test_floating_ip_create_delete_with_autoget_ip(self):
         self.ctx.target.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
         del self.ctx.target.node.properties['floatingip']['public_ip']
 
@@ -63,7 +63,7 @@ class NatRulesOperationsTestCase(TestCase):
         return self.vca_client.get_gateway(VcloudTestConfig().get()["vdc"],
                                       self.ctx.target.node.properties['floatingip']['edge_gateway'])
 
-
+@unittest.skip("demonstrating skipping")
 class OrgNetworkOperationsTestCase(TestCase):
     def setUp(self):
 
@@ -111,7 +111,7 @@ class OrgNetworkOperationsTestCase(TestCase):
                          network._get_network_list(self.vca_client, self.vdc_name))
         self.assertEqual(start_pools, len(self.get_pools()))
 
-
+@unittest.skip("demonstrating skipping")
 class FirewallRulesOperationsTestCase(TestCase):
     def setUp(self):
 
@@ -153,6 +153,36 @@ class FirewallRulesOperationsTestCase(TestCase):
         firewallService = filter(lambda service: service.__class__.__name__ == "FirewallServiceType",
                                  edgeGatewayServiceConfiguration.get_NetworkService())[0]
         return firewallService.get_FirewallRule()
+
+
+
+class PublicNatOperationsTestCase(TestCase):
+    def setUp(self):
+        name = "testnode"
+        self.ctx = MockCloudifyContext(
+            node_id=name,
+            node_name=name,
+            properties={},
+            target=MockCloudifyContext(node_id="target",
+                                       properties={'resource_id': IntegrationTestConfig().get()['public_nat']['network_name']}),
+            source=MockCloudifyContext(node_id="source",
+                                       properties={'nat': IntegrationTestConfig().get()['public_nat']['nat'],
+                                                   "rules": {}}))
+        ctx_patch1 = mock.patch('network_plugin.public_nat.ctx', self.ctx)
+        ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
+        ctx_patch1.start()
+        ctx_patch2.start()
+        self.addCleanup(ctx_patch1.stop)
+        self.addCleanup(ctx_patch2.stop)
+        super(PublicNatOperationsTestCase, self).setUp()
+
+    def tearDown(self):
+        super(PublicNatOperationsTestCase, self).tearDown()
+
+    def test_public_nat_connected_to_net(self):
+        self.ctx.source.node.properties['rules'].update(IntegrationTestConfig().get()['public_nat']['rules_net'])
+        public_nat.connect_nat_to_network()
+        public_nat.disconnect_nat_from_network()
 
 
 if __name__ == '__main__':

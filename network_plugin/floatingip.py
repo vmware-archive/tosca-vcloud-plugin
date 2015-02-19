@@ -82,6 +82,7 @@ def _floatingip_operation(operation, vca_client, ctx):
 def _add_nat_rule(gateway, vca_client, rule_type, original_ip, translated_ip):
     any_type = None
 
+
     if rule_type == "DNAT":
         any_type = "Any"
 
