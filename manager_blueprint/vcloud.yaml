@@ -12,6 +12,10 @@ inputs:
     vcloud_password:
         type: string
 
+    vcloud_token:
+        type: string
+        default: ''
+
     vcloud_url:
         type: string
 
@@ -116,11 +120,12 @@ node_templates:
             resource_id: { get_input: management_network_name }
             network:
                 edge_gateway: { get_input: edge_gateway }
+                static_range: 10.67.79.129-10.67.79.254
                 netmask: 255.255.255.0
-                gateway_ip: 10.67.79.1/24
+                gateway_ip: 10.67.79.1
                 dns: 10.67.79.1
                 dhcp:
-                    dhcp_range: 10.67.79.2-10.67.79.254
+                    dhcp_range: 10.67.79.2-10.67.79.128
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
     manager_floating_ip:
@@ -137,6 +142,7 @@ node_templates:
             vcloud_config:
                 username: { get_input: vcloud_username }
                 password: { get_input: vcloud_password }
+                token: { get_input: vcloud_token }
                 url: { get_input: vcloud_url }
                 service: { get_input: vcloud_service }
                 vdc: { get_input: vcloud_vdc }
