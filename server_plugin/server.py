@@ -66,7 +66,8 @@ def create(vca_client, **kwargs):
                                   vm_name=vapp_name)
 
     if not task:
-        raise cfy_exc.NonRecoverableError("Could not create vApp")
+        raise cfy_exc.NonRecoverableError("Could not create vApp: {0}"
+                                          .format(vca_client.response.content))
 
     wait_for_task(vca_client, task)
     ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = vapp_name

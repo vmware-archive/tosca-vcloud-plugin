@@ -47,18 +47,20 @@ def create(vca_client, **kwargs):
     end_address = check_ip(ip.end)
     gateway_ip = check_ip(net_prop["gateway_ip"])
     netmask = check_ip(net_prop["netmask"])
-    dns1 = check_ip(net_prop["dns"])
+    dns1 = check_ip(net_prop["dns"]) if net_prop.get('dns') else ""
     dns2 = ""
-    dns_suffix = net_prop["dns_suffix"]
+    dns_suffix = net_prop.get("dns_suffix")
     success, result = vca_client.create_vdc_network(get_vcloud_config()['vdc'], network_name, gateway_name, start_address,
                                                     end_address, gateway_ip, netmask,
                                                     dns1, dns2, dns_suffix)
     if success:
-        ctx.logger.info("Network {0} has been successful created.".format(network_name))
+        ctx.logger.info("Network {0} has been successfully created."
+                        .format(network_name))
     else:
         raise cfy_exc.NonRecoverableError(
             "Could not create network{0}: {1}".format(network_name, result))
     wait_for_task(vca_client, result)
+    ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = network_name
     _dhcp_operation(vca_client, network_name, ADD_POOL)
 
 
@@ -93,19 +95,20 @@ def creation_validation(vca_client, **kwargs):
 
 
 def _dhcp_operation(vca_client, network_name, operation):
-    if 'dhcp' not in ctx.node.properties or not ctx.node.properties['dhcp']:
+    dhcp_settings = ctx.node.properties['network'].get('dhcp')
+    if dhcp_settings is None:
         return
     gateway_name = ctx.node.properties["network"]['edge_gateway']
     gateway = vca_client.get_gateway(get_vcloud_config()['vdc'], gateway_name)
     if not gateway:
-                raise cfy_exc.NonRecoverableError("Gateway {0} not found!".format(gateway_name))
-    dhcp_settings = ctx.node.properties['dhcp']
+        raise cfy_exc.NonRecoverableError("Gateway {0} not found!".format(gateway_name))
+
     if operation == ADD_POOL:
         ip = _split_adresses(dhcp_settings['dhcp_range'])
         low_ip_address = check_ip(ip.start)
         hight_ip_address = check_ip(ip.end)
-        default_lease = dhcp_settings['default_lease'] if 'default_lease' in dhcp_settings else None
-        max_lease = dhcp_settings['max_lease'] if 'max_lease' in dhcp_settings else None
+        default_lease = dhcp_settings.get('default_lease')
+        max_lease = dhcp_settings.get('max_lease')
         gateway.add_dhcp_pool(network_name, low_ip_address, hight_ip_address,
                               default_lease, max_lease)
         ctx.logger.info("DHCP rule successful created for network {0}".format(network_name))
@@ -125,9 +128,10 @@ def _split_adresses(address_range):
     try:
         start = check_ip(adresses[0])
         end = check_ip(adresses[1])
-        if start > end:
-            raise cfy_exc.NonRecoverableError(
-                "Start address {0} is greater than end address: {1}".format(start, end))
+        #NOTE(achirko) string comparison, doesn't work for ips
+        #if start > end:
+        #    raise cfy_exc.NonRecoverableError(
+        #        "Start address {0} is greater than end address: {1}".format(start, end))
         return IPRange(start=start,  end=end)
     except IndexError:
         raise cfy_exc.NonRecoverableError("Can't parse IP range:{0}".
