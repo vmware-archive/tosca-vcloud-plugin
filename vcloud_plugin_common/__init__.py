@@ -112,7 +112,7 @@ class Config(object):
 class VcloudAirClient(object):
 
     config = Config
-    LOGIN_RETRY_NUM = 10
+    LOGIN_RETRY_NUM = 5
 
     def get(self, config=None, *args, **kw):
         static_config = self.__class__.config().get()
@@ -141,38 +141,50 @@ class VcloudAirClient(object):
         return vcloud_air
 
     def _login_and_get_vca(self, url, username, password, token, service, vdc):
-        vca = None
         login_failed = False
         vdc_login_failed = False
 
-        for _ in range(self.LOGIN_RETRY_NUM):
-            vca = vcloudair.VCA(
-                url, username, service_type='subscription', version='5.6')
-            if token:
+        vca = vcloudair.VCA(
+            url, username, service_type='subscription', version='5.6')
+        if token:
+            for _ in range(self.LOGIN_RETRY_NUM):
                 success = vca.login(token=token)
                 if success is False:
                     login_failed = True
-                    ctx.logger.info("Login failed. Retrying...")
+                    ctx.logger.info("Login using token failed.")
                     continue
-            else:
+                else:
+                    ctx.logger.info("Login using token successful.")
+                    break
+
+        if login_failed and password:
+            login_failed = False
+            for _ in range(self.LOGIN_RETRY_NUM):
                 success = vca.login(password)
                 if success is False:
                     login_failed = True
-                    ctx.logger.info("Login failed. Retrying...")
+                    ctx.logger.info("Login using password failed. Retrying...")
                     continue
+                else:
+                    ctx.logger.info("Login using password successful.")
+                    break
 
-            atexit.register(vca.logout)
         for _ in range(self.LOGIN_RETRY_NUM):
             success = vca.login_to_org(service, vdc)
             if success is False:
                 vdc_login_failed = True
                 ctx.logger.info("Login to VDC failed. Retrying...")
                 continue
+            else:
+                ctx.logger.info("Login to VDC successful.")
+                break
 
         if login_failed:
             raise cfy_exc.NonRecoverableError("Invalid login credentials")
         if vdc_login_failed:
             raise cfy_exc.NonRecoverableError("Could not login to VDC")
+    
+        atexit.register(vca.logout)
         return vca
 
 
