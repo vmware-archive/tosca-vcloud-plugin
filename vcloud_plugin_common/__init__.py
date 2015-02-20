@@ -141,8 +141,8 @@ class VcloudAirClient(object):
         return vcloud_air
 
     def _login_and_get_vca(self, url, username, password, token, service, vdc):
-        login_failed = False
-        vdc_login_failed = False
+        logined = False
+        vdc_logined = False
 
         vca = vcloudair.VCA(
             url, username, service_type='subscription', version='5.6')
@@ -150,38 +150,37 @@ class VcloudAirClient(object):
             for _ in range(self.LOGIN_RETRY_NUM):
                 success = vca.login(token=token)
                 if success is False:
-                    login_failed = True
                     ctx.logger.info("Login using token failed.")
                     continue
                 else:
+                    logined = True
                     ctx.logger.info("Login using token successful.")
                     break
 
-        if login_failed and password:
-            login_failed = False
+        if logined is False and password:
             for _ in range(self.LOGIN_RETRY_NUM):
                 success = vca.login(password)
                 if success is False:
-                    login_failed = True
                     ctx.logger.info("Login using password failed. Retrying...")
                     continue
                 else:
+                    logined = True
                     ctx.logger.info("Login using password successful.")
                     break
 
         for _ in range(self.LOGIN_RETRY_NUM):
             success = vca.login_to_org(service, vdc)
             if success is False:
-                vdc_login_failed = True
                 ctx.logger.info("Login to VDC failed. Retrying...")
                 continue
             else:
+                vdc_logined = True
                 ctx.logger.info("Login to VDC successful.")
                 break
 
-        if login_failed:
+        if logined is False:
             raise cfy_exc.NonRecoverableError("Invalid login credentials")
-        if vdc_login_failed:
+        if vdc_logined is False:
             raise cfy_exc.NonRecoverableError("Could not login to VDC")
     
         atexit.register(vca.logout)
