@@ -126,12 +126,12 @@ relationships:
                 unlink:
                     implementation: vcloud.network_plugin.public_nat.disconnect_nat_from_network
                     inputs: {}
-    cloudify.vcloud.public_nat_connected_to_port:
+    cloudify.vcloud.public_nat_connected_to_vm:
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
                 establish:
-                    implementation: vcloud.network_plugin.public_nat.connect_nat_to_port
+                    implementation: vcloud.network_plugin.public_nat.connect_nat_to_vm
                     inputs: {}
                 unlink:
-                    implementation: vcloud.network_plugin.public_nat.disconnect_nat_from_port
+                    implementation: vcloud.network_plugin.public_nat.disconnect_nat_from_vm
                     inputs: {}

@@ -42,5 +42,27 @@
             "protocol": "Tcp",
             "port": 29
         }
+    },
+    "public_nat":
+    {
+        "network_name": "newnet",
+        "test_vm": "vapp_name",
+        "nat":
+        {
+            "public_ip": "23.92.245.236",
+            "edge_gateway": "gatewayname"
+        },
+        "rules_net":
+        {
+            "type": ["SNAT"]
+        },
+        "rules_port":
+        {
+            "type": ["SNAT", "DNAT"],
+            "protocol": "Tcp",
+            "original_port": 80,
+            "translated_port": 8080
+        }
     }
+
 }

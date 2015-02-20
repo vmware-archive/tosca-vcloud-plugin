@@ -61,7 +61,7 @@ class FloatingIPOperationsTestCase(TestCase):
 
     def _get_gateway(self):
         return self.vca_client.get_gateway(VcloudTestConfig().get()["vdc"],
-                                      self.ctx.target.node.properties['floatingip']['edge_gateway'])
+                                           self.ctx.target.node.properties['floatingip']['edge_gateway'])
 
 @unittest.skip("demonstrating skipping")
 class OrgNetworkOperationsTestCase(TestCase):
@@ -155,7 +155,6 @@ class FirewallRulesOperationsTestCase(TestCase):
         return firewallService.get_FirewallRule()
 
 
-
 class PublicNatOperationsTestCase(TestCase):
     def setUp(self):
         name = "testnode"
@@ -164,10 +163,11 @@ class PublicNatOperationsTestCase(TestCase):
             node_name=name,
             properties={},
             target=MockCloudifyContext(node_id="target",
-                                       properties={'resource_id': IntegrationTestConfig().get()['public_nat']['network_name']}),
+                                       properties={}),
             source=MockCloudifyContext(node_id="source",
                                        properties={'nat': IntegrationTestConfig().get()['public_nat']['nat'],
-                                                   "rules": {}}))
+                                                   "rules": {}},
+                                       runtime_properties={VCLOUD_VAPP_NAME: IntegrationTestConfig().get()['test_vm']}))
         ctx_patch1 = mock.patch('network_plugin.public_nat.ctx', self.ctx)
         ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
         ctx_patch1.start()
@@ -179,10 +179,18 @@ class PublicNatOperationsTestCase(TestCase):
     def tearDown(self):
         super(PublicNatOperationsTestCase, self).tearDown()
 
+    @unittest.skip("demonstrating skipping")
     def test_public_nat_connected_to_net(self):
-        self.ctx.source.node.properties['rules'].update(IntegrationTestConfig().get()['public_nat']['rules_net'])
+        self.ctx.source.node.properties['rules'] = IntegrationTestConfig().get()['public_nat']['rules_net']
+        self.ctx.target.node.properties['resource_id'] = IntegrationTestConfig().get()['public_nat']['network_name']
         public_nat.connect_nat_to_network()
         public_nat.disconnect_nat_from_network()
+
+    def test_public_nat_connected_to_vm(self):
+        self.ctx.source.node.properties['rules'] = IntegrationTestConfig().get()['public_nat']['rules_port']
+        self.ctx.target.node.properties['port'] = IntegrationTestConfig().get()['public_nat']['port']
+        public_nat.connect_nat_to_vm()
+        public_nat.disconnect_nat_from_vm()
 
 
 if __name__ == '__main__':
