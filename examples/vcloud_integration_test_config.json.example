@@ -44,5 +44,10 @@
             "protocol": "Tcp",
             "port": 29
         }
+    },
+"combined":
+    {
+        "network_use_existing": false,
+        "network_name": "existing-network"
     }
 }
