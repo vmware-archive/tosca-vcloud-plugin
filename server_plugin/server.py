@@ -223,6 +223,13 @@ def _get_vm_network_connections(vapp):
     return filter(lambda network: network['is_connected'], connections)
 
 
+def _get_vm_network_connection(vapp, network_name):
+    connections = _get_vm_network_connections(vapp)
+    for connection in connections:
+        if connection['network_name'] == network_name:
+            return connection
+
+
 def _get_connected_ports(relationships):
     return [relationship.target for relationship in relationships
             if 'port' in relationship.target.node.properties]

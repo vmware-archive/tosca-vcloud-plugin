@@ -1,6 +1,9 @@
+import mock
 import unittest
 
-from vcloud_plugin_common import Config, VcloudAirClient
+from cloudify import mocks as cfy_mocks
+
+from vcloud_plugin_common import Config, get_vcloud_config, VcloudAirClient
 
 
 class IntegrationTestConfig(Config):
@@ -14,4 +17,10 @@ class VcloudTestConfig(Config):
 class TestCase(unittest.TestCase):
 
     def setUp(self):
-        self.vca_client = VcloudAirClient().get()
+        fake_ctx = cfy_mocks.MockCloudifyContext(
+            node_id='test',
+            node_name='test',
+            properties={})
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            self.vcloud_config = get_vcloud_config()
+            self.vca_client = VcloudAirClient().get()
