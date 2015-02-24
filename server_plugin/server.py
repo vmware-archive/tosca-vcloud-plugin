@@ -66,7 +66,8 @@ def create(vca_client, **kwargs):
                                   vm_name=vapp_name)
 
     if not task:
-        raise cfy_exc.NonRecoverableError("Could not create vApp")
+        raise cfy_exc.NonRecoverableError("Could not create vApp: {0}"
+                                          .format(vca_client.response.content))
 
     wait_for_task(vca_client, task)
     ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = vapp_name
@@ -220,6 +221,13 @@ def _vapp_is_on(vapp):
 def _get_vm_network_connections(vapp):
     connections = vapp.get_vms_network_info()[0]
     return filter(lambda network: network['is_connected'], connections)
+
+
+def _get_vm_network_connection(vapp, network_name):
+    connections = _get_vm_network_connections(vapp)
+    for connection in connections:
+        if connection['network_name'] == network_name:
+            return connection
 
 
 def _get_connected_ports(relationships):

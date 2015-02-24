@@ -73,7 +73,6 @@ class OrgNetworkOperationsTestCase(TestCase):
             node_name=self.net_name,
             properties={"resource_id": self.net_name,
                         "network": IntegrationTestConfig().get()['network'],
-                        "dhcp": IntegrationTestConfig().get()['dhcp'],
                         "vcloud_config": VcloudTestConfig().get(),
                         "use_external_resource": False})
         self.vdc_name = VcloudTestConfig().get()["vdc"]
