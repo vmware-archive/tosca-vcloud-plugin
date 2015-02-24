@@ -1,4 +1,5 @@
 from cloudify import ctx
+from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import with_vca_client, get_vcloud_config
 from network_plugin import check_ip, save_gateway_configuration, get_vm_ip
@@ -34,10 +35,13 @@ def disconnect_nat_from_vm(vca_client, **kwargs):
 
 
 def prepare_network_operation(vca_client, operation):
-    network_name = ctx.source.node.properties['resource_id']
-    vdc_name = get_vcloud_config()['vdc']
-    public_ip = check_ip(ctx.target.node.properties['nat']['public_ip'])
-    rule_type = ctx.target.node.properties['rules']['type']
+    try:
+        network_name = ctx.source.node.properties['resource_id']
+        vdc_name = get_vcloud_config()['vdc']
+        public_ip = check_ip(ctx.target.node.properties['nat']['public_ip'])
+        rule_type = ctx.target.node.properties['rules']['type']
+    except KeyError as e:
+        raise cfy_exc.NonRecoverableError("Parameter not found: {0}".format(e))
     gateway = vca_client.get_gateway(vdc_name,
                                      ctx.target.node.properties['nat']['edge_gateway'])
     ip_ranges = _get_network_ip_range(vca_client, vdc_name, network_name)
@@ -46,16 +50,19 @@ def prepare_network_operation(vca_client, operation):
 
 
 def prepare_vm_operation(vca_client, operation):
-    vdc_name = get_vcloud_config()['vdc']
-    public_ip = check_ip(ctx.target.node.properties['nat']['public_ip'])
-    rule_type = ctx.target.node.properties['rules']['type']
-    gateway = vca_client.get_gateway(vdc_name,
-                                     ctx.target.node.properties['nat']['edge_gateway'])
+    try:
+        vdc_name = get_vcloud_config()['vdc']
+        public_ip = check_ip(ctx.target.node.properties['nat']['public_ip'])
+        rule_type = ctx.target.node.properties['rules']['type']
+        gateway = vca_client.get_gateway(vdc_name,
+                                         ctx.target.node.properties['nat']['edge_gateway'])
+        rule_type = ctx.target.node.properties['rules']['type']
+        protocol = ctx.target.node.properties['rules']['protocol'] if 'protocol' in ctx.target.node.properties['rules'] else "any"
+        original_port = ctx.target.node.properties['rules']['original_port'] if 'original_port' in ctx.target.node.properties['rules'] else "any"
+        translated_port = ctx.target.node.properties['rules']['translated_port'] if 'translated_port' in ctx.target.node.properties['rules'] else "any"
+    except KeyError as e:
+        raise cfy_exc.NonRecoverableError("Parameter not found: {0}".format(e))
     private_ip = check_ip(get_vm_ip(vca_client, ctx))
-    rule_type = ctx.target.node.properties['rules']['type']
-    protocol = ctx.target.node.properties['rules']['protocol'] if 'protocol' in ctx.target.node.properties['rules'] else "any"
-    original_port = ctx.target.node.properties['rules']['original_port'] if 'original_port' in ctx.target.node.properties['rules'] else "any"
-    translated_port = ctx.target.node.properties['rules']['translated_port'] if 'translated_port' in ctx.target.node.properties['rules'] else "any"
     nat_network_operation(vca_client, gateway, operation, rule_type, public_ip, [private_ip], original_port, translated_port, protocol)
 
 
