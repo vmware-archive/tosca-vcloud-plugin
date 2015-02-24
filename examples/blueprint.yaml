@@ -1,0 +1,93 @@
+tosca_definitions_version: cloudify_dsl_1_0
+
+imports:
+    - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
+    - https://raw.githubusercontent.com/vmware/tosca-vcloud-plugin/master/plugin.yaml
+
+node_types:
+    vcloud_configuration:
+        derived_from: cloudify.nodes.Root
+        properties:
+            vcloud_config: {}
+
+node_templates:
+    example_server:
+        type: cloudify.vcloud.nodes.Server
+        properties:
+            server:
+                name: cfy-plugin-example-server
+                catalog: giga
+                template: plugin-test-VApp
+            management_network: CFY-Internal
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+        relationships:
+            - target: example_port
+              type: cloudify.vcloud.server_connected_to_port
+            - target: example_port2
+              type: cloudify.vcloud.server_connected_to_port
+            - target: manager_floating_ip
+              type: cloudify.vcloud.server_connected_to_floating_ip
+
+    example_floating_ip:
+        type: cloudify.vcloud.nodes.FloatingIP
+        properties:
+            floatingip:
+                edge_gateway: M000000000-1111
+                public_ip: 24.44.44.244
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+
+    example_port:
+        type: cloudify.vcloud.nodes.Port
+        properties:
+            port:
+                network: CFY-Internal
+                ip_allocation_mode: dhcp
+                primary_interface: true
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+
+    example_network:
+        type: cloudify.vcloud.nodes.Network
+        properties:
+            use_external_resource: true
+            resource_id: CFY-Internal
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+
+    example_port2:
+        type: cloudify.vcloud.nodes.Port
+        properties:
+            port:
+                network: plugin-test-nw
+                ip_allocation_mode: manual
+                ip_address: 10.10.0.2
+                primary_interface: false
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+        relationships:
+            - target: example_network2
+              type: cloudify.vcloud.port_connected_to_network
+
+    example_network2:
+        type: cloudify.vcloud.nodes.Network
+        properties:
+            network:
+                edge_gateway: M000000000-1111
+                name: plugin-test-nw
+                static_range: 10.10.0.2-10.10.0.128
+                netmask: 255.255.255.0
+                gateway_ip: 10.10.0.1/24
+                dns: 10.10.0.1
+                dns_suffix: test
+                dhcp:
+                    dhcp_range: 10.10.0.129-10.10.0.254
+                    default_lease: 3600
+                    max_lease: 7200
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+
+    vcloud_configuration:
+        type: vcloud_configuration
+        properties:
+            vcloud_config:
+                username: user
+                password: pw
+                url: https://vchs.vmware.com
+                service: M000000000-1111
+                vdc: M000000000-1111

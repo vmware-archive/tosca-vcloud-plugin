@@ -1,0 +1,111 @@
+imports:
+    - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
+
+plugins:
+    vcloud:
+        executor: central_deployment_agent
+        source: https://github.com/vmware/tosca-vcloud-plugin/archive/master.zip
+
+node_types:
+    cloudify.vcloud.nodes.Server:
+        derived_from: cloudify.nodes.Compute
+        properties:
+            server:
+                default: {}
+            management_network:
+                default: ''
+            vcloud_config:
+                default: {}
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                create:
+                    implementation: vcloud.server_plugin.server.create
+                    inputs: {}
+                start:
+                    implementation: vcloud.server_plugin.server.start
+                    inputs: {}
+                stop:
+                    implementation: vcloud.server_plugin.server.stop
+                    inputs: {}
+                delete:
+                    implementation: vcloud.server_plugin.server.delete
+                    inputs: {}
+            cloudify.interfaces.host:
+                get_state:
+                    implementation: vcloud.server_plugin.server.get_state
+                    inputs: {}
+
+    cloudify.vcloud.nodes.Network:
+        derived_from: cloudify.nodes.Network
+        properties:
+            network:
+                default: {}
+            use_external_resource:
+                default: false
+            resource_id:
+                default: ''
+            vcloud_config:
+                default: {}
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                create:
+                    implementation: vcloud.network_plugin.network.create
+                    inputs: {}
+                delete:
+                    implementation: vcloud.network_plugin.network.delete
+                    inputs: {}
+            cloudify.interfaces.validation:
+                creation:
+                    implementation: vcloud.network_plugin.network.creation_validation
+
+    cloudify.vcloud.nodes.Port:
+        derived_from: cloudify.nodes.Port
+        properties:
+            port:
+                default: {}
+            vcloud_config:
+                default: {}
+
+    cloudify.vcloud.nodes.FloatingIP:
+        derived_from: cloudify.nodes.VirtualIP
+        properties:
+            floatingip:
+                default: {}
+            vcloud_config:
+                default: {}
+
+    cloudify.vcloud.nodes.SecurityGroup:
+        derived_from: cloudify.nodes.SecurityGroup
+        properties:
+            gateway:
+                default: ''
+            rules:
+                default: []
+            vcloud_config:
+                default: {}
+
+relationships:
+    cloudify.vcloud.server_connected_to_floating_ip:
+        derived_from: cloudify.relationships.connected_to
+        target_interfaces:
+            cloudify.interfaces.relationship_lifecycle:
+                establish:
+                    implementation: vcloud.network_plugin.floatingip.connect_floatingip
+                    inputs: {}
+                unlink:
+                    implementation: vcloud.network_plugin.floatingip.disconnect_floatingip
+                    inputs: {}
+    cloudify.vcloud.port_connected_to_network:
+        derived_from: cloudify.relationships.connected_to
+    cloudify.vcloud.server_connected_to_port:
+        derived_from: cloudify.relationships.connected_to
+    cloudify.vcloud.server_connected_to_security_group:
+        derived_from: cloudify.relationships.connected_to
+        target_interfaces:
+            cloudify.interfaces.relationship_lifecycle:
+                establish:
+                    implementation: vcloud.network_plugin.security_group.create
+                    inputs: {}
+                unlink:
+                    implementation: vcloud.network_plugin.security_group.delete
+                    inputs: {}
