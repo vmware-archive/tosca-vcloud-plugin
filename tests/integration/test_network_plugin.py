@@ -181,13 +181,27 @@ class PublicNatOperationsTestCase(TestCase):
     def test_public_nat_connected_to_net(self):
         self.ctx.target.node.properties['rules'] = IntegrationTestConfig().get()['public_nat']['rules_net']
         self.ctx.source.node.properties['resource_id'] = IntegrationTestConfig().get()['public_nat']['network_name']
+        rules_count = self.get_rules_count()
         public_nat.connect_nat_to_network()
+        self.assertEqual(rules_count + 1, self.get_rules_count())
         public_nat.disconnect_nat_from_network()
+        self.assertEqual(rules_count, self.get_rules_count())
+
 
     def test_public_nat_connected_to_vm(self):
         self.ctx.target.node.properties['rules'] = IntegrationTestConfig().get()['public_nat']['rules_port']
+        rules_count = self.get_rules_count()
         public_nat.connect_nat_to_vm()
+        self.assertEqual(rules_count + 1, self.get_rules_count())
         public_nat.disconnect_nat_from_vm()
+        self.assertEqual(rules_count, self.get_rules_count())
+
+    def get_rules_count(self):
+        return len(self._get_gateway().get_nat_rules())
+
+    def _get_gateway(self):
+        return self.vca_client.get_gateway(VcloudTestConfig().get()["vdc"],
+                                           self.ctx.target.node.properties['nat']['edge_gateway'])
 
 
 if __name__ == '__main__':
