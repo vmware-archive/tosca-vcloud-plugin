@@ -28,10 +28,12 @@ DELETE_POOL = 2
 @operation
 @with_vca_client
 def create(vca_client, **kwargs):
-    if ctx.node.properties['use_external_resource'] is True:
-        # TODO add check valid resource_id
-        ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = \
-            ctx.node.properties['resource_id']
+    vdc_name = get_vcloud_config()['vdc']
+    if ctx.node.properties['use_external_resource']:
+        network_name = ctx.node.properties['resource_id']
+        if not _is_network_exists(vca_client, vdc_name, network_name):
+            cfy_exc.NonRecoverableError("Can't find external resource: {0}".format(network_name))
+        ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = network_name
         ctx.logger.info("External resource has been used")
         return
     net_prop = ctx.node.properties["network"]
@@ -50,7 +52,7 @@ def create(vca_client, **kwargs):
     dns1 = check_ip(net_prop["dns"]) if net_prop.get('dns') else ""
     dns2 = ""
     dns_suffix = net_prop.get("dns_suffix")
-    success, result = vca_client.create_vdc_network(get_vcloud_config()['vdc'], network_name, gateway_name, start_address,
+    success, result = vca_client.create_vdc_network(vdc_name, network_name, gateway_name, start_address,
                                                     end_address, gateway_ip, netmask,
                                                     dns1, dns2, dns_suffix)
     if success:
@@ -132,7 +134,7 @@ def _split_adresses(address_range):
         #if start > end:
         #    raise cfy_exc.NonRecoverableError(
         #        "Start address {0} is greater than end address: {1}".format(start, end))
-        return IPRange(start=start,  end=end)
+        return IPRange(start=start, end=end)
     except IndexError:
         raise cfy_exc.NonRecoverableError("Can't parse IP range:{0}".
                                           format(address_range))
@@ -150,3 +152,8 @@ def _get_network_name(properties):
     return properties["network"]["name"]\
         if "name" in properties["network"]\
            else properties['resource_id']
+
+
+def _is_network_exists(vca_client, vdc_name, network_name):
+    networks = vca_client.get_networks(vdc_name)
+    return any([network_name == net.get_name() for net in networks])
