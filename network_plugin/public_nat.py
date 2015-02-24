@@ -1,8 +1,7 @@
 from cloudify import ctx
-from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import with_vca_client, get_vcloud_config
-from network_plugin import check_ip, save_gateway_configuration
+from network_plugin import check_ip, save_gateway_configuration, get_vm_ip
 
 VCLOUD_NETWORK_NAME = 'vcloud_network_name'
 PUBLIC_IP = 'public_ip'
@@ -25,22 +24,22 @@ def disconnect_nat_from_network(vca_client, **kwargs):
 @operation
 @with_vca_client
 def connect_nat_to_vm(vca_client, **kwargs):
-    prepare_port_operation(vca_client, CREATE)
+    prepare_vm_operation(vca_client, CREATE)
 
 
 @operation
 @with_vca_client
 def disconnect_nat_from_vm(vca_client, **kwargs):
-    prepare_port_operation(vca_client, DELETE)
+    prepare_vm_operation(vca_client, DELETE)
 
 
 def prepare_network_operation(vca_client, operation):
-    network_name = ctx.target.node.properties['resource_id']
+    network_name = ctx.source.node.properties['resource_id']
     vdc_name = get_vcloud_config()['vdc']
-    public_ip = check_ip(ctx.source.node.properties['nat']['public_ip'])
-    rule_type = ctx.source.node.properties['rules']['type']
+    public_ip = check_ip(ctx.target.node.properties['nat']['public_ip'])
+    rule_type = ctx.target.node.properties['rules']['type']
     gateway = vca_client.get_gateway(vdc_name,
-                                     ctx.source.node.properties['nat']['edge_gateway'])
+                                     ctx.target.node.properties['nat']['edge_gateway'])
     ip_ranges = _get_network_ip_range(vca_client, vdc_name, network_name)
     ip_ranges.extend(_get_gateway_ip_range(gateway, network_name))
     nat_network_operation(vca_client, gateway, operation, rule_type, public_ip, ip_ranges, "any", "any", "any")
@@ -48,18 +47,15 @@ def prepare_network_operation(vca_client, operation):
 
 def prepare_vm_operation(vca_client, operation):
     vdc_name = get_vcloud_config()['vdc']
-    public_ip = check_ip(ctx.source.node.properties['nat']['public_ip'])
-    rule_type = ctx.source.node.properties['rules']['type']
+    public_ip = check_ip(ctx.target.node.properties['nat']['public_ip'])
+    rule_type = ctx.target.node.properties['rules']['type']
     gateway = vca_client.get_gateway(vdc_name,
-                                     ctx.source.node.properties['nat']['edge_gateway'])
-
-    if not ctx.target.node.properties['port']['ip_allocation_mode'] == 'manual':
-            raise cfy_exc.NonRecoverableError("IP address mus be assign manualy")
+                                     ctx.target.node.properties['nat']['edge_gateway'])
     private_ip = check_ip(get_vm_ip(vca_client, ctx))
-    rule_type = ctx.source.node.properties['rules']['type']
-    protocol = ctx.source.node.properties['rules']['protocol'] if 'protocol' in ctx.source.node.properties['rules'] else "any"
-    original_port = ctx.source.node.properties['rules']['original_port'] if 'original_port' in ctx.source.node.properties['rules'] else "any"
-    translated_port = ctx.source.node.properties['rules']['translated_port'] if 'translated_port' in ctx.source.node.properties['rules'] else "any"
+    rule_type = ctx.target.node.properties['rules']['type']
+    protocol = ctx.target.node.properties['rules']['protocol'] if 'protocol' in ctx.target.node.properties['rules'] else "any"
+    original_port = ctx.target.node.properties['rules']['original_port'] if 'original_port' in ctx.target.node.properties['rules'] else "any"
+    translated_port = ctx.target.node.properties['rules']['translated_port'] if 'translated_port' in ctx.target.node.properties['rules'] else "any"
     nat_network_operation(vca_client, gateway, operation, rule_type, public_ip, [private_ip], original_port, translated_port, protocol)
 
 

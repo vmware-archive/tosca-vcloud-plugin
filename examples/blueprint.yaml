@@ -38,20 +38,7 @@ node_templates:
             management_network: CFY-Internal
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
         relationships:
-            - target: example_public_nat_for_net
-              type: cloudify.vcloud.public_nat_connected_to_network
-
-    example_server3:
-        type: cloudify.vcloud.nodes.Server
-        properties:
-            server:
-                name: cfy-plugin-example-server
-                catalog: giga
-                template: plugin-test-VApp
-            management_network: CFY-Internal
-            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
-        relationships:
-            - target: example_public_nat_for_net
+            - target: example_public_nat_for_vm
               type: cloudify.vcloud.public_nat_connected_to_vm
 
     example_floating_ip:
@@ -99,6 +86,9 @@ node_templates:
             use_external_resource: true
             resource_id: CFY-Internal
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+        relationships:
+            - target: example_public_nat_for_net
+              type: cloudify.vcloud.public_nat_connected_to_net
 
     example_port2:
         type: cloudify.vcloud.nodes.Port

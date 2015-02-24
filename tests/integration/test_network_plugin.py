@@ -9,7 +9,7 @@ from tests.integration import TestCase, IntegrationTestConfig, VcloudTestConfig
 # for skipping test add this before test function:
 # @unittest.skip("demonstrating skipping")
 
-@unittest.skip("demonstrating skipping")
+
 class FloatingIPOperationsTestCase(TestCase):
     def setUp(self):
         name = "testnode"
@@ -63,7 +63,7 @@ class FloatingIPOperationsTestCase(TestCase):
         return self.vca_client.get_gateway(VcloudTestConfig().get()["vdc"],
                                            self.ctx.target.node.properties['floatingip']['edge_gateway'])
 
-@unittest.skip("demonstrating skipping")
+
 class OrgNetworkOperationsTestCase(TestCase):
     def setUp(self):
 
@@ -111,7 +111,7 @@ class OrgNetworkOperationsTestCase(TestCase):
                          network._get_network_list(self.vca_client, self.vdc_name))
         self.assertEqual(start_pools, len(self.get_pools()))
 
-@unittest.skip("demonstrating skipping")
+
 class FirewallRulesOperationsTestCase(TestCase):
     def setUp(self):
 
@@ -163,10 +163,10 @@ class PublicNatOperationsTestCase(TestCase):
             node_name=name,
             properties={},
             target=MockCloudifyContext(node_id="target",
-                                       properties={}),
+                                       properties={"nat": IntegrationTestConfig().get()['public_nat']['nat'],
+                                                   "rules": {}}),
             source=MockCloudifyContext(node_id="source",
-                                       properties={'nat': IntegrationTestConfig().get()['public_nat']['nat'],
-                                                   "rules": {}},
+                                       properties={},
                                        runtime_properties={VCLOUD_VAPP_NAME: IntegrationTestConfig().get()['test_vm']}))
         ctx_patch1 = mock.patch('network_plugin.public_nat.ctx', self.ctx)
         ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
@@ -179,16 +179,14 @@ class PublicNatOperationsTestCase(TestCase):
     def tearDown(self):
         super(PublicNatOperationsTestCase, self).tearDown()
 
-    @unittest.skip("demonstrating skipping")
     def test_public_nat_connected_to_net(self):
-        self.ctx.source.node.properties['rules'] = IntegrationTestConfig().get()['public_nat']['rules_net']
-        self.ctx.target.node.properties['resource_id'] = IntegrationTestConfig().get()['public_nat']['network_name']
+        self.ctx.target.node.properties['rules'] = IntegrationTestConfig().get()['public_nat']['rules_net']
+        self.ctx.source.node.properties['resource_id'] = IntegrationTestConfig().get()['public_nat']['network_name']
         public_nat.connect_nat_to_network()
         public_nat.disconnect_nat_from_network()
 
     def test_public_nat_connected_to_vm(self):
-        self.ctx.source.node.properties['rules'] = IntegrationTestConfig().get()['public_nat']['rules_port']
-        self.ctx.target.node.properties['port'] = IntegrationTestConfig().get()['public_nat']['port']
+        self.ctx.target.node.properties['rules'] = IntegrationTestConfig().get()['public_nat']['rules_port']
         public_nat.connect_nat_to_vm()
         public_nat.disconnect_nat_from_vm()
 
