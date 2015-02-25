@@ -2,11 +2,7 @@ from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import with_vca_client, get_vcloud_config
-from network_plugin import check_ip, isExternalIpAssigned, isInternalIpAssigned, collectAssignedIps, get_vm_ip, save_gateway_configuration
-from network_plugin import CREATE, DELETE
-
-
-PUBLIC_IP = 'public_ip'
+from network_plugin import check_ip, isExternalIpAssigned, isInternalIpAssigned, get_vm_ip, save_gateway_configuration, getFreeIP, CREATE, DELETE, PUBLIC_IP
 
 
 @operation
@@ -105,13 +101,3 @@ def _del_nat_rule(gateway, vca_client, rule_type, original_ip, translated_ip):
 
     gateway.del_nat_rule(
         rule_type, original_ip, any_type, translated_ip, any_type, any_type)
-
-
-def getFreeIP(gateway):
-    public_ips = set(gateway.get_public_ips())
-    allocated_ips = set([address.external for address in collectAssignedIps(gateway)])
-    available_ips = public_ips - allocated_ips
-    if not available_ips:
-        raise cfy_exc.NonRecoverableError(
-            "Can't get external IP address")
-    return list(available_ips)[0]

@@ -5,6 +5,7 @@ import collections
 from server_plugin.server import VCLOUD_VAPP_NAME
 from vcloud_plugin_common import wait_for_task, get_vcloud_config
 
+PUBLIC_IP = 'public_ip'
 CREATE = 1
 DELETE = 2
 
@@ -74,3 +75,12 @@ def save_gateway_configuration(gateway, vca_client, message):
         raise cfy_exc.NonRecoverableError(
             message)
     wait_for_task(vca_client, task)
+
+def getFreeIP(gateway):
+    public_ips = set(gateway.get_public_ips())
+    allocated_ips = set([address.external for address in collectAssignedIps(gateway)])
+    available_ips = public_ips - allocated_ips
+    if not available_ips:
+        raise cfy_exc.NonRecoverableError(
+            "Can't get external IP address")
+    return list(available_ips)[0]

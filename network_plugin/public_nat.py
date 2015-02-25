@@ -2,10 +2,8 @@ from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import with_vca_client, get_vcloud_config
-from network_plugin import check_ip, save_gateway_configuration, get_vm_ip, isExternalIpAssigned, CREATE, DELETE
+from network_plugin import check_ip, save_gateway_configuration, get_vm_ip, isExternalIpAssigned, getFreeIP, CREATE, DELETE, PUBLIC_IP
 from network_plugin.network import VCLOUD_NETWORK_NAME
-
-PUBLIC_IP = 'public_ip'
 
 
 @operation
@@ -36,10 +34,10 @@ def prepare_network_operation(vca_client, operation):
     try:
         network_name = ctx.source.instance.runtime_properties[VCLOUD_NETWORK_NAME]
         vdc_name = get_vcloud_config()['vdc']
-        public_ip = check_ip(ctx.target.node.properties['nat']['public_ip'])
         rule_type = ctx.target.node.properties['rules']['type']
         gateway = vca_client.get_gateway(vdc_name,
                                          ctx.target.node.properties['nat']['edge_gateway'])
+        public_ip = _get_public_ip(ctx, gateway, operation)
     except KeyError as e:
         raise cfy_exc.NonRecoverableError("Parameter not found: {0}".format(e))
     ip_ranges = _get_network_ip_range(vca_client, vdc_name, network_name)
@@ -50,10 +48,10 @@ def prepare_network_operation(vca_client, operation):
 def prepare_vm_operation(vca_client, operation):
     try:
         vdc_name = get_vcloud_config()['vdc']
-        public_ip = check_ip(ctx.target.node.properties['nat']['public_ip'])
         rule_type = ctx.target.node.properties['rules']['type']
         gateway = vca_client.get_gateway(vdc_name,
                                          ctx.target.node.properties['nat']['edge_gateway'])
+        public_ip = _get_public_ip(ctx, gateway, operation)
         rule_type = ctx.target.node.properties['rules']['type']
         protocol = ctx.target.node.properties['rules']['protocol'] if 'protocol' in ctx.target.node.properties['rules'] else "any"
         original_port = ctx.target.node.properties['rules']['original_port'] if 'original_port' in ctx.target.node.properties['rules'] else "any"
@@ -65,6 +63,7 @@ def prepare_vm_operation(vca_client, operation):
 
 
 def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip, private_ip, original_port, translated_port, protocol):
+    ctx.logger.info("Public Ip {0}".format(public_ip))
     function = None
     message = None
     if operation == CREATE:
@@ -72,9 +71,11 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip, 
             raise cfy_exc.NonRecoverableError("Public IP {0} is already allocated".format(public_ip))
         function = gateway.add_nat_rule
         message = "Create"
-    else:
+    elif operation == DELETE:
         function = gateway.del_nat_rule
         message = "Delete"
+    else:
+        raise cfy_exc.NonRecoverableError("Unknown operation: {0}".format(operation))
 
     for rule in rule_type:
         for ip in private_ip:
@@ -90,6 +91,10 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip, 
                 function(
                     rule, public_ip, str(original_port), ip, str(translated_port), protocol)
     save_gateway_configuration(gateway, vca_client, "Could not save edge gateway NAT configuration")
+    if operation == CREATE:
+        ctx.target.instance.runtime_properties[PUBLIC_IP] = public_ip
+    else:
+        del ctx.target.instance.runtime_properties[PUBLIC_IP]
 
 
 def _get_network_ip_range(vca_client, vdc_name, network_name):
@@ -107,3 +112,19 @@ def _get_gateway_ip_range(gateway, network_name):
         if pool.Network.name == network_name:
             scopes.append("{0} - {1}".format(pool.get_LowIpAddress(), pool.get_HighIpAddress()))
     return scopes
+
+
+def _get_public_ip(ctx, gateway, operation):
+    public_ip = None
+    if operation == CREATE:
+        if PUBLIC_IP in ctx.target.node.properties['nat']:
+            public_ip = check_ip(ctx.target.node.properties['nat'][PUBLIC_IP])
+        else:
+            public_ip = getFreeIP(gateway)
+            ctx.logger.info("Assign external IP {0}".format(public_ip))
+    elif operation == DELETE:
+        if PUBLIC_IP in ctx.target.instance.runtime_properties:
+            public_ip = ctx.target.instance.runtime_properties[PUBLIC_IP]
+    if not public_ip:
+        raise cfy_exc.NonRecoverableError("Can't get public IP")
+    return public_ip
