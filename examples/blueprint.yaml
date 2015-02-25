@@ -25,8 +25,21 @@ node_templates:
               type: cloudify.vcloud.server_connected_to_port
             - target: example_port2
               type: cloudify.vcloud.server_connected_to_port
-            - target: manager_floating_ip
+            - target: example_floating_ip
               type: cloudify.vcloud.server_connected_to_floating_ip
+
+    example_server2:
+        type: cloudify.vcloud.nodes.Server
+        properties:
+            server:
+                name: cfy-plugin-example-server
+                catalog: giga
+                template: plugin-test-VApp
+            management_network: CFY-Internal
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+        relationships:
+            - target: example_public_nat_for_vm
+              type: cloudify.vcloud.server_connected_to_public_nat
 
     example_floating_ip:
         type: cloudify.vcloud.nodes.FloatingIP
@@ -35,6 +48,28 @@ node_templates:
                 edge_gateway: M000000000-1111
                 public_ip: 24.44.44.244
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+
+    example_public_nat_for_net:
+        type: cloudify.vcloud.nodes.PublicNAT
+        properties:
+            nat:
+                edge_gateway: M000000000-1111
+                public_ip: 24.44.44.244
+            rules:
+                - type: SNAT
+
+    example_public_nat_for_vm:
+        type: cloudify.vcloud.nodes.PublicNAT
+        properties:
+            nat:
+                edge_gateway: M000000000-1111
+                public_ip: 24.44.44.244
+            rules:
+                - type: SNAT
+                - type: DNAT
+                protocol: tcp
+                original_port: 80
+                translated_port: 8080
 
     example_port:
         type: cloudify.vcloud.nodes.Port
@@ -51,6 +86,9 @@ node_templates:
             use_external_resource: true
             resource_id: CFY-Internal
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+        relationships:
+            - target: example_public_nat_for_net
+              type: cloudify.vcloud.net_connected_to_public_nat
 
     example_port2:
         type: cloudify.vcloud.nodes.Port
