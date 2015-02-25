@@ -117,21 +117,21 @@ relationships:
                 unlink:
                     implementation: vcloud.network_plugin.security_group.delete
                     inputs: {}
-    cloudify.vcloud.public_nat_connected_to_network:
+    cloudify.vcloud.net_connected_to_public_nat:
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
                 establish:
-                    implementation: vcloud.network_plugin.public_nat.connect_nat_to_network
+                    implementation: vcloud.network_plugin.public_nat.net_connect_to_nat
                     inputs: {}
                 unlink:
-                    implementation: vcloud.network_plugin.public_nat.disconnect_nat_from_network
+                    implementation: vcloud.network_plugin.public_nat.net_disconnect_from_nat
                     inputs: {}
-    cloudify.vcloud.public_nat_connected_to_vm:
+    cloudify.vcloud.server_connected_to_public_nat:
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
                 establish:
-                    implementation: vcloud.network_plugin.public_nat.connect_nat_to_vm
+                    implementation: vcloud.network_plugin.public_nat.server_connect_to_nat
                     inputs: {}
                 unlink:
-                    implementation: vcloud.network_plugin.public_nat.disconnect_nat_from_vm
+                    implementation: vcloud.network_plugin.public_nat.server_disconnect_from_nat
                     inputs: {}

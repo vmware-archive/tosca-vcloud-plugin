@@ -3,11 +3,12 @@ import unittest
 from cloudify.mocks import MockCloudifyContext
 from network_plugin import floatingip, network, security_group, public_nat
 from server_plugin.server import VCLOUD_VAPP_NAME
+from network_plugin.network import VCLOUD_NETWORK_NAME
 from network_plugin import isExternalIpAssigned
 from cloudify import exceptions as cfy_exc
 from tests.integration import TestCase, IntegrationTestConfig, VcloudTestConfig
 # for skipping test add this before test function:
-# @unittest.skip("demonstrating skipping")
+# @unittest.skip("skip test")
 
 
 class FloatingIPOperationsTestCase(TestCase):
@@ -166,7 +167,8 @@ class PublicNatOperationsTestCase(TestCase):
                                                    "rules": {}}),
             source=MockCloudifyContext(node_id="source",
                                        properties={},
-                                       runtime_properties={VCLOUD_VAPP_NAME: IntegrationTestConfig().get()['test_vm']}))
+                                       runtime_properties={VCLOUD_VAPP_NAME: IntegrationTestConfig().get()['public_nat']['test_vm'],
+                                                           VCLOUD_NETWORK_NAME: IntegrationTestConfig().get()['public_nat']['network_name']}))
         ctx_patch1 = mock.patch('network_plugin.public_nat.ctx', self.ctx)
         ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
         ctx_patch1.start()
@@ -182,18 +184,17 @@ class PublicNatOperationsTestCase(TestCase):
         self.ctx.target.node.properties['rules'] = IntegrationTestConfig().get()['public_nat']['rules_net']
         self.ctx.source.node.properties['resource_id'] = IntegrationTestConfig().get()['public_nat']['network_name']
         rules_count = self.get_rules_count()
-        public_nat.connect_nat_to_network()
+        public_nat.net_connect_to_nat()
         self.assertEqual(rules_count + 1, self.get_rules_count())
-        public_nat.disconnect_nat_from_network()
+        public_nat.net_disconnect_from_nat()
         self.assertEqual(rules_count, self.get_rules_count())
 
-
-    def test_public_nat_connected_to_vm(self):
+    def test_public_nat_connected_to_server(self):
         self.ctx.target.node.properties['rules'] = IntegrationTestConfig().get()['public_nat']['rules_port']
         rules_count = self.get_rules_count()
-        public_nat.connect_nat_to_vm()
-        self.assertEqual(rules_count + 1, self.get_rules_count())
-        public_nat.disconnect_nat_from_vm()
+        public_nat.server_connect_to_nat()
+        self.assertEqual(rules_count + 2, self.get_rules_count())
+        public_nat.server_disconnect_from_nat()
         self.assertEqual(rules_count, self.get_rules_count())
 
     def get_rules_count(self):

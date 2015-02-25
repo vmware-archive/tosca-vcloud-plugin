@@ -5,6 +5,10 @@ import collections
 from server_plugin.server import VCLOUD_VAPP_NAME
 from vcloud_plugin_common import wait_for_task, get_vcloud_config
 
+CREATE = 1
+DELETE = 2
+
+
 AssignedIPs = collections.namedtuple('AssignedIPs', 'external internal')
 
 

@@ -39,7 +39,7 @@ node_templates:
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
         relationships:
             - target: example_public_nat_for_vm
-              type: cloudify.vcloud.public_nat_connected_to_vm
+              type: cloudify.vcloud.server_connected_to_public_nat
 
     example_floating_ip:
         type: cloudify.vcloud.nodes.FloatingIP
@@ -88,7 +88,7 @@ node_templates:
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
         relationships:
             - target: example_public_nat_for_net
-              type: cloudify.vcloud.public_nat_connected_to_net
+              type: cloudify.vcloud.net_connected_to_public_nat
 
     example_port2:
         type: cloudify.vcloud.nodes.Port
