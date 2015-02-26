@@ -25,6 +25,8 @@ from vcloud_plugin_common import (get_vcloud_config,
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 GUEST_CUSTOMIZATION = 'guest_customization'
 HARDWARE = 'hardware'
+DEFAULT_EXECUTOR = "/bin/bash"
+DEFAULT_USER = "ubuntu"
 
 
 @operation
@@ -107,7 +109,7 @@ def create(vca_client, **kwargs):
                 'ip_allocation_mode': ip_allocation_mode,
                 'mac_address': mac_address,
                 'ip_address': ip_address
-                }
+            }
             ctx.logger.info("Connecting network with parameters {0}"
                             .format(str(connection_args)))
             task = vapp.connect_vms(**connection_args)
@@ -121,7 +123,7 @@ def create(vca_client, **kwargs):
     if custom:
         vdc = vca_client.get_vdc(config['vdc'])
         vapp = vca_client.get_vapp(vdc, vapp_name)
-        script = custom.get('script')
+        script = _build_script(custom)
         password = custom.get('admin_password')
         computer_name = custom.get('computer_name')
 
@@ -130,7 +132,7 @@ def create(vca_client, **kwargs):
             customization_script=script,
             computer_name=computer_name,
             admin_password=password
-            )
+        )
         if task is None:
             raise cfy_exc.NonRecoverableError(
                 "Could not set guest customization parameters")
@@ -233,3 +235,28 @@ def _get_vm_network_connection(vapp, network_name):
 def _get_connected_ports(relationships):
     return [relationship.target for relationship in relationships
             if 'port' in relationship.target.node.properties]
+
+
+def _build_script(custom):
+    script = custom.get('script')
+    script_executor = custom.get('script_executor')
+    manager_public_key = custom.get('manager_public_key')
+    agent_public_key = custom.get('agent_public_key')
+    manager_user = custom.get('manager_user')
+    agent_user = custom.get('agent_user')
+    if not script and not manager_public_key and not agent_public_key:
+        return None
+    executor = script_executor if script_executor else DEFAULT_EXECUTOR
+    commands = []
+    commands.append("if [ -f /root/cloudify_confiured ]; then\nexit \nfi \ntouch /root/cloudify_confiured")
+    if script:
+        commands.append(script)
+    manager_user = manager_user if manager_user else DEFAULT_USER
+    agent_user = agent_user if agent_user else DEFAULT_USER
+    add_key_template = "echo '{0}\n' >> /home/{1}/.ssh/authorized_keys"
+    if manager_public_key:
+        commands.append(add_key_template.format(manager_public_key, manager_user))
+    if agent_public_key:
+        commands.append(add_key_template.format(agent_public_key, agent_user))
+    script = "#!{0}\n{1}".format(executor, "\n".join(commands))
+    return script

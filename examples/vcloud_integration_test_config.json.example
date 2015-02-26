@@ -6,7 +6,14 @@
         "network": "",
         "guest_customization":
             {
-             "computer_name": "custom-name"
+            "admin_password": "123",
+            "computer_name": "custom-name",
+            "script_executor": "/bin/bash",
+            "script": "echo 'it works' > /tmp/guest_cust.out",
+            "manager_public_key": "ssh-rsa public key",
+            "agent_public_key":   "ssh-rsa public key",
+            "manager_user": "ubuntu",
+            "agent_user": "ubuntu"
             },
         "hardware":
             {
