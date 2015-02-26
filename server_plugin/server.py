@@ -248,7 +248,8 @@ def _build_script(custom):
         return None
     executor = script_executor if script_executor else DEFAULT_EXECUTOR
     commands = []
-    commands.append("if [ -f /root/cloudify_confiured ]; then\nexit \nfi \ntouch /root/cloudify_confiured")
+    commands.append("if [ -f /root/cloudify_confiured ]; then\nexit \nfi")
+    commands.append("touch /root/cloudify_confiured")
     if script:
         commands.append(script)
     manager_user = manager_user if manager_user else DEFAULT_USER
