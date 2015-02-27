@@ -275,21 +275,22 @@ def _build_script(custom):
     configured_name = _create_file_name()
 
     commands = []
-    commands.append("""#!{3}
-    if [ -f /root/{0} ]; then
+    commands.append("""#!{0}
+    if [ -f /root/{1} ]; then
       exit
     fi
-    touch /root/{0}
-    {1}
-    {2}
-    """.format(configured_name, manager_test_ssh_dir, agent_test_ssh_dir, executor))
+    touch /root/{1}
+    """.format(executor, configured_name))
     if script:
         commands.append(script)
     if manager_public_key:
+        commands.append(manager_test_ssh_dir)
         commands.append(add_key_template.format(manager_public_key, manager_authorized_keys))
     if agent_public_key:
+        commands.append(agent_test_ssh_dir)
         commands.append(add_key_template.format(agent_public_key, agent_authorized_keys))
     script = "\n".join(commands)
+    import pdb; pdb.set_trace()
     return script
 
 
