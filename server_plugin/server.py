@@ -247,22 +247,51 @@ def _build_script(custom):
     agent_user = custom.get('agent_user')
     if not script and not manager_public_key and not agent_public_key:
         return None
+
     executor = script_executor if script_executor else DEFAULT_EXECUTOR
-    commands = []
-    configured_name = _create_file_name()
-    commands.append("if [ -f /root/{0} ]; then\nexit \nfi".format(configured_name))
-    commands.append("touch /root/{0}".format(configured_name))
-    if script:
-        commands.append(script)
     manager_user = manager_user if manager_user else DEFAULT_USER
     agent_user = agent_user if agent_user else DEFAULT_USER
-    add_key_template = "echo '{0}\n' >> /home/{1}/.ssh/authorized_keys"
+
+    ssh_dir_template = "/home/{0}/ssh"
+    authorized_keys_template = "{0}/authorized_keys".format(ssh_dir_template)
+    add_key_template = "echo '{0}\n' >> {1}"
+    test_ssh_dir_template = """
+    if [ ! -d {1} ];then
+      mkdir {1}
+      chown {0}:{0} {1}
+      chmod 700 {1}
+      touch {2}
+      chown {0}:{0} {2}
+      chmod 600 {2}
+    fi
+    """
+
+    manager_ssh_dir = ssh_dir_template.format(manager_user)
+    agent_ssh_dir = ssh_dir_template.format(agent_user)
+    manager_authorized_keys = authorized_keys_template.format(manager_user)
+    agent_authorized_keys = authorized_keys_template.format(agent_user)
+    manager_test_ssh_dir = test_ssh_dir_template.format(manager_user, manager_ssh_dir, manager_authorized_keys)
+    agent_test_ssh_dir = test_ssh_dir_template.format(agent_user, agent_ssh_dir, agent_authorized_keys)
+    configured_name = _create_file_name()
+
+    commands = []
+    commands.append("""#!{3}
+    if [ -f /root/{0} ]; then
+      exit
+    fi
+    touch /root/{0}
+    {1}
+    {2}
+    """.format(configured_name, manager_test_ssh_dir, agent_test_ssh_dir, executor))
+    if script:
+        commands.append(script)
     if manager_public_key:
-        commands.append(add_key_template.format(manager_public_key, manager_user))
+        commands.append(add_key_template.format(manager_public_key, manager_authorized_keys))
     if agent_public_key:
-        commands.append(add_key_template.format(agent_public_key, agent_user))
-    script = "#!{0}\n{1}".format(executor, "\n".join(commands))
+        commands.append(add_key_template.format(agent_public_key, agent_authorized_keys))
+    script = "\n".join(commands)
     return script
+
 
 def _create_file_name():
     chars = string.ascii_lowercase + string.digits
