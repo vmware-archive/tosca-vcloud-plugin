@@ -262,7 +262,6 @@ def _build_script(custom):
     if agent_public_key:
         commands.append(add_key_template.format(agent_public_key, agent_user))
     script = "#!{0}\n{1}".format(executor, "\n".join(commands))
-    import pdb; pdb.set_trace()
     return script
 
 def _create_file_name():
