@@ -11,7 +11,8 @@
 #  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  * See the License for the specific language governing permissions and
 #  * limitations under the License.
-
+import random
+import string
 from cloudify import ctx
 from cloudify.decorators import operation
 from cloudify import exceptions as cfy_exc
@@ -248,8 +249,9 @@ def _build_script(custom):
         return None
     executor = script_executor if script_executor else DEFAULT_EXECUTOR
     commands = []
-    commands.append("if [ -f /root/cloudify_confiured ]; then\nexit \nfi")
-    commands.append("touch /root/cloudify_confiured")
+    configured_name = _create_file_name()
+    commands.append("if [ -f /root/{0} ]; then\nexit \nfi".format(configured_name))
+    commands.append("touch /root/{0}".format(configured_name))
     if script:
         commands.append(script)
     manager_user = manager_user if manager_user else DEFAULT_USER
@@ -260,4 +262,11 @@ def _build_script(custom):
     if agent_public_key:
         commands.append(add_key_template.format(agent_public_key, agent_user))
     script = "#!{0}\n{1}".format(executor, "\n".join(commands))
+    import pdb; pdb.set_trace()
     return script
+
+def _create_file_name():
+    chars = string.ascii_lowercase + string.digits
+    configured_name = 'cloudify_confiured_{0}'.format(''.join([random.choice(chars)
+                                                               for _ in range(5)]))
+    return configured_name
