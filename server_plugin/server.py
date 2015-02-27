@@ -252,7 +252,7 @@ def _build_script(custom):
     manager_user = manager_user if manager_user else DEFAULT_USER
     agent_user = agent_user if agent_user else DEFAULT_USER
 
-    ssh_dir_template = "/home/{0}/ssh"
+    ssh_dir_template = "/home/{0}/.ssh"
     authorized_keys_template = "{0}/authorized_keys".format(ssh_dir_template)
     add_key_template = "echo '{0}\n' >> {1}"
     test_ssh_dir_template = """
