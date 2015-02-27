@@ -11,4 +11,8 @@
     "management_network_name": "",
     "edge_gateway": "",
     "floating_ip_public_ip": ""
+    "manager_private_key_path": "~/.ssh/manager.pem",
+    "agent_private_key_path": "~/.ssh/agent.pem",
+    "manager_public_key": "",
+    "agent_public_key": ""
 }

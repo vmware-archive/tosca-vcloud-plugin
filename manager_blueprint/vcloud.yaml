@@ -72,6 +72,14 @@ inputs:
         default: ~/.ssh/cloudify-agent-kp.pem
         type: string
 
+    manager_public_key:
+        type: string
+        default: ''
+
+    agent_public_key:
+        type: string
+        default: ''
+
     resources_prefix:
         type: string
         default: ''
@@ -92,6 +100,10 @@ node_templates:
                 name: { get_input: manager_server_name }
                 catalog: { get_input: manager_server_catalog }
                 template: { get_input: manager_server_template }
+                guest_customization:
+                    manager_public_key: { get_input: manager_public_key }
+                    agent_public_key: { get_input: agent_public_key }
+                    computer_name: { get_input: manager_server_name }
             management_network: { get_input: management_network_name }
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
         relationships:
