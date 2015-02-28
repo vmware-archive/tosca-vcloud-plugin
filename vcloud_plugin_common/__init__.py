@@ -62,6 +62,9 @@ VCLOUD_STATUS_MAP = {
     15 : "Upload quarantine period has expired"
     }
 
+SUBSCRIPTION_SERVICE_TYPE = 'subscription'
+ONDEMAND_SERVICE_TYPE = 'ondemand'
+
 
 def transform_resource_name(res, ctx):
 
@@ -129,6 +132,8 @@ class VcloudAirClient(object):
         token = cfg.get('token')
         service = cfg.get('service')
         vdc = cfg.get('vdc')
+        service_type = cfg.get('service_type', SUBSCRIPTION_SERVICE_TYPE)
+        region = cfg.get('region')
         if not (all([url, token]) or all([url, username, password])):
             raise cfy_exc.NonRecoverableError(
                 "Login credentials must be specified")
@@ -136,16 +141,25 @@ class VcloudAirClient(object):
             raise cfy_exc.NonRecoverableError(
                 "vCloud service and vDC must be specified")
 
-        vcloud_air = self._login_and_get_vca(
-            url, username, password, token, service, vdc)
+        if service_type == SUBSCRIPTION_SERVICE_TYPE:
+            vcloud_air = self._subscription_login(
+                url, username, password, token, service, vdc)
+        elif service_type == ONDEMAND_SERVICE_TYPE:
+            vcloud_air = self._ondemand_login(
+                url, username, password, token, region)
+        else:
+            cfy_exc.NonRecoverableError(
+                "Unrecognized service type: {0}".format(service_type))
         return vcloud_air
 
-    def _login_and_get_vca(self, url, username, password, token, service, vdc):
+    def _subscription_login(self, url, username, password, token, service,
+                            vdc):
         logined = False
         vdc_logined = False
 
         vca = vcloudair.VCA(
-            url, username, service_type='subscription', version='5.6')
+            url, username, service_type=SUBSCRIPTION_SERVICE_TYPE,
+            version='5.6')
         if token:
             for _ in range(self.LOGIN_RETRY_NUM):
                 success = vca.login(token=token)
@@ -182,7 +196,77 @@ class VcloudAirClient(object):
             raise cfy_exc.NonRecoverableError("Invalid login credentials")
         if vdc_logined is False:
             raise cfy_exc.NonRecoverableError("Could not login to VDC")
-    
+
+        atexit.register(vca.logout)
+        return vca
+
+    def _ondemand_login(self, url, username, password, token, region):
+        if region is None:
+            raise cfy_exc.NonRecoverableError(
+                "Region should be specified for OnDemand login")
+        logined = False
+        instance_logined = False
+
+        vca = vcloudair.VCA(
+            url, username, service_type=ONDEMAND_SERVICE_TYPE, version='5.7')
+        if token:
+            for _ in range(self.LOGIN_RETRY_NUM):
+                success = vca.login(token=token)
+                if success is False:
+                    ctx.logger.info("Login using token failed.")
+                    continue
+                else:
+                    logined = True
+                    ctx.logger.info("Login using token successful.")
+                    break
+
+        if logined is False and password:
+            for _ in range(self.LOGIN_RETRY_NUM):
+                success = vca.login(password)
+                if success is False:
+                    ctx.logger.info("Login using password failed. Retrying...")
+                    continue
+                else:
+                    logined = True
+                    ctx.logger.info("Login using password successful.")
+                    break
+
+        for _ in range(self.LOGIN_RETRY_NUM):
+            all_instances = vca.get_instances() or []
+            instances = [instance for instance in all_instances
+                         if instance['region'] == region]
+            if len(instances) == 0:
+                cfy_exc.NonRecoverableError("No instances to login to.")
+            instance = instances[0]
+            success = vca.login_to_instance(instance['id'], password, token,
+                                            None)
+            if success is False:
+                ctx.logger.info("Login to instance failed. Retrying...")
+                continue
+            else:
+                instance_logined = True
+                ctx.logger.info("Login to instance successful.")
+                break
+
+        for _ in range(self.LOGIN_RETRY_NUM):
+            instance = vca.get_instances()[0]
+
+            success = vca.login_to_instance(instance['id'], None,
+                                            vca.vcloud_session.token,
+                                            vca.vcloud_session.org_url)
+            if success is False:
+                ctx.logger.info("Login to instance failed. Retrying...")
+                continue
+            else:
+                instance_logined = True
+                ctx.logger.info("Login to instance successful.")
+                break
+
+        if logined is False:
+            raise cfy_exc.NonRecoverableError("Invalid login credentials")
+        if instance_logined is False:
+            raise cfy_exc.NonRecoverableError("Could not login to instance")
+
         atexit.register(vca.logout)
         return vca
 

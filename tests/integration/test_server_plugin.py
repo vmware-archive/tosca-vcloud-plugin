@@ -54,6 +54,9 @@ class ServerNoNetworkTestCase(TestCase):
     def tearDown(self):
         try:
             server.stop()
+        except Exception:
+            pass
+        try:
             server.delete()
         except Exception:
             pass
@@ -68,7 +71,6 @@ class ServerNoNetworkTestCase(TestCase):
         self.assertFalse(vapp is None)
         self.assertFalse(server._vapp_is_on(vapp))
 
-        server.stop()
         server.delete()
         vapp = self.vca_client.get_vapp(
             vdc,
@@ -158,6 +160,9 @@ class ServerWithNetworkTestCase(TestCase):
     def tearDown(self):
         try:
             server.stop()
+        except Exception:
+            pass
+        try:
             server.delete()
         except Exception:
             pass
