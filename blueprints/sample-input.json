@@ -1,0 +1,10 @@
+{
+"username": "user@company.com",
+"password": "****************",
+"url": "https://vchs.vmware.com",
+"service": "ServiceName",
+"vdc": "OrgName",
+"catalog": "Public Catalog",
+"template": "name-of-the-template",
+"network_name": "default-routed-network"
+}
