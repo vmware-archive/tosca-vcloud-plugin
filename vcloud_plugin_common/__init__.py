@@ -64,6 +64,7 @@ VCLOUD_STATUS_MAP = {
 
 SUBSCRIPTION_SERVICE_TYPE = 'subscription'
 ONDEMAND_SERVICE_TYPE = 'ondemand'
+PRIVATE_SERVICE_TYPE = 'vcd'
 
 
 def transform_resource_name(res, ctx):
@@ -147,6 +148,11 @@ class VcloudAirClient(object):
         elif service_type == ONDEMAND_SERVICE_TYPE:
             vcloud_air = self._ondemand_login(
                 url, username, password, token, region)
+        # The actual service type for private is 'vcd', but we should accept
+        # 'private' as well, for user friendliness of inputs
+        elif service_type in (PRIVATE_SERVICE_TYPE, 'private'):
+            vcloud_air = self._private_login(
+                url, username, password, token, vdc)
         else:
             cfy_exc.NonRecoverableError(
                 "Unrecognized service type: {0}".format(service_type))
@@ -266,6 +272,40 @@ class VcloudAirClient(object):
             raise cfy_exc.NonRecoverableError("Invalid login credentials")
         if instance_logined is False:
             raise cfy_exc.NonRecoverableError("Could not login to instance")
+
+        atexit.register(vca.logout)
+        return vca
+
+    def _private_login(self, url, username, password, token, vdc):
+        logined = False
+
+        vca = vcloudair.VCA(
+            url, username, service_type=PRIVATE_SERVICE_TYPE,
+            version='5.6')
+        if token:
+            for _ in range(self.LOGIN_RETRY_NUM):
+                success = vca.login(token=token)
+                if success is False:
+                    ctx.logger.info("Login using token failed.")
+                    continue
+                else:
+                    logined = True
+                    ctx.logger.info("Login using token successful.")
+                    break
+
+        if logined is False and password:
+            for _ in range(self.LOGIN_RETRY_NUM):
+                success = vca.login(password)
+                if success is False:
+                    ctx.logger.info("Login using password failed. Retrying...")
+                    continue
+                else:
+                    logined = True
+                    ctx.logger.info("Login using password successful.")
+                    break
+
+        if logined is False:
+            raise cfy_exc.NonRecoverableError("Invalid login credentials")
 
         atexit.register(vca.logout)
         return vca
