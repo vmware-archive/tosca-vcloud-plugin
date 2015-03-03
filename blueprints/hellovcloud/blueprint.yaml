@@ -21,6 +21,8 @@ inputs:
         type: string
     network_name:
         type: string
+    server_name:
+        type: string
 
 node_types:
     vcloud_configuration:
@@ -33,9 +35,10 @@ node_templates:
         type: cloudify.vcloud.nodes.Server
         properties:
             server:
-                name: hellovcloud_server
+                name: { get_input: server_name }
                 catalog: { get_input: catalog }
                 template: { get_input: template }
+            management_network: { get_input: network_name }
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
         relationships:
             - target: example_port

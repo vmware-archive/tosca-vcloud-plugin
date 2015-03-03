@@ -6,5 +6,6 @@
 "vdc": "OrgName",
 "catalog": "Public Catalog",
 "template": "name-of-the-template",
-"network_name": "default-routed-network"
+"network_name": "default-routed-network",
+"server_name": "myserver"
 }
