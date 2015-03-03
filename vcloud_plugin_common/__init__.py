@@ -135,6 +135,7 @@ class VcloudAirClient(object):
         vdc = cfg.get('vdc')
         service_type = cfg.get('service_type', SUBSCRIPTION_SERVICE_TYPE)
         region = cfg.get('region')
+        org_url = cfg.get('org_url', None)
         if not (all([url, token]) or all([url, username, password])):
             raise cfy_exc.NonRecoverableError(
                 "Login credentials must be specified")
@@ -152,7 +153,7 @@ class VcloudAirClient(object):
         # 'private' as well, for user friendliness of inputs
         elif service_type in (PRIVATE_SERVICE_TYPE, 'private'):
             vcloud_air = self._private_login(
-                url, username, password, token, vdc)
+                url, username, password, token, vdc, org_url)
         else:
             cfy_exc.NonRecoverableError(
                 "Unrecognized service type: {0}".format(service_type))
@@ -276,32 +277,40 @@ class VcloudAirClient(object):
         atexit.register(vca.logout)
         return vca
 
-    def _private_login(self, url, username, password, token, vdc):
+    def _private_login(self, url, username, password, token, vdc,
+                       org_url=None):
         logined = False
 
         vca = vcloudair.VCA(
-            url, username, service_type=PRIVATE_SERVICE_TYPE,
+            host=url,
+            username=username,
+            service_type=PRIVATE_SERVICE_TYPE,
             version='5.6')
+
+        if logined is False and password:
+            for _ in range(self.LOGIN_RETRY_NUM):
+                success = vca.login(password, org=vdc)
+                if success is False:
+                    ctx.logger.info("Login using password failed. Retrying...")
+                    continue
+                else:
+                    logined = True
+                    token = vca.token
+                    org_url = vca.vcloud_session.org_url
+                    ctx.logger.info("Login using password successful.")
+                    break
+
+        # Private mode requires being logged in with a token otherwise you
+        # don't seem to be able to retrieve any VDCs
         if token:
             for _ in range(self.LOGIN_RETRY_NUM):
-                success = vca.login(token=token)
+                success = vca.login(token=token, org_url=org_url)
                 if success is False:
                     ctx.logger.info("Login using token failed.")
                     continue
                 else:
                     logined = True
                     ctx.logger.info("Login using token successful.")
-                    break
-
-        if logined is False and password:
-            for _ in range(self.LOGIN_RETRY_NUM):
-                success = vca.login(password)
-                if success is False:
-                    ctx.logger.info("Login using password failed. Retrying...")
-                    continue
-                else:
-                    logined = True
-                    ctx.logger.info("Login using password successful.")
                     break
 
         if logined is False:
