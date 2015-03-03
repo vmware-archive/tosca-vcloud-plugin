@@ -6,7 +6,7 @@ from server_plugin.server import VCLOUD_VAPP_NAME
 from network_plugin.network import VCLOUD_NETWORK_NAME
 from network_plugin import isExternalIpAssigned
 from cloudify import exceptions as cfy_exc
-from tests.integration import TestCase, IntegrationTestConfig, VcloudTestConfig
+from tests.integration import TestCase, IntegrationTestConfig, VcloudTestConfig, VcloudOndemandTestConfig
 # for skipping test add this before test function:
 # @unittest.skip("skip test")
 
@@ -65,6 +65,45 @@ class FloatingIPOperationsTestCase(TestCase):
                                            self.ctx.target.node.properties['floatingip']['edge_gateway'])
 
 
+class OndemandFloatingIPOperationsTestCase(TestCase):
+    def setUp(self):
+        name = "testnode"
+        self.ctx = MockCloudifyContext(
+            node_id=name,
+            node_name=name,
+            properties={},
+            target=MockCloudifyContext(node_id="target",
+                                       properties={'floatingip': {}}),
+            source=MockCloudifyContext(node_id="source",
+                                       properties={'vcloud_config': VcloudOndemandTestConfig().get()},
+                                       runtime_properties={VCLOUD_VAPP_NAME: IntegrationTestConfig().get()['test_vm'] + "-VApp"}))
+        ctx_patch1 = mock.patch('network_plugin.floatingip.ctx', self.ctx)
+        ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
+        ctx_patch1.start()
+        ctx_patch2.start()
+        self.addCleanup(ctx_patch1.stop)
+        self.addCleanup(ctx_patch2.stop)
+        super(OndemandFloatingIPOperationsTestCase, self).setUp(VcloudOndemandTestConfig().get())
+
+    def tearDown(self):
+        super(OndemandFloatingIPOperationsTestCase, self).tearDown()
+
+    def test_floating_ip_create_delete_with_autoget_ip(self):
+        self.ctx.target.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
+        del self.ctx.target.node.properties['floatingip']['public_ip']
+        del self.ctx.target.node.properties['floatingip']['edge_gateway']
+        floatingip.connect_floatingip()
+        public_ip = self.ctx.target.instance.runtime_properties['public_ip']
+        check_external = lambda: isExternalIpAssigned(public_ip, self._get_gateway())
+        self.assertTrue(public_ip)
+        self.assertTrue(check_external())
+        floatingip.disconnect_floatingip()
+        self.assertFalse(check_external())
+
+    def _get_gateway(self):
+        return self.vca_client.get_gateways(VcloudOndemandTestConfig().get()['vdc'])[0]
+
+
 class OrgNetworkOperationsTestCase(TestCase):
     def setUp(self):
 
@@ -114,7 +153,6 @@ class OrgNetworkOperationsTestCase(TestCase):
 
 class FirewallRulesOperationsTestCase(TestCase):
     def setUp(self):
-
         name = "testnode"
         self.ctx = MockCloudifyContext(
             node_id=name,
@@ -132,7 +170,7 @@ class FirewallRulesOperationsTestCase(TestCase):
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
         self.vdc_name = VcloudTestConfig().get()["vdc"]
-        super(FirewallRulesOperationsTestCase, self).setUp()
+        super(FirewallRulesOperationsTestCase, self).setUp(VcloudOndemandTestConfig().get())
 
     def tearDown(self):
         super(FirewallRulesOperationsTestCase, self).tearDown()

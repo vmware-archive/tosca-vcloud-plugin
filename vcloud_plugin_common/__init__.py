@@ -137,7 +137,7 @@ class VcloudAirClient(object):
         if not (all([url, token]) or all([url, username, password])):
             raise cfy_exc.NonRecoverableError(
                 "Login credentials must be specified")
-        if not (service and vdc):
+        if service_type == SUBSCRIPTION_SERVICE_TYPE and not (service and vdc):
             raise cfy_exc.NonRecoverableError(
                 "vCloud service and vDC must be specified")
 
@@ -209,6 +209,7 @@ class VcloudAirClient(object):
 
         vca = vcloudair.VCA(
             url, username, service_type=ONDEMAND_SERVICE_TYPE, version='5.7')
+
         if token:
             for _ in range(self.LOGIN_RETRY_NUM):
                 success = vca.login(token=token)
@@ -230,7 +231,6 @@ class VcloudAirClient(object):
                     logined = True
                     ctx.logger.info("Login using password successful.")
                     break
-
         for _ in range(self.LOGIN_RETRY_NUM):
             all_instances = vca.get_instances() or []
             instances = [instance for instance in all_instances
