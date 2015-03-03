@@ -22,6 +22,10 @@ inputs:
     vcloud_service:
         type: string
 
+    vcloud_service_type:
+        type: string
+        default: 'subscription'
+
     vcloud_vdc:
         type: string
 
@@ -158,6 +162,7 @@ node_templates:
                 url: { get_input: vcloud_url }
                 service: { get_input: vcloud_service }
                 vdc: { get_input: vcloud_vdc }
+                service_type: { get_input: vcloud_service_type }
 
     manager:
         type: cloudify.nodes.CloudifyManager
