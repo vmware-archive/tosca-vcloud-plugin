@@ -297,6 +297,9 @@ class VcloudAirClient(object):
                 else:
                     logined = True
                     token = vca.token
+                    # Set org_url based on the session, no matter what was
+                    # passed in to the application, as this is guaranteed to
+                    # be correct
                     org_url = vca.vcloud_session.org_url
                     ctx.logger.info("Login using password successful.")
                     break
