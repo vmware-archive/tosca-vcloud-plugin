@@ -43,23 +43,23 @@ STATUS_UNRECOGNIZED_STATE = 7
 STATUS_INCONSISTENT_STATE = 9
 
 VCLOUD_STATUS_MAP = {
-    -1 : "Could not be created",
-    0 : "Unresolved",
-    1 : "Resolved",
-    2 : "Deployed",
-    3 : "Suspended",
-    4 : "Powered on",
-    5 : "Waiting for user input",
-    6 : "Unknown state",
-    7 : "Unrecognized state",
-    8 : "Powered off",
-    9 : "Inconsistent state",
-    10 : "Children do not all have the same status",
-    11 : "Upload initiated, OVF descriptor pending",
-    12 : "Upload initiated, copying contents",
-    13 : "Upload initiated , disk contents pending",
-    14 : "Upload has been quarantined",
-    15 : "Upload quarantine period has expired"
+    -1: "Could not be created",
+    0: "Unresolved",
+    1: "Resolved",
+    2: "Deployed",
+    3: "Suspended",
+    4: "Powered on",
+    5: "Waiting for user input",
+    6: "Unknown state",
+    7: "Unrecognized state",
+    8: "Powered off",
+    9: "Inconsistent state",
+    10: "Children do not all have the same status",
+    11: "Upload initiated, OVF descriptor pending",
+    12: "Upload initiated, copying contents",
+    13: "Upload initiated , disk contents pending",
+    14: "Upload has been quarantined",
+    15: "Upload quarantine period has expired"
     }
 
 SUBSCRIPTION_SERVICE_TYPE = 'subscription'
