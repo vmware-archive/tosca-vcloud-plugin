@@ -53,9 +53,9 @@ def prepare_vm_operation(vca_client, operation):
                                          ctx.target.node.properties['nat']['edge_gateway'])
         public_ip = _get_public_ip(ctx, gateway, operation)
         rule_type = ctx.target.node.properties['rules']['type']
-        protocol = ctx.target.node.properties['rules']['protocol'] if 'protocol' in ctx.target.node.properties['rules'] else "any"
-        original_port = ctx.target.node.properties['rules']['original_port'] if 'original_port' in ctx.target.node.properties['rules'] else "any"
-        translated_port = ctx.target.node.properties['rules']['translated_port'] if 'translated_port' in ctx.target.node.properties['rules'] else "any"
+        protocol = ctx.target.node.properties['rules'].get('protocol', "any")
+        original_port = ctx.target.node.properties['rules'].get('original_port', "any")
+        translated_port = ctx.target.node.properties['rules'].get('translated_port', "any")
     except KeyError as e:
         raise cfy_exc.NonRecoverableError("Parameter not found: {0}".format(e))
     private_ip = check_ip(get_vm_ip(vca_client, ctx))
