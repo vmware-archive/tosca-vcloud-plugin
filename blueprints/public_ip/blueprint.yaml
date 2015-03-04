@@ -1,0 +1,76 @@
+tosca_definitions_version: cloudify_dsl_1_0
+
+imports:
+    - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
+    - https://raw.githubusercontent.com/vmware/tosca-vcloud-plugin/1.1m1/plugin.yaml
+    
+inputs:
+    username:
+        type: string
+    password:
+        type: string
+    url:
+        type: string
+    service:
+        type: string
+    vdc:
+        type: string
+    catalog:
+        type: string
+    template:
+        type: string
+    network_name:
+        type: string
+    server_name:
+        type: string
+    public_ip:
+        type: string
+
+node_types:
+    vcloud_configuration:
+        derived_from: cloudify.nodes.Root
+        properties:
+            vcloud_config: {}
+
+node_templates:
+    example_server:
+        type: cloudify.vcloud.nodes.Server
+        properties:
+            server:
+                name: { get_input: server_name }
+                catalog: { get_input: catalog }
+                template: { get_input: template }
+            management_network: { get_input: network_name }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+        relationships:
+            - target: example_port
+              type: cloudify.vcloud.server_connected_to_port
+            - target: example_floating_ip
+              type: cloudify.vcloud.server_connected_to_floating_ip              
+
+    example_port:
+        type: cloudify.vcloud.nodes.Port
+        properties:
+            port:
+                network: { get_input: network_name }
+                ip_allocation_mode: pool
+                primary_interface: true
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+            
+    example_floating_ip:
+        type: cloudify.vcloud.nodes.FloatingIP
+        properties:
+            floatingip:
+                edge_gateway: { get_input: vdc }
+                public_ip: { get_input: public_ip }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }            
+
+    vcloud_configuration:
+        type: vcloud_configuration
+        properties:
+            vcloud_config:
+                username: { get_input: username }
+                password: { get_input: password }
+                url: { get_input: url }
+                service: { get_input: service }
+                vdc: { get_input: vdc }
