@@ -41,7 +41,7 @@ node_templates:
             - target: example_public_nat_for_vm
               type: cloudify.vcloud.server_connected_to_public_nat
 
-    example_server:
+    example_server3:
         type: cloudify.vcloud.nodes.Server
         properties:
             server:
