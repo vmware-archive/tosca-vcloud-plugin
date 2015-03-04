@@ -40,14 +40,14 @@ def _floatingip_operation(operation, vca_client, ctx):
     elif PUBLIC_IP in ctx.target.node.properties['floatingip']:
         public_ip = ctx.target.node.properties['floatingip'][PUBLIC_IP]
     if operation == CREATE:
+        if isInternalIpAssigned(internal_ip, gateway):
+            raise cfy_exc.NonRecoverableError(
+                "VM private IP {0} already has public ip assigned ".format(internal_ip))
+
         if isSubscription(service_type):
             if not public_ip:
                 public_ip = getFreeIP(gateway)
                 ctx.logger.info("Assign external IP {0}".format(public_ip))
-
-            if isInternalIpAssigned(internal_ip, gateway):
-                raise cfy_exc.NonRecoverableError(
-                    "VM private IP {0} already has public ip assigned ".format(internal_ip))
 
             if isExternalIpAssigned(public_ip, gateway):
                 raise cfy_exc.NonRecoverableError(
