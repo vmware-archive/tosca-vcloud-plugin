@@ -103,6 +103,8 @@ relationships:
                 unlink:
                     implementation: vcloud.network_plugin.floatingip.disconnect_floatingip
                     inputs: {}
+    cloudify.vcloud.server_connected_to_network
+        derived_from: cloudify.relationships.connected_to
     cloudify.vcloud.port_connected_to_network:
         derived_from: cloudify.relationships.connected_to
     cloudify.vcloud.server_connected_to_port:

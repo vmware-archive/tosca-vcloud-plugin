@@ -23,6 +23,8 @@ from vcloud_plugin_common import (get_vcloud_config,
                                   with_vca_client,
                                   STATUS_POWERED_ON)
 
+from network_plugin import get_network_name
+
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 GUEST_CUSTOMIZATION = 'guest_customization'
 HARDWARE = 'hardware'
@@ -74,19 +76,17 @@ def create(vca_client, **kwargs):
 
     wait_for_task(vca_client, task)
     ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = vapp_name
+    connections = _create_connections_list()
 
-    ports = _get_connected_ports(ctx.instance.relationships)
-
-    if len(ports) > 0:
-        for index, port in enumerate(ports):
+    if connections:
+        for index, connection in enumerate(connections):
             vdc = vca_client.get_vdc(config['vdc'])
             vapp = vca_client.get_vapp(vdc, vapp_name)
             if vapp is None:
                 raise cfy_exc.NonRecoverableError(
                     "vApp {0} could not be found".format(vapp_name))
-            port_properties = port.node.properties['port']
-            network_name = port_properties['network']
 
+            network_name = connection['network']
             network = get_network(network_name)
 
             task = vapp.connect_to_network(network_name, network.get_href())
@@ -97,12 +97,12 @@ def create(vca_client, **kwargs):
             wait_for_task(vca_client, task)
 
             connections_primary_index = None
-            if port_properties.get('primary_interface'):
+            if connection.get('primary_interface'):
                 connections_primary_index = index
-            ip_address = port_properties.get('ip_address')
-            mac_address = port_properties.get('mac_address')
-            ip_allocation_mode = port_properties.get('ip_allocation_mode',
-                                                     'DHCP').upper()
+            ip_address = connection.get('ip_address')
+            mac_address = connection.get('mac_address')
+            ip_allocation_mode = connection.get('ip_allocation_mode',
+                                                'DHCP').upper()
             connection_args = {
                 'network_name': network_name,
                 'connection_index': index,
@@ -233,11 +233,6 @@ def _get_vm_network_connection(vapp, network_name):
             return connection
 
 
-def _get_connected_ports(relationships):
-    return [relationship.target for relationship in relationships
-            if 'port' in relationship.target.node.properties]
-
-
 def _build_script(custom):
     script = custom.get('script')
     script_executor = custom.get('script_executor')
@@ -290,7 +285,6 @@ def _build_script(custom):
         commands.append(agent_test_ssh_dir)
         commands.append(add_key_template.format(agent_public_key, agent_authorized_keys))
     script = "\n".join(commands)
-    import pdb; pdb.set_trace()
     return script
 
 
@@ -299,3 +293,45 @@ def _create_file_name():
     configured_name = 'cloudify_confiured_{0}'.format(''.join([random.choice(chars)
                                                                for _ in range(5)]))
     return configured_name
+
+
+def _create_connections_list():
+    connections = []
+    ports = _get_connected(ctx.instance, 'port')
+    networks = _get_connected(ctx.instance, 'network')
+
+    management_network_name = ctx.node.properties['management_network']
+
+    for port in ports:
+        port_properties = port.node.properties['port']
+        connections.append(_create_connection(port_properties['network'],
+                                              port_properties.get('ip_address'),
+                                              port_properties.get('mac_address'),
+                                              port_properties.get('ip_allocation_mode',
+                                                                  'DHCP').upper()))
+    for net in networks:
+        connections.append(_create_connection(get_network_name(net.node.properties),
+                                              None, None, 'DHCP'))
+
+    if not any([conn['network'] == management_network_name for conn in connections]):
+        connections.append(_create_connection(management_network_name,
+                                              None, None, 'DHCP'))
+    for conn in connections:
+        conn['primary_interface'] = (conn['network'] == management_network_name)
+    return connections
+
+
+def _get_connected(instance, prop):
+    relationships = getattr(instance, 'relationships', None)
+    if relationships:
+        return [relationship.target for relationship in relationships
+                if prop in relationship.target.node.properties]
+    else:
+        return []
+
+
+def _create_connection(network, ip_address, mac_address, ip_allocation_mode):
+    return {'network': network,
+            'ip_address': ip_address,
+            'mac_address': mac_address,
+            'ip_allocation_mode': ip_allocation_mode}
