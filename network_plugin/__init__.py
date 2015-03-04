@@ -2,9 +2,9 @@ from IPy import IP
 from cloudify import exceptions as cfy_exc
 import collections
 
-from server_plugin.server import VCLOUD_VAPP_NAME
 from vcloud_plugin_common import wait_for_task, get_vcloud_config
 
+VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 PUBLIC_IP = 'public_ip'
 CREATE = 1
 DELETE = 2
@@ -76,6 +76,7 @@ def save_gateway_configuration(gateway, vca_client, message):
             message)
     wait_for_task(vca_client, task)
 
+
 def getFreeIP(gateway):
     public_ips = set(gateway.get_public_ips())
     allocated_ips = set([address.external for address in collectAssignedIps(gateway)])
@@ -84,3 +85,9 @@ def getFreeIP(gateway):
         raise cfy_exc.NonRecoverableError(
             "Can't get external IP address")
     return list(available_ips)[0]
+
+
+def get_network_name(properties):
+    return properties["network"]["name"]\
+        if "name" in properties["network"]\
+           else properties['resource_id']
