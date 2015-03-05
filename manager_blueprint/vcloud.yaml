@@ -22,6 +22,23 @@ inputs:
     vcloud_service:
         type: string
 
+    vcloud_service_type:
+        type: string
+        default: 'subscription'
+
+    vcloud_api_version:
+        type: string
+        default: '5.6'
+
+    vcloud_org_url:
+        type: string
+        default: ''
+        description: >
+            Only required if using token based login on a private vcloud
+            director. This can be obtained by following the vcloud API
+            example docs. If you are unsure of how to obtain this, you will
+            need to use password based login.
+
     vcloud_vdc:
         type: string
 
@@ -158,6 +175,9 @@ node_templates:
                 url: { get_input: vcloud_url }
                 service: { get_input: vcloud_service }
                 vdc: { get_input: vcloud_vdc }
+                service_type: { get_input: vcloud_service_type }
+                api_version: { get_input: vcloud_api_version }
+                org_url: { get_input: vcloud_org_url }
 
     manager:
         type: cloudify.nodes.CloudifyManager
