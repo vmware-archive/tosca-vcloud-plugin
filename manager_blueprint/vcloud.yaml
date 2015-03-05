@@ -22,6 +22,23 @@ inputs:
     vcloud_service:
         type: string
 
+    vcloud_service_type:
+        type: string
+        default: 'subscription'
+
+    vcloud_api_version:
+        type: string
+        default: '5.6'
+
+    vcloud_org_url:
+        type: string
+        default: ''
+        description: >
+            Only required if using token based login on a private vcloud
+            director. This can be obtained by following the vcloud API
+            example docs. If you are unsure of how to obtain this, you will
+            need to use password based login.
+
     vcloud_vdc:
         type: string
 
@@ -51,6 +68,10 @@ inputs:
 
     edge_gateway:
         type: string
+        default: gateway
+        description: >
+            For 'ondemand' service type, the value of edge_gateway
+            is always 'gateway'     
 
     floating_ip_public_ip:
         type: string
@@ -72,6 +93,14 @@ inputs:
         default: ~/.ssh/cloudify-agent-kp.pem
         type: string
 
+    manager_public_key:
+        type: string
+        default: ''
+
+    agent_public_key:
+        type: string
+        default: ''
+
     resources_prefix:
         type: string
         default: ''
@@ -92,6 +121,10 @@ node_templates:
                 name: { get_input: manager_server_name }
                 catalog: { get_input: manager_server_catalog }
                 template: { get_input: manager_server_template }
+                guest_customization:
+                    manager_public_key: { get_input: manager_public_key }
+                    agent_public_key: { get_input: agent_public_key }
+                    computer_name: { get_input: manager_server_name }
             management_network: { get_input: management_network_name }
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
         relationships:
@@ -146,6 +179,9 @@ node_templates:
                 url: { get_input: vcloud_url }
                 service: { get_input: vcloud_service }
                 vdc: { get_input: vcloud_vdc }
+                service_type: { get_input: vcloud_service_type }
+                api_version: { get_input: vcloud_api_version }
+                org_url: { get_input: vcloud_org_url }
 
     manager:
         type: cloudify.nodes.CloudifyManager

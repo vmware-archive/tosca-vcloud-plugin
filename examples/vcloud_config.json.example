@@ -3,5 +3,7 @@
 "password": "",
 "url": "",
 "service": "",
-"vdc": ""
+"vdc": "",
+"service_type": "",
+"region": ""
 }

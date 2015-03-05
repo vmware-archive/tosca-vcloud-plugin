@@ -6,7 +6,14 @@
         "network": "",
         "guest_customization":
             {
-             "computer_name": "custom-name"
+            "admin_password": "123",
+            "computer_name": "custom-name",
+            "script_executor": "/bin/bash",
+            "script": "echo 'it works' > /tmp/guest_cust.out",
+            "manager_public_key": "ssh-rsa public key",
+            "agent_public_key":   "ssh-rsa public key",
+            "manager_user": "ubuntu",
+            "agent_user": "ubuntu"
             },
         "hardware":
             {
@@ -43,6 +50,27 @@
             "description": "Rule description",
             "protocol": "Tcp",
             "port": 29
+        }
+    },
+    "public_nat":
+    {
+        "network_name": "newnet",
+        "test_vm": "vapp_name",
+        "nat":
+        {
+            "public_ip": "23.92.245.236",
+            "edge_gateway": "gatewayname"
+        },
+        "rules_net":
+        {
+            "type": ["SNAT"]
+        },
+        "rules_port":
+        {
+            "type": ["SNAT", "DNAT"],
+            "protocol": "Tcp",
+            "original_port": 80,
+            "translated_port": 8080
         }
     },
 "combined":

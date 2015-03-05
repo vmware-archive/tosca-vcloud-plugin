@@ -1,12 +1,8 @@
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
-from vcloud_plugin_common import with_vca_client, get_vcloud_config
-from network_plugin import check_ip, isExternalIpAssigned, isInternalIpAssigned, collectAssignedIps, get_vm_ip, save_gateway_configuration
-
-CREATE = 1
-DELETE = 2
-PUBLIC_IP = 'public_ip'
+from vcloud_plugin_common import wait_for_task, with_vca_client, get_vcloud_config, SUBSCRIPTION_SERVICE_TYPE
+from network_plugin import check_ip, isExternalIpAssigned, isInternalIpAssigned, get_vm_ip, save_gateway_configuration, getFreeIP, CREATE, DELETE, PUBLIC_IP
 
 
 @operation
@@ -22,12 +18,12 @@ def disconnect_floatingip(vca_client, **kwargs):
 
 
 def _floatingip_operation(operation, vca_client, ctx):
-
     def showMessage(message, ip):
         ctx.logger.info(message.format(ip))
 
+    service_type = get_vcloud_config().get('service_type')
     gateway = vca_client.get_gateway(get_vcloud_config()['vdc'],
-                                     ctx.target.node.properties['floatingip']['edge_gateway'])
+                                         ctx.target.node.properties['floatingip']['edge_gateway'])
     if not gateway:
         raise cfy_exc.NonRecoverableError("Gateway not found")
 
@@ -39,19 +35,21 @@ def _floatingip_operation(operation, vca_client, ctx):
         public_ip = ctx.target.instance.runtime_properties[PUBLIC_IP]
     elif PUBLIC_IP in ctx.target.node.properties['floatingip']:
         public_ip = ctx.target.node.properties['floatingip'][PUBLIC_IP]
-
     if operation == CREATE:
-        if not public_ip:
-            public_ip = getFreeIP(gateway)
-            ctx.logger.info("Assign external IP {0}".format(public_ip))
-
         if isInternalIpAssigned(internal_ip, gateway):
             raise cfy_exc.NonRecoverableError(
                 "VM private IP {0} already has public ip assigned ".format(internal_ip))
 
-        if isExternalIpAssigned(public_ip, gateway):
-            raise cfy_exc.NonRecoverableError(
-                "Rule with IP: {0} already exists".format(public_ip))
+        if isSubscription(service_type):
+            if not public_ip:
+                public_ip = getFreeIP(gateway)
+                ctx.logger.info("Assign external IP {0}".format(public_ip))
+
+            if isExternalIpAssigned(public_ip, gateway):
+                raise cfy_exc.NonRecoverableError(
+                    "Rule with IP: {0} already exists".format(public_ip))
+        else:
+            public_ip = get_ondemand_public_ip(vca_client, gateway)
 
         nat_operation = _add_nat_rule
     elif operation == DELETE:
@@ -61,7 +59,6 @@ def _floatingip_operation(operation, vca_client, ctx):
         elif not public_ip:
             showMessage("Can't get external IP", public_ip)
             return
-
         nat_operation = _del_nat_rule
     else:
         raise cfy_exc.NonRecoverableError(
@@ -76,6 +73,8 @@ def _floatingip_operation(operation, vca_client, ctx):
     if operation == CREATE:
         ctx.target.instance.runtime_properties[PUBLIC_IP] = external_ip
     else:
+        if not isSubscription(service_type):
+            del_ondemand_public_ip(vca_client, gateway, ctx.target.instance.runtime_properties[PUBLIC_IP])
         del ctx.target.instance.runtime_properties[PUBLIC_IP]
 
 
@@ -107,11 +106,33 @@ def _del_nat_rule(gateway, vca_client, rule_type, original_ip, translated_ip):
         rule_type, original_ip, any_type, translated_ip, any_type, any_type)
 
 
-def getFreeIP(gateway):
-    public_ips = set(gateway.get_public_ips())
-    allocated_ips = set([address.external for address in collectAssignedIps(gateway)])
-    available_ips = public_ips - allocated_ips
-    if not available_ips:
+def get_ondemand_public_ip(vca_client, gateway):
+    old_public_ips = set(gateway.get_public_ips())
+    task = gateway.allocate_public_ip()
+    if task:
+        wait_for_task(vca_client, task)
+    else:
+        raise cfy_exc.NonRecoverableError("Can't get public ip for ondemand service")
+    # update gateway for new IP address
+    gateway = vca_client.get_gateways(get_vcloud_config()['vdc'])[0]
+    new_public_ips = set(gateway.get_public_ips())
+    new_ip = new_public_ips - old_public_ips
+    if new_ip:
+        ctx.logger.info("Assign public IP {0}".format(new_ip))
+    else:
         raise cfy_exc.NonRecoverableError(
-            "Can't get external IP address")
-    return list(available_ips)[0]
+            "Can't get new public IP address")
+    return list(new_ip)[0]
+
+
+def del_ondemand_public_ip(vca_client, gateway, ip):
+    task = gateway.deallocate_public_ip(ip)
+    if task:
+        wait_for_task(vca_client, task)
+        ctx.logger.info("Public IP {0} deallocated".format(ip))
+    else:
+        raise cfy_exc.NonRecoverableError("Can't deallocate public ip {0} for ondemand service".format(ip))
+
+
+def isSubscription(service_type):
+    return not service_type or service_type == SUBSCRIPTION_SERVICE_TYPE

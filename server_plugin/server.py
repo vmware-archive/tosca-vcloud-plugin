@@ -11,7 +11,8 @@
 #  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  * See the License for the specific language governing permissions and
 #  * limitations under the License.
-
+import random
+import string
 from cloudify import ctx
 from cloudify.decorators import operation
 from cloudify import exceptions as cfy_exc
@@ -22,9 +23,13 @@ from vcloud_plugin_common import (get_vcloud_config,
                                   with_vca_client,
                                   STATUS_POWERED_ON)
 
+from network_plugin import get_network_name
+
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 GUEST_CUSTOMIZATION = 'guest_customization'
 HARDWARE = 'hardware'
+DEFAULT_EXECUTOR = "/bin/bash"
+DEFAULT_USER = "ubuntu"
 
 
 @operation
@@ -71,19 +76,17 @@ def create(vca_client, **kwargs):
 
     wait_for_task(vca_client, task)
     ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = vapp_name
+    connections = _create_connections_list(vca_client)
 
-    ports = _get_connected_ports(ctx.instance.relationships)
-
-    if len(ports) > 0:
-        for index, port in enumerate(ports):
+    if connections:
+        for index, connection in enumerate(connections):
             vdc = vca_client.get_vdc(config['vdc'])
             vapp = vca_client.get_vapp(vdc, vapp_name)
             if vapp is None:
                 raise cfy_exc.NonRecoverableError(
                     "vApp {0} could not be found".format(vapp_name))
-            port_properties = port.node.properties['port']
-            network_name = port_properties['network']
 
+            network_name = connection['network']
             network = get_network(network_name)
 
             task = vapp.connect_to_network(network_name, network.get_href())
@@ -94,12 +97,12 @@ def create(vca_client, **kwargs):
             wait_for_task(vca_client, task)
 
             connections_primary_index = None
-            if port_properties.get('primary_interface'):
+            if connection.get('primary_interface'):
                 connections_primary_index = index
-            ip_address = port_properties.get('ip_address')
-            mac_address = port_properties.get('mac_address')
-            ip_allocation_mode = port_properties.get('ip_allocation_mode',
-                                                     'DHCP').upper()
+            ip_address = connection.get('ip_address')
+            mac_address = connection.get('mac_address')
+            ip_allocation_mode = connection.get('ip_allocation_mode',
+                                                'DHCP').upper()
             connection_args = {
                 'network_name': network_name,
                 'connection_index': index,
@@ -107,7 +110,7 @@ def create(vca_client, **kwargs):
                 'ip_allocation_mode': ip_allocation_mode,
                 'mac_address': mac_address,
                 'ip_address': ip_address
-                }
+            }
             ctx.logger.info("Connecting network with parameters {0}"
                             .format(str(connection_args)))
             task = vapp.connect_vms(**connection_args)
@@ -121,7 +124,7 @@ def create(vca_client, **kwargs):
     if custom:
         vdc = vca_client.get_vdc(config['vdc'])
         vapp = vca_client.get_vapp(vdc, vapp_name)
-        script = custom.get('script')
+        script = _build_script(custom)
         password = custom.get('admin_password')
         computer_name = custom.get('computer_name')
 
@@ -130,7 +133,7 @@ def create(vca_client, **kwargs):
             customization_script=script,
             computer_name=computer_name,
             admin_password=password
-            )
+        )
         if task is None:
             raise cfy_exc.NonRecoverableError(
                 "Could not set guest customization parameters")
@@ -230,6 +233,118 @@ def _get_vm_network_connection(vapp, network_name):
             return connection
 
 
-def _get_connected_ports(relationships):
-    return [relationship.target for relationship in relationships
-            if 'port' in relationship.target.node.properties]
+def _build_script(custom):
+    script = custom.get('script')
+    script_executor = custom.get('script_executor')
+    manager_public_key = custom.get('manager_public_key')
+    agent_public_key = custom.get('agent_public_key')
+    manager_user = custom.get('manager_user')
+    agent_user = custom.get('agent_user')
+    if not script and not manager_public_key and not agent_public_key:
+        return None
+
+    executor = script_executor if script_executor else DEFAULT_EXECUTOR
+    manager_user = manager_user if manager_user else DEFAULT_USER
+    agent_user = agent_user if agent_user else DEFAULT_USER
+
+    ssh_dir_template = "/home/{0}/.ssh"
+    authorized_keys_template = "{0}/authorized_keys".format(ssh_dir_template)
+    add_key_template = "echo '{0}\n' >> {1}"
+    test_ssh_dir_template = """
+    if [ ! -d {1} ];then
+      mkdir {1}
+      chown {0}:{0} {1}
+      chmod 700 {1}
+      touch {2}
+      chown {0}:{0} {2}
+      chmod 600 {2}
+    fi
+    """
+
+    manager_ssh_dir = ssh_dir_template.format(manager_user)
+    agent_ssh_dir = ssh_dir_template.format(agent_user)
+    manager_authorized_keys = authorized_keys_template.format(manager_user)
+    agent_authorized_keys = authorized_keys_template.format(agent_user)
+    manager_test_ssh_dir = test_ssh_dir_template.format(manager_user, manager_ssh_dir, manager_authorized_keys)
+    agent_test_ssh_dir = test_ssh_dir_template.format(agent_user, agent_ssh_dir, agent_authorized_keys)
+    configured_name = _create_file_name()
+
+    commands = []
+    commands.append("""#!{0}
+    if [ -f /root/{1} ]; then
+      exit
+    fi
+    touch /root/{1}
+    """.format(executor, configured_name))
+    if script:
+        commands.append(script)
+    if manager_public_key:
+        commands.append(manager_test_ssh_dir)
+        commands.append(add_key_template.format(manager_public_key, manager_authorized_keys))
+    if agent_public_key:
+        commands.append(agent_test_ssh_dir)
+        commands.append(add_key_template.format(agent_public_key, agent_authorized_keys))
+    script = "\n".join(commands)
+    return script
+
+
+def _create_file_name():
+    chars = string.ascii_lowercase + string.digits
+    configured_name = 'cloudify_confiured_{0}'.format(''.join([random.choice(chars)
+                                                               for _ in range(5)]))
+    return configured_name
+
+
+def _create_connections_list(vca_client):
+    connections = []
+    ports = _get_connected(ctx.instance, 'port')
+    networks = _get_connected(ctx.instance, 'network')
+
+    management_network_name = ctx.node.properties['management_network']
+
+    for port in ports:
+        port_properties = port.node.properties['port']
+        connections.append(_create_connection(port_properties['network'],
+                                              port_properties.get('ip_address'),
+                                              port_properties.get('mac_address'),
+                                              port_properties.get('ip_allocation_mode',
+                                                                  'DHCP').upper()))
+    for net in networks:
+        connections.append(_create_connection(get_network_name(net.node.properties),
+                                              None, None, 'DHCP'))
+
+    if not any([conn['network'] == management_network_name for conn in connections]):
+        connections.append(_create_connection(management_network_name,
+                                              None, None, 'DHCP'))
+    for conn in connections:
+        network_name = conn['network']
+        if conn['ip_allocation_mode'] == 'DHCP' and not _isDhcpAvailable(vca_client, network_name):
+            raise cfy_exc.NonRecoverableError("DHCP for network {0} is not available".format(network_name))
+        conn['primary_interface'] = (network_name == management_network_name)
+    return connections
+
+
+def _get_connected(instance, prop):
+    relationships = getattr(instance, 'relationships', None)
+    if relationships:
+        return [relationship.target for relationship in relationships
+                if prop in relationship.target.node.properties]
+    else:
+        return []
+
+
+def _create_connection(network, ip_address, mac_address, ip_allocation_mode):
+    return {'network': network,
+            'ip_address': ip_address,
+            'mac_address': mac_address,
+            'ip_allocation_mode': ip_allocation_mode}
+
+
+def _isDhcpAvailable(vca_client, network_name):
+    vdc = get_vcloud_config()['vdc']
+    admin_href = vca_client.get_admin_network_href(vdc, network_name)
+    for gate in vca_client.get_gateways(vdc):
+        for pool in gate.get_dhcp_pools():
+            if admin_href == pool.get_Network().get_href():
+                return True
+    return False

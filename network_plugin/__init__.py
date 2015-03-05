@@ -2,8 +2,13 @@ from IPy import IP
 from cloudify import exceptions as cfy_exc
 import collections
 
-from server_plugin.server import VCLOUD_VAPP_NAME
 from vcloud_plugin_common import wait_for_task, get_vcloud_config
+
+VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
+PUBLIC_IP = 'public_ip'
+CREATE = 1
+DELETE = 2
+
 
 AssignedIPs = collections.namedtuple('AssignedIPs', 'external internal')
 
@@ -45,7 +50,7 @@ def get_vm_ip(vca_client, ctx):
         vapp = vca_client.get_vapp(vdc, vappName)
         if not vapp:
             raise cfy_exc.NonRecoverableError("Could not find vApp {0}".format(vappName))
- 
+
         vm_info = vapp.get_vms_network_info()
         # assume that we have 1 vm per vApp with minium 1 connection
         connection = vm_info[0][0]
@@ -70,3 +75,17 @@ def save_gateway_configuration(gateway, vca_client, message):
         raise cfy_exc.NonRecoverableError(
             message)
     wait_for_task(vca_client, task)
+
+
+def getFreeIP(gateway):
+    public_ips = set(gateway.get_public_ips())
+    allocated_ips = set([address.external for address in collectAssignedIps(gateway)])
+    available_ips = public_ips - allocated_ips
+    if not available_ips:
+        raise cfy_exc.NonRecoverableError(
+            "Can't get external IP address")
+    return list(available_ips)[0]
+
+
+def get_network_name(properties):
+    return properties["network"].get("name", properties['resource_id'])

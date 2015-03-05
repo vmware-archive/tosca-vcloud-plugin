@@ -54,6 +54,9 @@ class ServerNoNetworkTestCase(TestCase):
     def tearDown(self):
         try:
             server.stop()
+        except Exception:
+            pass
+        try:
             server.delete()
         except Exception:
             pass
@@ -68,7 +71,6 @@ class ServerNoNetworkTestCase(TestCase):
         self.assertFalse(vapp is None)
         self.assertFalse(server._vapp_is_on(vapp))
 
-        server.stop()
         server.delete()
         vapp = self.vca_client.get_vapp(
             vdc,
@@ -128,9 +130,22 @@ class ServerWithNetworkTestCase(TestCase):
             }
         )
 
-        port_relationship = mock.Mock()
-        port_relationship.target = mock.Mock()
-        port_relationship.target.node = port_node_context
+        network_node_context = cfy_mocks.MockNodeContext(
+            properties={
+                'network':
+                {
+                    'name': self.network_name,
+                }
+            }
+        )
+
+        self.port_relationship = mock.Mock()
+        self.port_relationship.target = mock.Mock()
+        self.port_relationship.target.node = port_node_context
+
+        self.network_relationship = mock.Mock()
+        self.network_relationship.target = mock.Mock()
+        self.network_relationship.target.node = network_node_context
 
         self.ctx = cfy_mocks.MockCloudifyContext(
             node_id=name,
@@ -145,7 +160,7 @@ class ServerWithNetworkTestCase(TestCase):
                 'management_network': self.network_name
             }
         )
-        self.ctx.instance.relationships = [port_relationship]
+        self.ctx.instance.relationships = []
         ctx_patch1 = mock.patch('server_plugin.server.ctx', self.ctx)
         ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
         ctx_patch1.start()
@@ -158,12 +173,27 @@ class ServerWithNetworkTestCase(TestCase):
     def tearDown(self):
         try:
             server.stop()
+        except Exception:
+            pass
+        try:
             server.delete()
         except Exception:
             pass
         super(ServerWithNetworkTestCase, self).tearDown()
 
-    def test_create(self):
+    def test_create_with_port_connection(self):
+        self.ctx.instance.relationships = [self.port_relationship]
+        self._create_test()
+
+    def test_create_with_network_connection(self):
+        self.ctx.instance.relationships = [self.network_relationship]
+        self._create_test()
+
+    def test_create_without_connections(self):
+        self.ctx.instance.relationships = []
+        self._create_test()
+
+    def _create_test(self):
         server.create()
         server.start()
         vdc = self.vca_client.get_vdc(self.vcloud_config['vdc'])
@@ -187,11 +217,11 @@ class ServerWithNetworkTestCase(TestCase):
                 self.assertTrue('networks'
                                 in self.ctx.instance.runtime_properties)
                 self.assertEqual(1,
-                                len(self.ctx.instance.\
-                                    runtime_properties['networks'].keys()))
+                                 len(self.ctx.instance.\
+                                     runtime_properties['networks'].keys()))
                 self.assertEqual(self.network_name,
                                  self.ctx.instance.\
-                                    runtime_properties['networks'].keys()[0])
+                                 runtime_properties['networks'].keys()[0])
                 ip_valid = True
                 try:
                     socket.inet_aton(
