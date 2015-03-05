@@ -68,6 +68,7 @@ class FloatingIPOperationsTestCase(TestCase):
 class OndemandFloatingIPOperationsTestCase(TestCase):
     def setUp(self):
         name = "testnode"
+        self.gateway_name = 'gateway'
         self.ctx = MockCloudifyContext(
             node_id=name,
             node_name=name,
@@ -90,8 +91,8 @@ class OndemandFloatingIPOperationsTestCase(TestCase):
 
     def test_floating_ip_create_delete_with_autoget_ip(self):
         self.ctx.target.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
+        self.ctx.target.node.properties['floatingip']['edge_gateway'] = self.gateway_name
         del self.ctx.target.node.properties['floatingip']['public_ip']
-        del self.ctx.target.node.properties['floatingip']['edge_gateway']
         floatingip.connect_floatingip()
         public_ip = self.ctx.target.instance.runtime_properties['public_ip']
         check_external = lambda: isExternalIpAssigned(public_ip, self._get_gateway())
@@ -101,7 +102,7 @@ class OndemandFloatingIPOperationsTestCase(TestCase):
         self.assertFalse(check_external())
 
     def _get_gateway(self):
-        return self.vca_client.get_gateways(VcloudOndemandTestConfig().get()['vdc'])[0]
+        return self.vca_client.get_gateway(VcloudOndemandTestConfig().get()['vdc'], self.gateway_name)
 
 
 class OrgNetworkOperationsTestCase(TestCase):

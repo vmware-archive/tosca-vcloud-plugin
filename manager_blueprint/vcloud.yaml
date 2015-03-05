@@ -68,6 +68,10 @@ inputs:
 
     edge_gateway:
         type: string
+        default: gateway
+        description: >
+            For 'ondemand' service type, the value of edge_gateway
+            is always 'gateway'     
 
     floating_ip_public_ip:
         type: string

@@ -18,16 +18,12 @@ def disconnect_floatingip(vca_client, **kwargs):
 
 
 def _floatingip_operation(operation, vca_client, ctx):
-
     def showMessage(message, ip):
         ctx.logger.info(message.format(ip))
-    service_type = get_vcloud_config().get('service_type')
-    if isSubscription(service_type):
-        gateway = vca_client.get_gateway(get_vcloud_config()['vdc'],
-                                         ctx.target.node.properties['floatingip']['edge_gateway'])
-    else:
-        gateway = vca_client.get_gateways(get_vcloud_config()['vdc'])[0]
 
+    service_type = get_vcloud_config().get('service_type')
+    gateway = vca_client.get_gateway(get_vcloud_config()['vdc'],
+                                         ctx.target.node.properties['floatingip']['edge_gateway'])
     if not gateway:
         raise cfy_exc.NonRecoverableError("Gateway not found")
 
