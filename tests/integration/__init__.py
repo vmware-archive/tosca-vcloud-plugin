@@ -14,13 +14,17 @@ class VcloudTestConfig(Config):
     VCLOUD_CONFIG_PATH_ENV_VAR = 'VCLOUD_CONFIG_PATH'
     VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_config.json'
 
+class VcloudOndemandTestConfig(Config):
+    VCLOUD_CONFIG_PATH_ENV_VAR = 'VCLOUD_CONFIG_PATH'
+    VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_config_ondemand.json'
+
 class TestCase(unittest.TestCase):
 
-    def setUp(self):
+    def setUp(self, config=None):
         fake_ctx = cfy_mocks.MockCloudifyContext(
             node_id='test',
             node_name='test',
             properties={})
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             self.vcloud_config = get_vcloud_config()
-            self.vca_client = VcloudAirClient().get()
+            self.vca_client = VcloudAirClient().get(config=config)
