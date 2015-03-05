@@ -76,7 +76,7 @@ def create(vca_client, **kwargs):
 
     wait_for_task(vca_client, task)
     ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = vapp_name
-    connections = _create_connections_list()
+    connections = _create_connections_list(vca_client)
 
     if connections:
         for index, connection in enumerate(connections):
@@ -295,7 +295,7 @@ def _create_file_name():
     return configured_name
 
 
-def _create_connections_list():
+def _create_connections_list(vca_client):
     connections = []
     ports = _get_connected(ctx.instance, 'port')
     networks = _get_connected(ctx.instance, 'network')
@@ -317,7 +317,10 @@ def _create_connections_list():
         connections.append(_create_connection(management_network_name,
                                               None, None, 'DHCP'))
     for conn in connections:
-        conn['primary_interface'] = (conn['network'] == management_network_name)
+        network_name = conn['network']
+        if conn['ip_allocation_mode'] == 'DHCP' and not _isDhcpAvailable(vca_client, network_name):
+            raise cfy_exc.NonRecoverableError("DHCP for network {0} is not available".format(network_name))
+        conn['primary_interface'] = (network_name == management_network_name)
     return connections
 
 
@@ -335,3 +338,13 @@ def _create_connection(network, ip_address, mac_address, ip_allocation_mode):
             'ip_address': ip_address,
             'mac_address': mac_address,
             'ip_allocation_mode': ip_allocation_mode}
+
+
+def _isDhcpAvailable(vca_client, network_name):
+    vdc = get_vcloud_config()['vdc']
+    admin_href = vca_client.get_admin_network_href(vdc, network_name)
+    for gate in vca_client.get_gateways(vdc):
+        for pool in gate.get_dhcp_pools():
+            if admin_href == pool.get_Network().get_href():
+                return True
+    return False
