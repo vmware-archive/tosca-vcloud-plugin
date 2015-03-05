@@ -170,7 +170,7 @@ class FirewallRulesOperationsTestCase(TestCase):
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
         self.vdc_name = VcloudTestConfig().get()["vdc"]
-        super(FirewallRulesOperationsTestCase, self).setUp(VcloudOndemandTestConfig().get())
+        super(FirewallRulesOperationsTestCase, self).setUp()
 
     def tearDown(self):
         super(FirewallRulesOperationsTestCase, self).tearDown()
