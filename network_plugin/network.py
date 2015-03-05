@@ -31,7 +31,6 @@ def create(vca_client, **kwargs):
     vdc_name = get_vcloud_config()['vdc']
     if ctx.node.properties['use_external_resource']:
         network_name = ctx.node.properties['resource_id']
-        import pdb; pdb.set_trace()
         if not _is_network_exists(vca_client, vdc_name, network_name):
             raise cfy_exc.NonRecoverableError("Can't find external resource: {0}".format(network_name))
         ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = network_name
@@ -40,7 +39,7 @@ def create(vca_client, **kwargs):
     net_prop = ctx.node.properties["network"]
     network_name = get_network_name(ctx.node.properties)
     if network_name in _get_network_list(vca_client, get_vcloud_config()['vdc']):
-        raise cfy_exc.NonRecoverableError("Network {0} already exists, but parameter 'use_external_resource: true'".format(network_name))
+        raise cfy_exc.NonRecoverableError("Network {0} already exists, but parameter 'use_external_resource' is 'true'".format(network_name))
 
     ip = _split_adresses(net_prop['static_range'])
     gateway_name = net_prop['edge_gateway']
