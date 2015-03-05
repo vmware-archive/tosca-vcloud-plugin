@@ -88,6 +88,4 @@ def getFreeIP(gateway):
 
 
 def get_network_name(properties):
-    return properties["network"]["name"]\
-        if "name" in properties["network"]\
-           else properties['resource_id']
+    return properties["network"].get("name", properties['resource_id'])
