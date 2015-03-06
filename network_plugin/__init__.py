@@ -88,4 +88,37 @@ def getFreeIP(gateway):
 
 
 def get_network_name(properties):
-    return properties["network"].get("name", properties['resource_id'])
+    if properties.get('use_external_resource'):
+        name = properties.get('resource_id')
+        if not name:
+            raise cfy_exc.NonRecoverableError(
+                "Parameter 'resource_id; for external resource not defined.")
+        return name
+    if not properties.get('network'):
+        raise cfy_exc.NonRecoverableError(
+            "Parameter 'network' for Network node not defined.")
+    name = properties["network"].get("name")
+    if not name:
+        raise cfy_exc.NonRecoverableError(
+            "Parameter 'name' for network properties not defined.")
+    return name
+
+
+def is_network_exists(vca_client, network_name):
+    networks = vca_client.get_networks(get_vcloud_config()['vdc'])
+    return any([network_name == net.get_name() for net in networks])
+
+
+def get_network(vca_client, network_name):
+    if not network_name:
+        raise cfy_exc.NonRecoverableError(
+            "Network name is empty".format(network_name))
+    result = None
+    networks = vca_client.get_networks(get_vcloud_config()['vdc'])
+    for network in networks:
+        if network.get_name() == network_name:
+            result = network
+    if result is None:
+        raise cfy_exc.NonRecoverableError(
+            "Network {0} could not be found".format(network_name))
+    return result

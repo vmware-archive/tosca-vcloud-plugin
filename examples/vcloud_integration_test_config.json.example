@@ -3,7 +3,6 @@
     {
         "catalog": "",
         "template": "",
-        "network": "",
         "guest_customization":
             {
             "admin_password": "123",
@@ -21,6 +20,7 @@
             "memory": 2048
             }
     },
+    "management_network": "networkname",
 "floatingip":
     {
         "public_ip": "1.2.3.4",

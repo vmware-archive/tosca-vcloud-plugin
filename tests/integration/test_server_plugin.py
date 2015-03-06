@@ -16,7 +16,6 @@ RANDOM_PREFIX_LENGTH = 5
 
 
 class ServerNoNetworkTestCase(TestCase):
-
     def setUp(self):
         chars = string.ascii_uppercase + string.digits
         self.name_prefix = ('plugin_test_{0}_'
@@ -36,9 +35,9 @@ class ServerNoNetworkTestCase(TestCase):
                     'name': name,
                     'catalog': server_test_dict['catalog'],
                     'template': server_test_dict['template'],
-                    'guest_customization':
-                    server_test_dict.get('guest_customization'),
-                }
+                    'guest_customization': server_test_dict.get('guest_customization')
+                },
+                'management_network': IntegrationTestConfig().get()['management_network']
             }
         )
         self.ctx.instance.relationships = []
@@ -106,7 +105,6 @@ class ServerNoNetworkTestCase(TestCase):
 
 
 class ServerWithNetworkTestCase(TestCase):
-
     def setUp(self):
         chars = string.ascii_uppercase + string.digits
         self.name_prefix = ('plugin_test_{0}_'
@@ -117,7 +115,7 @@ class ServerWithNetworkTestCase(TestCase):
 
         server_test_dict = IntegrationTestConfig().get()['server']
         name = self.name_prefix + 'server'
-        self.network_name = server_test_dict['network']
+        self.network_name = IntegrationTestConfig().get()['management_network']
 
         port_node_context = cfy_mocks.MockNodeContext(
             properties={
@@ -134,7 +132,7 @@ class ServerWithNetworkTestCase(TestCase):
             properties={
                 'network':
                 {
-                    'name': self.network_name,
+                    'name': self.network_name
                 }
             }
         )
@@ -157,7 +155,7 @@ class ServerWithNetworkTestCase(TestCase):
                     'catalog': server_test_dict['catalog'],
                     'template': server_test_dict['template']
                 },
-                'management_network': self.network_name
+                'management_network': self.network_name,
             }
         )
         self.ctx.instance.relationships = []

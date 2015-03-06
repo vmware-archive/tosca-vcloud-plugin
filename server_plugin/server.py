@@ -23,7 +23,7 @@ from vcloud_plugin_common import (get_vcloud_config,
                                   with_vca_client,
                                   STATUS_POWERED_ON)
 
-from network_plugin import get_network_name
+from network_plugin import get_network_name, get_network, is_network_exists
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 GUEST_CUSTOMIZATION = 'guest_customization'
@@ -35,17 +35,6 @@ DEFAULT_USER = "ubuntu"
 @operation
 @with_vca_client
 def create(vca_client, **kwargs):
-    def get_network(network_name):
-        result = None
-        networks = vca_client.get_networks(config['vdc'])
-        for network in networks:
-            if network.get_name() == network_name:
-                result = network
-        if result is None:
-            raise cfy_exc.NonRecoverableError(
-                "Network {0} could not be found".format(network_name))
-        return result
-
     config = get_vcloud_config()
     server = {
         'name': ctx.instance.id,
@@ -86,8 +75,8 @@ def create(vca_client, **kwargs):
                 raise cfy_exc.NonRecoverableError(
                     "vApp {0} could not be found".format(vapp_name))
 
-            network_name = connection['network']
-            network = get_network(network_name)
+            network_name = connection.get('network')
+            network = get_network(vca_client, network_name)
 
             task = vapp.connect_to_network(network_name, network.get_href())
             if not task:
@@ -300,7 +289,13 @@ def _create_connections_list(vca_client):
     ports = _get_connected(ctx.instance, 'port')
     networks = _get_connected(ctx.instance, 'network')
 
-    management_network_name = ctx.node.properties['management_network']
+    management_network_name = ctx.node.properties.get('management_network')
+    if not management_network_name:
+        raise cfy_exc.NonRecoverableError("Parameter 'managment_network' for Server node is not defined.")
+
+    if not is_network_exists(vca_client, management_network_name):
+        raise cfy_exc.NonRecoverableError(
+            "Network {0} could not be found".format(management_network_name))
 
     for port in ports:
         port_properties = port.node.properties['port']
