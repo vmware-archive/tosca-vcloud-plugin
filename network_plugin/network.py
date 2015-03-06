@@ -39,10 +39,12 @@ def create(vca_client, **kwargs):
     net_prop = ctx.node.properties["network"]
     network_name = get_network_name(ctx.node.properties)
     if network_name in _get_network_list(vca_client, get_vcloud_config()['vdc']):
-        raise cfy_exc.NonRecoverableError("Network {0} already exists, but parameter 'use_external_resource' is 'false'".format(network_name))
+        raise cfy_exc.NonRecoverableError("Network {0} already exists, but parameter 'use_external_resource' is 'false' or absent".format(network_name))
 
     ip = _split_adresses(net_prop['static_range'])
     gateway_name = net_prop['edge_gateway']
+    if not vca_client.get_gateway(vdc_name, gateway_name):
+        raise cfy_exc.NonRecoverableError("Gateway {0} not found".format(gateway_name))
     start_address = check_ip(ip.start)
     end_address = check_ip(ip.end)
     gateway_ip = check_ip(net_prop["gateway_ip"])
@@ -58,7 +60,7 @@ def create(vca_client, **kwargs):
                         .format(network_name))
     else:
         raise cfy_exc.NonRecoverableError(
-            "Could not create network{0}: {1}".format(network_name, result))
+            "Could not create network {0}: {1}".format(network_name, result))
     wait_for_task(vca_client, result)
     ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = network_name
     _dhcp_operation(vca_client, network_name, ADD_POOL)

@@ -108,11 +108,12 @@ class OndemandFloatingIPOperationsTestCase(TestCase):
 class OrgNetworkOperationsTestCase(TestCase):
     def setUp(self):
 
-        self.net_name = "test_network"
+        self.net_name = IntegrationTestConfig().get()['network']['name']
+        self.existing_net_name = IntegrationTestConfig().get()['test_network_name']
         self.ctx = MockCloudifyContext(
             node_id=self.net_name,
             node_name=self.net_name,
-            properties={"resource_id": self.net_name,
+            properties={"resource_id": self.existing_net_name,
                         "network": IntegrationTestConfig().get()['network'],
                         "vcloud_config": VcloudTestConfig().get(),
                         "use_external_resource": False})
@@ -219,7 +220,7 @@ class PublicNatOperationsTestCase(TestCase):
     def tearDown(self):
         super(PublicNatOperationsTestCase, self).tearDown()
 
-    def test_public_nat_connected_to_net(self):
+    def test_public_network_connected_to_nat(self):
         self.ctx.target.node.properties['rules'] = IntegrationTestConfig().get()['public_nat']['rules_net']
         self.ctx.source.node.properties['resource_id'] = IntegrationTestConfig().get()['public_nat']['network_name']
         rules_count = self.get_rules_count()
@@ -228,7 +229,7 @@ class PublicNatOperationsTestCase(TestCase):
         public_nat.net_disconnect_from_nat()
         self.assertEqual(rules_count, self.get_rules_count())
 
-    def test_public_nat_connected_to_server(self):
+    def test_public_server_connected_to_nat(self):
         self.ctx.target.node.properties['rules'] = IntegrationTestConfig().get()['public_nat']['rules_port']
         rules_count = self.get_rules_count()
         public_nat.server_connect_to_nat()
