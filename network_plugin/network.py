@@ -17,7 +17,7 @@ from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import with_vca_client, wait_for_task, get_vcloud_config
 import collections
-from network_plugin import check_ip, save_gateway_configuration, get_network_name
+from network_plugin import check_ip, save_gateway_configuration, get_network_name, is_network_exists
 
 
 VCLOUD_NETWORK_NAME = 'vcloud_network_name'
@@ -31,7 +31,7 @@ def create(vca_client, **kwargs):
     vdc_name = get_vcloud_config()['vdc']
     if ctx.node.properties['use_external_resource']:
         network_name = ctx.node.properties['resource_id']
-        if not _is_network_exists(vca_client, vdc_name, network_name):
+        if not is_network_exists(vca_client, network_name):
             raise cfy_exc.NonRecoverableError("Can't find external resource: {0}".format(network_name))
         ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = network_name
         ctx.logger.info("External resource {0} has been used".format(network_name))
@@ -39,10 +39,12 @@ def create(vca_client, **kwargs):
     net_prop = ctx.node.properties["network"]
     network_name = get_network_name(ctx.node.properties)
     if network_name in _get_network_list(vca_client, get_vcloud_config()['vdc']):
-        raise cfy_exc.NonRecoverableError("Network {0} already exists, but parameter 'use_external_resource' is 'true'".format(network_name))
+        raise cfy_exc.NonRecoverableError("Network {0} already exists, but parameter 'use_external_resource' is 'false' or absent".format(network_name))
 
     ip = _split_adresses(net_prop['static_range'])
     gateway_name = net_prop['edge_gateway']
+    if not vca_client.get_gateway(vdc_name, gateway_name):
+        raise cfy_exc.NonRecoverableError("Gateway {0} not found".format(gateway_name))
     start_address = check_ip(ip.start)
     end_address = check_ip(ip.end)
     gateway_ip = check_ip(net_prop["gateway_ip"])
@@ -58,7 +60,7 @@ def create(vca_client, **kwargs):
                         .format(network_name))
     else:
         raise cfy_exc.NonRecoverableError(
-            "Could not create network{0}: {1}".format(network_name, result))
+            "Could not create network {0}: {1}".format(network_name, result))
     wait_for_task(vca_client, result)
     ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = network_name
     _dhcp_operation(vca_client, network_name, ADD_POOL)
@@ -144,8 +146,3 @@ def _split_adresses(address_range):
 def _get_network_list(vca_client, vdc_name):
     vdc = vca_client.get_vdc(vdc_name)
     return [net.name for net in vdc.AvailableNetworks.Network]
-
-
-def _is_network_exists(vca_client, vdc_name, network_name):
-    networks = vca_client.get_networks(vdc_name)
-    return any([network_name == net.get_name() for net in networks])

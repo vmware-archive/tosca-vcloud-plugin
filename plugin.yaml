@@ -92,6 +92,14 @@ node_types:
             vcloud_config:
                 default: {}
 
+    cloudify.vcloud.nodes.KeyPair:
+        derived_from: cloudify.nodes.Root
+        properties:
+            private_key_path:
+                default: ''
+            public_key:
+                default: ''
+
 relationships:
     cloudify.vcloud.server_connected_to_floating_ip:
         derived_from: cloudify.relationships.connected_to
@@ -103,7 +111,7 @@ relationships:
                 unlink:
                     implementation: vcloud.network_plugin.floatingip.disconnect_floatingip
                     inputs: {}
-    cloudify.vcloud.server_connected_to_network
+    cloudify.vcloud.server_connected_to_network:
         derived_from: cloudify.relationships.connected_to
     cloudify.vcloud.port_connected_to_network:
         derived_from: cloudify.relationships.connected_to

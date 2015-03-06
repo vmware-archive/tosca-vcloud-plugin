@@ -3,7 +3,6 @@
     {
         "catalog": "",
         "template": "",
-        "network": "",
         "guest_customization":
             {
             "admin_password": "123",
@@ -21,6 +20,7 @@
             "memory": 2048
             }
     },
+    "management_network": "networkname",
 "floatingip":
     {
         "public_ip": "1.2.3.4",
@@ -29,7 +29,8 @@
 "test_vm": "vapp_name",
 "network":
     {
-    "static_range": "192.168.0.100-192.168.0.199",
+        "name": "newnetworkname",
+        "static_range": "192.168.0.100-192.168.0.199",
         "edge_gateway": "gatewayname",
         "gateway_ip": "192.168.0.1",
         "netmask": "255.255.255.0",
