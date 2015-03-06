@@ -71,7 +71,8 @@ node_templates:
                 edge_gateway: M000000000-1111
                 public_ip: 24.44.44.244
             rules:
-                - type: SNAT
+                type:
+                    - SNAT
 
     example_public_nat_for_vm:
         type: cloudify.vcloud.nodes.PublicNAT
@@ -80,8 +81,9 @@ node_templates:
                 edge_gateway: M000000000-1111
                 public_ip: 24.44.44.244
             rules:
-                - type: SNAT
-                - type: DNAT
+                type:
+                    - SNAT
+                    - DNAT
                 protocol: tcp
                 original_port: 80
                 translated_port: 8080
