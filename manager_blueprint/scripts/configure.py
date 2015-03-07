@@ -37,3 +37,11 @@ def _update_vm():
         # * other packages for create deployments from source
         fabric.api.run("sudo apt-get install zram-config gcc python-dev "
                        "libxml2-dev libxslt-dev -q -y 2>&1")
+        _install_docker()
+
+def _install_docker():
+    kernel_version = fabric.api.run(
+        'python -c "import platform; print platform.release()"')
+    if kernel_version.startswith("3.13"):
+	fabric.api.run("wget -qO- https://get.docker.com/ | sudo sh")
+
