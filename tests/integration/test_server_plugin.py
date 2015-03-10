@@ -40,6 +40,8 @@ class ServerNoNetworkTestCase(TestCase):
                 'management_network': IntegrationTestConfig().get()['management_network']
             }
         )
+        self.ctx.node.properties['server']['guest_customization']['public_keys'] = [IntegrationTestConfig().get()['manager_keypair'],
+                                                                                   IntegrationTestConfig().get()['agent_keypair']]
         self.ctx.instance.relationships = []
         ctx_patch1 = mock.patch('server_plugin.server.ctx', self.ctx)
         ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
@@ -60,7 +62,7 @@ class ServerNoNetworkTestCase(TestCase):
         except Exception:
             pass
         super(ServerNoNetworkTestCase, self).tearDown()
-
+    
     def test_server_create_delete(self):
         server.create()
         vdc = self.vca_client.get_vdc(self.vcloud_config['vdc'])
@@ -75,7 +77,7 @@ class ServerNoNetworkTestCase(TestCase):
             vdc,
             self.ctx.node.properties['server']['name'])
         self.assertTrue(vapp is None)
-
+    
     def test_server_stop_start(self):
         server.create()
         vdc = self.vca_client.get_vdc(self.vcloud_config['vdc'])
