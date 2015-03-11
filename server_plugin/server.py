@@ -11,8 +11,6 @@
 #  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  * See the License for the specific language governing permissions and
 #  * limitations under the License.
-import random
-import string
 from cloudify import ctx
 from cloudify.decorators import operation
 from cloudify import exceptions as cfy_exc
@@ -224,20 +222,34 @@ def _get_vm_network_connection(vapp, network_name):
 
 
 def _build_script(custom):
-    script = custom.get('script')
+    pre_script = custom.get('pre_script', "")
+    post_script = custom.get('post_script', "")
     public_keys = custom.get('public_keys')
-    if not script and not public_keys:
+    if not pre_script and not post_script and not public_keys:
         return None
     script_executor = custom.get('script_executor', DEFAULT_EXECUTOR)
-    configured_name = _create_file_name()
+    public_keys_script = _build_public_keys_script(public_keys)
+    script_template = """#!{0}
+echo performing customization tasks with param $1 at `date "+DATE: %Y-%m-%d - TIME: %H:%M:%S"` >> /root/customization.log
+if [ "$1" = "precustomization" ];
+then
+  echo performing precustomization tasks on `date "+DATE: %Y-%m-%d - TIME: %H:%M:%S"` >> /root/customization.log
+  {1}
+  {2}
+fi
+if [ "$1" = "postcustomization" ];
+then
+  echo performing postcustomization tasks at `date "+DATE: %Y-%m-%d - TIME: %H:%M:%S"` >> /root/customization.log
+  {3}
+fi
+    """
+    script = script_template.format(script_executor, public_keys_script,
+                                    pre_script, post_script)
+    return script
 
-    commands = []
-    commands.append("""#!{0}
-    if [ -f /root/{1} ]; then
-      exit
-    fi
-    touch /root/{1}
-    """.format(script_executor, configured_name))
+
+def _build_public_keys_script(public_keys):
+    key_commands = []
     ssh_dir_template = "{0}/{1}/.ssh"
     authorized_keys_template = "{0}/authorized_keys"
     add_key_template = "echo '{0}\n' >> {1}"
@@ -260,19 +272,9 @@ def _build_script(custom):
         ssh_dir = ssh_dir_template.format(home, user)
         authorized_keys = authorized_keys_template.format(ssh_dir)
         test_ssh_dir = test_ssh_dir_template.format(user, ssh_dir, authorized_keys)
-        commands.append(test_ssh_dir)
-        commands.append(add_key_template.format(public_key, authorized_keys))
-    if script:
-        commands.append(script)
-    script = "\n".join(commands)
-    return script
-
-
-def _create_file_name():
-    chars = string.ascii_lowercase + string.digits
-    configured_name = 'cloudify_confiured_{0}'.format(''.join([random.choice(chars)
-                                                               for _ in range(5)]))
-    return configured_name
+        key_commands.append(test_ssh_dir)
+        key_commands.append(add_key_template.format(public_key, authorized_keys))
+    return "\n".join(key_commands)
 
 
 def _create_connections_list(vca_client):
