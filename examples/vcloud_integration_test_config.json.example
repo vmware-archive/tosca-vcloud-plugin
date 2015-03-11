@@ -19,12 +19,12 @@
     },
     "manager_keypair":
     {
-        "public_key": "mangerkey",
+        "key": "mangerkey",
         "user": "ubuntu"
     },
     "agent_keypair":
     {
-        "public_key": "agentkey",
+        "key": "agentkey",
         "user": "ubuntu"
     },
     "management_network": "networkname",
