@@ -32,6 +32,7 @@ DEFAULT_EXECUTOR = "/bin/bash"
 DEFAULT_USER = "ubuntu"
 DEFAULT_HOME = "/home"
 
+
 @operation
 @with_vca_client
 def create(vca_client, **kwargs):
@@ -227,9 +228,9 @@ def _build_script(custom):
     public_keys = custom.get('public_keys')
     if not script and not public_keys:
         return None
-    script_executor = custom.get('script_executor', DEFAULT_EXECUTOR)   
+    script_executor = custom.get('script_executor', DEFAULT_EXECUTOR)
     configured_name = _create_file_name()
-    
+
     commands = []
     commands.append("""#!{0}
     if [ -f /root/{1} ]; then
