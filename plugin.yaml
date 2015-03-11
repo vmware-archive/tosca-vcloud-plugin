@@ -98,7 +98,7 @@ node_types:
             private_key_path:
                 default: ''
             public_key:
-                default: ''
+                default: {}
 
 relationships:
     cloudify.vcloud.server_connected_to_floating_ip:

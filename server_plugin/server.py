@@ -30,6 +30,7 @@ GUEST_CUSTOMIZATION = 'guest_customization'
 HARDWARE = 'hardware'
 DEFAULT_EXECUTOR = "/bin/bash"
 DEFAULT_USER = "ubuntu"
+DEFAULT_HOME = "/home"
 
 
 @operation
@@ -224,20 +225,21 @@ def _get_vm_network_connection(vapp, network_name):
 
 def _build_script(custom):
     script = custom.get('script')
-    script_executor = custom.get('script_executor')
-    manager_public_key = custom.get('manager_public_key')
-    agent_public_key = custom.get('agent_public_key')
-    manager_user = custom.get('manager_user')
-    agent_user = custom.get('agent_user')
-    if not script and not manager_public_key and not agent_public_key:
+    public_keys = custom.get('public_keys')
+    if not script and not public_keys:
         return None
+    script_executor = custom.get('script_executor', DEFAULT_EXECUTOR)
+    configured_name = _create_file_name()
 
-    executor = script_executor if script_executor else DEFAULT_EXECUTOR
-    manager_user = manager_user if manager_user else DEFAULT_USER
-    agent_user = agent_user if agent_user else DEFAULT_USER
-
-    ssh_dir_template = "/home/{0}/.ssh"
-    authorized_keys_template = "{0}/authorized_keys".format(ssh_dir_template)
+    commands = []
+    commands.append("""#!{0}
+    if [ -f /root/{1} ]; then
+      exit
+    fi
+    touch /root/{1}
+    """.format(script_executor, configured_name))
+    ssh_dir_template = "{0}/{1}/.ssh"
+    authorized_keys_template = "{0}/authorized_keys"
     add_key_template = "echo '{0}\n' >> {1}"
     test_ssh_dir_template = """
     if [ ! -d {1} ];then
@@ -249,30 +251,19 @@ def _build_script(custom):
       chmod 600 {2}
     fi
     """
-
-    manager_ssh_dir = ssh_dir_template.format(manager_user)
-    agent_ssh_dir = ssh_dir_template.format(agent_user)
-    manager_authorized_keys = authorized_keys_template.format(manager_user)
-    agent_authorized_keys = authorized_keys_template.format(agent_user)
-    manager_test_ssh_dir = test_ssh_dir_template.format(manager_user, manager_ssh_dir, manager_authorized_keys)
-    agent_test_ssh_dir = test_ssh_dir_template.format(agent_user, agent_ssh_dir, agent_authorized_keys)
-    configured_name = _create_file_name()
-
-    commands = []
-    commands.append("""#!{0}
-    if [ -f /root/{1} ]; then
-      exit
-    fi
-    touch /root/{1}
-    """.format(executor, configured_name))
+    for key in public_keys:
+        public_key = key.get('key')
+        if not public_key:
+            continue
+        user = key.get('user', DEFAULT_USER)
+        home = key.get('home', DEFAULT_HOME)
+        ssh_dir = ssh_dir_template.format(home, user)
+        authorized_keys = authorized_keys_template.format(ssh_dir)
+        test_ssh_dir = test_ssh_dir_template.format(user, ssh_dir, authorized_keys)
+        commands.append(test_ssh_dir)
+        commands.append(add_key_template.format(public_key, authorized_keys))
     if script:
         commands.append(script)
-    if manager_public_key:
-        commands.append(manager_test_ssh_dir)
-        commands.append(add_key_template.format(manager_public_key, manager_authorized_keys))
-    if agent_public_key:
-        commands.append(agent_test_ssh_dir)
-        commands.append(add_key_template.format(agent_public_key, agent_authorized_keys))
     script = "\n".join(commands)
     return script
 

@@ -122,8 +122,9 @@ node_templates:
                 catalog: { get_input: manager_server_catalog }
                 template: { get_input: manager_server_template }
                 guest_customization:
-                    manager_public_key: { get_input: manager_public_key }
-                    agent_public_key: { get_input: agent_public_key }
+                    public_keys:
+                        - { get_property: [manager_keypair, public_key] }
+                        - { get_property: [agent_keypair, public_key] }
                     computer_name: { get_input: manager_server_name }
             management_network: { get_input: management_network_name }
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
@@ -182,6 +183,22 @@ node_templates:
                 service_type: { get_input: vcloud_service_type }
                 api_version: { get_input: vcloud_api_version }
                 org_url: { get_input: vcloud_org_url }
+
+    manager_keypair:
+        type: cloudify.vcloud.nodes.KeyPair
+        properties:
+            private_key_path: { get_input: manager_private_key_path }
+            public_key:
+                key: { get_input: manager_public_key }
+                user: { get_input: manager_server_user }
+            
+    agent_keypair:
+        type: cloudify.vcloud.nodes.KeyPair
+        properties:
+            private_key_path: { get_input: agent_private_key_path }
+            public_key:
+                key: { get_input: agent_public_key }
+                user: { get_input: agents_user }
 
     manager:
         type: cloudify.nodes.CloudifyManager
