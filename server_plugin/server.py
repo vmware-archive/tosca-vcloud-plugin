@@ -30,7 +30,7 @@ GUEST_CUSTOMIZATION = 'guest_customization'
 HARDWARE = 'hardware'
 DEFAULT_EXECUTOR = "/bin/bash"
 DEFAULT_USER = "ubuntu"
-
+DEFAULT_HOME = "/home"
 
 @operation
 @with_vca_client
@@ -221,13 +221,12 @@ def _get_vm_network_connection(vapp, network_name):
         if connection['network_name'] == network_name:
             return connection
 
+
 def _build_script(custom):
     script = custom.get('script')
     public_keys = custom.get('public_keys')
-
     if not script and not public_keys:
         return None
-
     script_executor = custom.get('script_executor', DEFAULT_EXECUTOR)   
     configured_name = _create_file_name()
     
@@ -238,8 +237,8 @@ def _build_script(custom):
     fi
     touch /root/{1}
     """.format(script_executor, configured_name))
-    ssh_dir_template = "/home/{0}/.ssh"
-    authorized_keys_template = "{0}/authorized_keys".format(ssh_dir_template)
+    ssh_dir_template = "{0}/{1}/.ssh"
+    authorized_keys_template = "{0}/authorized_keys"
     add_key_template = "echo '{0}\n' >> {1}"
     test_ssh_dir_template = """
     if [ ! -d {1} ];then
@@ -252,17 +251,18 @@ def _build_script(custom):
     fi
     """
     for key in public_keys:
+        public_key = key.get('key')
+        if not public_key:
+            continue
         user = key.get('user', DEFAULT_USER)
-        ssh_dir = ssh_dir_template.format(user)
-        authorized_keys = authorized_keys_template.format(user)
+        home = key.get('home', DEFAULT_HOME)
+        ssh_dir = ssh_dir_template.format(home, user)
+        authorized_keys = authorized_keys_template.format(ssh_dir)
         test_ssh_dir = test_ssh_dir_template.format(user, ssh_dir, authorized_keys)
-        public_key = key.get('public_key')
         commands.append(test_ssh_dir)
         commands.append(add_key_template.format(public_key, authorized_keys))
-
     if script:
         commands.append(script)
-
     script = "\n".join(commands)
     return script
 

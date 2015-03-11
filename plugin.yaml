@@ -95,15 +95,10 @@ node_types:
     cloudify.vcloud.nodes.KeyPair:
         derived_from: cloudify.nodes.Root
         properties:
-            keypair:
-                private_key_path:
-                    default: ''
-                public_key:
-                    default: ''
-                user:
-                    default: ''
-                homedir:
-                    default: '/home'
+            private_key_path:
+                default: ''
+            public_key:
+                default: {}
 
 relationships:
     cloudify.vcloud.server_connected_to_floating_ip:
