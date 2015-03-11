@@ -8,7 +8,8 @@
             "admin_password": "123",
             "computer_name": "custom-name",
             "script_executor": "/bin/bash",
-            "script": "echo 'it works' > /tmp/guest_cust.out",
+            "pre_script": "echo 'prescript works' > /tmp/guest_cust.out",
+            "post_script": "echo 'postscript works' > /tmp/guest_cust.out",
             "public_keys": []
             },
         "hardware":
