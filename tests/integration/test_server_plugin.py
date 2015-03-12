@@ -35,6 +35,7 @@ class ServerNoNetworkTestCase(TestCase):
                     'name': name,
                     'catalog': server_test_dict['catalog'],
                     'template': server_test_dict['template'],
+                    'hardware': server_test_dict['hardware'],
                     'guest_customization': server_test_dict.get('guest_customization')
                 },
                 'management_network': IntegrationTestConfig().get()['management_network']
@@ -71,7 +72,7 @@ class ServerNoNetworkTestCase(TestCase):
             self.ctx.node.properties['server']['name'])
         self.assertFalse(vapp is None)
         self.assertFalse(server._vapp_is_on(vapp))
-
+        self.check_hardware(vapp)
         server.delete()
         vapp = self.vca_client.get_vapp(
             vdc,
@@ -104,6 +105,13 @@ class ServerNoNetworkTestCase(TestCase):
             vdc,
             self.ctx.node.properties['server']['name'])
         self.assertTrue(server._vapp_is_on(vapp))
+
+    def check_hardware(self, vapp):
+        data = vapp.get_vms_details()[0]
+        hardware = IntegrationTestConfig().get()['server']['hardware']
+        if hardware:
+            self.assertEqual(data['cpus'], hardware['cpu'])
+            self.assertEqual(data['memory'] * 1024, hardware['memory'])
 
 
 class ServerWithNetworkTestCase(TestCase):
