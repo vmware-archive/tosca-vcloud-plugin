@@ -56,7 +56,7 @@ def create(vca_client, **kwargs):
     if hardware:
         cpu = hardware.get('cpu')
         memory = hardware.get('memory')
-    _check_hardware(cpu, memory)
+        _check_hardware(cpu, memory)
     ctx.logger.info("Creating VApp with parameters: {0}".format(str(server)))
     task = vca_client.create_vapp(config['vdc'],
                                   vapp_name,
