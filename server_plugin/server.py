@@ -50,13 +50,21 @@ def create(vca_client, **kwargs):
     vapp_name = server['name']
     vapp_template = server['template']
     vapp_catalog = server['catalog']
-
+    hardware = server.get('hardware')
+    cpu = None
+    memory = None
+    if hardware:
+        cpu = hardware.get('cpu')
+        memory = hardware.get('memory')
+    _check_hardware(cpu, memory)
     ctx.logger.info("Creating VApp with parameters: {0}".format(str(server)))
     task = vca_client.create_vapp(config['vdc'],
                                   vapp_name,
                                   vapp_template,
                                   vapp_catalog,
-                                  vm_name=vapp_name)
+                                  vm_name=vapp_name,
+                                  vm_cpus=cpu,
+                                  vm_memory=memory)
 
     if not task:
         raise cfy_exc.NonRecoverableError("Could not create vApp: {0}"
@@ -336,3 +344,14 @@ def _isDhcpAvailable(vca_client, network_name):
             if admin_href == pool.get_Network().get_href():
                 return True
     return False
+
+
+def _check_hardware(cpu, memory):
+    if cpu < 1:
+            raise cfy_exc.NonRecoverableError("Too small quantity of CPU's: {0}".format(cpu))
+    if cpu > 64:
+        raise cfy_exc.NonRecoverableError("Too many of CPU's: {0}".format(cpu))
+    if memory < 512:
+            raise cfy_exc.NonRecoverableError("Too small quantity of memory: {0}".format(memory))
+    if memory > (512 * 1024):  # 512Gb
+            raise cfy_exc.NonRecoverableError("Too many memory: {0}".format(memory))
