@@ -347,11 +347,20 @@ def _isDhcpAvailable(vca_client, network_name):
 
 
 def _check_hardware(cpu, memory):
-    if cpu < 1:
-            raise cfy_exc.NonRecoverableError("Too small quantity of CPU's: {0}".format(cpu))
-    if cpu > 64:
-        raise cfy_exc.NonRecoverableError("Too many of CPU's: {0}".format(cpu))
-    if memory < 512:
-            raise cfy_exc.NonRecoverableError("Too small quantity of memory: {0}".format(memory))
-    if memory > (512 * 1024):  # 512Gb
-            raise cfy_exc.NonRecoverableError("Too many memory: {0}".format(memory))
+    if cpu is not None:
+        if isinstance(cpu, int):
+            if cpu < 1:
+                raise cfy_exc.NonRecoverableError("Too small quantity of CPU's: {0}".format(cpu))
+            if cpu > 64:
+                raise cfy_exc.NonRecoverableError("Too many of CPU's: {0}".format(cpu))
+        else:
+            raise cfy_exc.NonRecoverableError("Quantity of CPU's must be integer")
+
+    if memory is not None:
+        if isinstance(memory, int):
+            if memory < 512:
+                raise cfy_exc.NonRecoverableError("Too small quantity of memory: {0}".format(memory))
+            if memory > (512 * 1024):  # 512Gb
+                raise cfy_exc.NonRecoverableError("Too many memory: {0}".format(memory))
+        else:
+            raise cfy_exc.NonRecoverableError("Quantity of memory must be integer")
