@@ -8,17 +8,25 @@
             "admin_password": "123",
             "computer_name": "custom-name",
             "script_executor": "/bin/bash",
-            "script": "echo 'it works' > /tmp/guest_cust.out",
-            "manager_public_key": "ssh-rsa public key",
-            "agent_public_key":   "ssh-rsa public key",
-            "manager_user": "ubuntu",
-            "agent_user": "ubuntu"
+            "pre_script": "echo 'prescript works' > /tmp/guest_cust.out",
+            "post_script": "echo 'postscript works' > /tmp/guest_cust.out",
+            "public_keys": []
             },
         "hardware":
             {
             "cpu": 3,
             "memory": 2048
             }
+    },
+    "manager_keypair":
+    {
+        "key": "mangerkey",
+        "user": "ubuntu"
+    },
+    "agent_keypair":
+    {
+        "key": "agentkey",
+        "user": "ubuntu"
     },
     "management_network": "networkname",
 "floatingip":
