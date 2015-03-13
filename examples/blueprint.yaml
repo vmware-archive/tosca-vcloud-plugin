@@ -131,7 +131,7 @@ node_templates:
                 name: plugin-test-nw
                 static_range: 10.10.0.2-10.10.0.128
                 netmask: 255.255.255.0
-                gateway_ip: 10.10.0.1/24
+                gateway_ip: 10.10.0.1
                 dns: 10.10.0.1
                 dns_suffix: test
                 dhcp:

@@ -21,6 +21,12 @@ def delete(vca_client, **kwargs):
     _rule_operation(DELETE_RULE, vca_client)
 
 
+@operation
+@with_vca_client
+def creation_validation(vca_client, **kwargs):
+    pass
+
+
 def _rule_operation(operation, vca_client):
     gateway = vca_client.get_gateway(get_vcloud_config()['vdc'],
                                      ctx.target.node.properties['edge_gateway'])

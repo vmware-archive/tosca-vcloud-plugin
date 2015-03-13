@@ -17,6 +17,12 @@ def disconnect_floatingip(vca_client, **kwargs):
     _floatingip_operation(DELETE, vca_client, ctx)
 
 
+@operation
+@with_vca_client
+def creation_validation(vca_client, **kwargs):
+    pass
+
+
 def _floatingip_operation(operation, vca_client, ctx):
     def showMessage(message, ip):
         ctx.logger.info(message.format(ip))
