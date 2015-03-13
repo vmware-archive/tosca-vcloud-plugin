@@ -1,7 +1,7 @@
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
-from vcloud_plugin_common import wait_for_task, with_vca_client, get_vcloud_config, SUBSCRIPTION_SERVICE_TYPE
+from vcloud_plugin_common import wait_for_task, with_vca_client, get_vcloud_config, SUBSCRIPTION_SERVICE_TYPE, ONDEMAND_SERVICE_TYPE, get_mandatory
 from network_plugin import check_ip, isExternalIpAssigned, isInternalIpAssigned, get_vm_ip, save_gateway_configuration, getFreeIP, CREATE, DELETE, PUBLIC_IP
 
 
@@ -20,7 +20,24 @@ def disconnect_floatingip(vca_client, **kwargs):
 @operation
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
-    pass
+    floatingip = get_mandatory(ctx.node.properties, 'floatingip')
+    edge_gateway = get_mandatory(floatingip, 'edge_gateway')
+    gateway = vca_client.get_gateway(get_vcloud_config()['vdc'],
+                                     edge_gateway)
+    if not gateway:
+        raise cfy_exc.NonRecoverableError("Gateway {0}  not found".format(edge_gateway))
+    service_type = get_vcloud_config().get('service_type')
+    public_ip = floatingip.get(PUBLIC_IP)
+    if isSubscription(service_type):
+        if public_ip:
+            check_ip(public_ip)
+            if isExternalIpAssigned(public_ip, gateway):
+                raise cfy_exc.NonRecoverableError(
+                    "IP address: {0} already assigned. Gateway has free IP: {1}".format(public_ip, getFreeIP(gateway)))
+        else:
+            getFreeIP(gateway)
+    if service_type == ONDEMAND_SERVICE_TYPE and public_ip:
+        ctx.logger.info("For 'ondemand' service public_ip must be empty. public_ip will be overrided.")
 
 
 def _floatingip_operation(operation, vca_client, ctx):
@@ -29,7 +46,7 @@ def _floatingip_operation(operation, vca_client, ctx):
 
     service_type = get_vcloud_config().get('service_type')
     gateway = vca_client.get_gateway(get_vcloud_config()['vdc'],
-                                         ctx.target.node.properties['floatingip']['edge_gateway'])
+                                     ctx.target.node.properties['floatingip']['edge_gateway'])
     if not gateway:
         raise cfy_exc.NonRecoverableError("Gateway not found")
 
