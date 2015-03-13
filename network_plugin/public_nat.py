@@ -30,6 +30,12 @@ def server_disconnect_from_nat(vca_client, **kwargs):
     prepare_vm_operation(vca_client, DELETE)
 
 
+@operation
+@with_vca_client
+def creation_validation(vca_client, **kwargs):
+    pass
+
+
 def prepare_network_operation(vca_client, operation):
     try:
         network_name = ctx.source.instance.runtime_properties[VCLOUD_NETWORK_NAME]

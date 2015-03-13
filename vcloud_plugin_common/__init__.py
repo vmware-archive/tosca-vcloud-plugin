@@ -380,3 +380,11 @@ def get_vcloud_config():
     if config:
         static_config.update(config)
     return static_config
+
+
+def get_mandatory(obj, parameter):
+    value = obj.get(parameter)
+    if value:
+        return value
+    else:
+        raise cfy_exc.NonRecoverableError("Mandatory parameter {0} is absent".format(parameter))

@@ -22,6 +22,19 @@ def check_ip(address):
     return address
 
 
+def is_valid_ip_range(start, end):
+    return IP(start) < IP(end)
+
+
+def is_separate_ranges(first, second):
+    return IP(first.end) < IP(second.start) or IP(first.start) > IP(second.end)
+
+
+def is_ips_in_same_subnet(ips, netmask):
+    subnets = [IP("{0}/{1}".format(ip, netmask), make_net=True) for ip in ips]
+    return len(set(subnets)) == 1
+
+
 def isExternalIpAssigned(ip, gateway):
     return ip in [address.external for address in collectAssignedIps(gateway)]
 
