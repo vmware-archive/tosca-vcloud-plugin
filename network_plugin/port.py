@@ -1,13 +1,18 @@
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
-from vcloud_plugin_common import with_vca_client, wait_for_task, get_vcloud_config, get_mandatory
-import collections
-from network_plugin import (check_ip, is_valid_ip_range, is_separate_ranges,
-                            is_ips_in_same_subnet, save_gateway_configuration,
-                            get_network_name, is_network_exists)
+from vcloud_plugin_common import with_vca_client, get_mandatory
+from network_plugin import check_ip
+
 
 @operation
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
-    pass
+    port = get_mandatory(ctx.node.properties, 'port')
+    ip_allocation_mode = port.get('ip_allocation_mode')
+    if ip_allocation_mode:
+        if ip_allocation_mode.lower() not in ['manual', 'dhcp']:
+            raise cfy_exc.NonRecoverableError("Unknown allocation mode {0}".format(ip_allocation_mode))
+        ip_address = port.get('ip_address')
+        if ip_address:
+            check_ip(ip_address)
