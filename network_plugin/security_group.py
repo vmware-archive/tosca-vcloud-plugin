@@ -29,7 +29,9 @@ def creation_validation(vca_client, **kwargs):
 
 def _rule_operation(operation, vca_client):
     gateway = vca_client.get_gateway(get_vcloud_config()['vdc'],
-                                     ctx.target.node.properties['edge_gateway'])
+                                         ctx.target.node.properties['floatingip']['edge_gateway'])
+    if not gateway:
+        raise cfy_exc.NonRecoverableError("Gateway not found")
     protocol = _check_protocol(ctx.target.node.properties['rules']['protocol'])
     dest_port = str(ctx.target.node.properties['rules']['port'])
     description = ctx.target.node.properties['rules']['description']
