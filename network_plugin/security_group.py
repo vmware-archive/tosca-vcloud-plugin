@@ -24,7 +24,7 @@ def delete(vca_client, **kwargs):
 def _rule_operation(operation, vca_client):
     gateway = vca_client.get_gateway(get_vcloud_config()['vdc'],
                                          ctx.target.node.properties['security_group'].get(
-                                             'edge_gateway', get_vcloud_config()['vdc'])
+                                             'edge_gateway', get_vcloud_config()['vdc']))
     if not gateway:
         raise cfy_exc.NonRecoverableError("Gateway not found")
     protocol = _check_protocol(ctx.target.node.properties['rules']['protocol'])
