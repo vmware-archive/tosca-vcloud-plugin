@@ -27,21 +27,21 @@ def _rule_operation(operation, vca_client):
                                              'edge_gateway', get_vcloud_config()['vdc']))
     if not gateway:
         raise cfy_exc.NonRecoverableError("Gateway not found")
-    protocol = _check_protocol(ctx.target.node.properties['rules']['protocol'])
-    dest_port = str(ctx.target.node.properties['rules']['port'])
-    description = ctx.target.node.properties['rules']['description']
     dest_ip = check_ip(get_vm_ip(vca_client, ctx))
-    if operation == CREATE_RULE:
-        gateway.add_fw_rule(True, description, "allow", protocol, dest_port, dest_ip,
-                            "Any", "External", False)
-        error_message = "Could not add firewall rule: {0}".format(description)
-        ctx.logger.info("Firewall rule has been created {0}".format(description))
-
-    if operation == DELETE_RULE:
-        gateway.delete_fw_rule(protocol, dest_port, dest_ip,
-                               "Any", "external")
-        error_message = "Could not delete firewall rule: {0}".format(description)
-        ctx.logger.info("Firewall rule has been deleted {0}".format(description))
+    for rule in ctx.target.node.properties['rules']:
+        protocol = _check_protocol(rule['protocol'])
+        dest_port = str(rule['port'])
+        description = rule['description']
+        if operation == CREATE_RULE:
+            gateway.add_fw_rule(True, description, "allow", protocol, dest_port, dest_ip,
+                                "Any", "External", False)
+            error_message = "Could not add firewall rule: {0}".format(description)
+            ctx.logger.info("Firewall rule has been created {0}".format(description))
+        elif operation == DELETE_RULE:
+            gateway.delete_fw_rule(protocol, dest_port, dest_ip,
+                                   "Any", "external")
+            error_message = "Could not delete firewall rule: {0}".format(description)
+            ctx.logger.info("Firewall rule has been deleted {0}".format(description))
     save_gateway_configuration(gateway, vca_client, error_message)
 
 
