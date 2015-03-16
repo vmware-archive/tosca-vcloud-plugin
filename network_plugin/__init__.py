@@ -2,7 +2,7 @@ from IPy import IP
 from cloudify import exceptions as cfy_exc
 import collections
 
-from vcloud_plugin_common import wait_for_task, get_vcloud_config
+from vcloud_plugin_common import wait_for_task, get_vcloud_config, isSubscription
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 PUBLIC_IP = 'public_ip'
@@ -35,12 +35,16 @@ def is_ips_in_same_subnet(ips, netmask):
     return len(set(subnets)) == 1
 
 
-def isExternalIpAssigned(ip, gateway):
-    return ip in [address.external for address in collectAssignedIps(gateway)]
+def CheckAssignedExternalIp(ip, gateway):
+    if ip in [address.external for address in collectAssignedIps(gateway)]:
+        raise cfy_exc.NonRecoverableError(
+            "IP address: {0} already assigned. Gateway has free IP: {1}".format(ip, getFreeIP(gateway)))
 
 
-def isInternalIpAssigned(ip, gateway):
-    return ip in [address.internal for address in collectAssignedIps(gateway)]
+def CheckAssignedInternalIp(ip, gateway):
+    if ip in [address.internal for address in collectAssignedIps(gateway)]:
+        raise cfy_exc.NonRecoverableError(
+            "VM private IP {0} already has public ip assigned ".format(ip))
 
 
 def collectAssignedIps(gateway):
@@ -135,3 +139,57 @@ def get_network(vca_client, network_name):
         raise cfy_exc.NonRecoverableError(
             "Network {0} could not be found".format(network_name))
     return result
+
+
+def get_ondemand_public_ip(vca_client, gateway, ctx):
+    old_public_ips = set(gateway.get_public_ips())
+    task = gateway.allocate_public_ip()
+    if task:
+        wait_for_task(vca_client, task)
+    else:
+        raise cfy_exc.NonRecoverableError("Can't get public ip for ondemand service")
+    # update gateway for new IP address
+    gateway = vca_client.get_gateways(get_vcloud_config()['vdc'])[0]
+    new_public_ips = set(gateway.get_public_ips())
+    new_ip = new_public_ips - old_public_ips
+    if new_ip:
+        ctx.logger.info("Assign public IP {0}".format(new_ip))
+    else:
+        raise cfy_exc.NonRecoverableError(
+            "Can't get new public IP address")
+    return list(new_ip)[0]
+
+
+def del_ondemand_public_ip(vca_client, gateway, ip, ctx):
+    task = gateway.deallocate_public_ip(ip)
+    if task:
+        wait_for_task(vca_client, task)
+        ctx.logger.info("Public IP {0} deallocated".format(ip))
+    else:
+        raise cfy_exc.NonRecoverableError("Can't deallocate public ip {0} for ondemand service".format(ip))
+
+
+def get_public_ip(vca_client, gateway, service_type, ctx):
+    if isSubscription(service_type):
+        public_ip = getFreeIP(gateway)
+        ctx.logger.info("Assign external IP {0}".format(public_ip))
+    else:
+        public_ip = get_ondemand_public_ip(vca_client, gateway, ctx)
+    return public_ip
+
+
+def get_gateway(vca_client, gateway_name):
+    gateway = vca_client.get_gateway(get_vcloud_config()['vdc'],
+                                     gateway_name)
+    if not gateway:
+        raise cfy_exc.NonRecoverableError("Gateway {0}  not found".format(gateway_name))
+    return gateway
+
+
+def check_protocol(protocol):
+    valid_protocols = ["Tcp", "Udp", "Icmp", "Any"]
+    protocol = protocol.capitalize()
+    if protocol not in valid_protocols:
+        raise cfy_exc.NonRecoverableError(
+            "Unknown protocol: {0}. Valid protocols are: {1}".format(protocol, valid_protocols))
+    return protocol
