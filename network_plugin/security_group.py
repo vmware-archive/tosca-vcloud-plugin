@@ -25,7 +25,9 @@ def delete(vca_client, **kwargs):
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
     security_group = get_mandatory(ctx.node.properties, 'security_group')
-    get_gateway(vca_client, security_group.get('edge_gateway'))
+    getaway = get_gateway(vca_client, security_group.get('edge_gateway'))
+    if not getaway.is_fw_enabled():
+        raise cfy_exc.NonRecoverableError("Giteway firewall is disabled. Please turn on firewall.")
     rules = get_mandatory(ctx.node.properties, 'rules')
     for rule in rules:
         check_protocol(rule.get('protocol', "Any"))

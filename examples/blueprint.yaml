@@ -18,9 +18,9 @@ node_templates:
                 name: cfy-plugin-example-server
                 catalog: giga
                 template: plugin-test-VApp
-            hardware:
-                cpu: 3
-                memory: 2048
+                hardware:
+                    cpu: 3
+                    memory: 2048
             management_network: CFY-Internal
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
         relationships:
