@@ -62,7 +62,7 @@ def prepare_network_operation(vca_client, operation):
         rule_type = ctx.target.node.properties['rules']['type']
         gateway = get_gateway(vca_client,
                               ctx.target.node.properties['nat']['edge_gateway'])
-        public_ip = _get_public_ip(ctx, gateway, operation)
+        public_ip = _get_public_ip(vca_client, ctx, gateway, operation)
     except KeyError as e:
         raise cfy_exc.NonRecoverableError("Parameter not found: {0}".format(e))
     ip_ranges = _get_network_ip_range(vca_client, vdc_name, network_name)
