@@ -1,8 +1,10 @@
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
-from vcloud_plugin_common import with_vca_client, get_vcloud_config
-from network_plugin import check_ip, save_gateway_configuration, get_vm_ip, isExternalIpAssigned, getFreeIP, CREATE, DELETE, PUBLIC_IP
+from vcloud_plugin_common import with_vca_client, get_vcloud_config, get_mandatory, isSubscription, isOndemand
+from network_plugin import (check_ip, save_gateway_configuration,
+                            get_vm_ip, CheckAssignedExternalIp, get_public_ip, get_gateway,
+                            getFreeIP, CREATE, DELETE, PUBLIC_IP, check_protocol, del_ondemand_public_ip)
 from network_plugin.network import VCLOUD_NETWORK_NAME
 
 
@@ -33,7 +35,24 @@ def server_disconnect_from_nat(vca_client, **kwargs):
 @operation
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
-    pass
+    nat = get_mandatory(ctx.node.properties, 'nat')
+    rules = get_mandatory(ctx.node.properties, 'rules')
+    gateway = get_gateway(vca_client, get_mandatory(nat, 'edge_gateway'))
+    service_type = get_vcloud_config().get('service_type')
+    public_ip = nat.get(PUBLIC_IP)
+    if public_ip:
+        check_ip(public_ip)
+        CheckAssignedExternalIp(public_ip, gateway)
+    else:
+        if isSubscription(service_type):
+            getFreeIP(gateway)
+    check_protocol(rules.get('protocol', "any"))
+    original_port = rules.get('original_port')
+    if original_port and not isinstance(original_port, int):
+        raise cfy_exc.NonRecoverableError("Parameter 'original_port' must be integer")
+    translated_port = rules.get('translated_port')
+    if translated_port and not isinstance(translated_port, int):
+        raise cfy_exc.NonRecoverableError("Parameter 'translated_port' must be integer")
 
 
 def prepare_network_operation(vca_client, operation):
@@ -41,8 +60,8 @@ def prepare_network_operation(vca_client, operation):
         network_name = ctx.source.instance.runtime_properties[VCLOUD_NETWORK_NAME]
         vdc_name = get_vcloud_config()['vdc']
         rule_type = ctx.target.node.properties['rules']['type']
-        gateway = vca_client.get_gateway(vdc_name,
-                                         ctx.target.node.properties['nat']['edge_gateway'])
+        gateway = get_gateway(vca_client,
+                              ctx.target.node.properties['nat']['edge_gateway'])
         public_ip = _get_public_ip(ctx, gateway, operation)
     except KeyError as e:
         raise cfy_exc.NonRecoverableError("Parameter not found: {0}".format(e))
@@ -53,11 +72,10 @@ def prepare_network_operation(vca_client, operation):
 
 def prepare_vm_operation(vca_client, operation):
     try:
-        vdc_name = get_vcloud_config()['vdc']
         rule_type = ctx.target.node.properties['rules']['type']
-        gateway = vca_client.get_gateway(vdc_name,
-                                         ctx.target.node.properties['nat']['edge_gateway'])
-        public_ip = _get_public_ip(ctx, gateway, operation)
+        gateway = get_gateway(vca_client,
+                              ctx.target.node.properties['nat']['edge_gateway'])
+        public_ip = _get_public_ip(vca_client, ctx, gateway, operation)
         rule_type = ctx.target.node.properties['rules']['type']
         protocol = ctx.target.node.properties['rules'].get('protocol', "any")
         original_port = ctx.target.node.properties['rules'].get('original_port', "any")
@@ -73,8 +91,7 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip, 
     function = None
     message = None
     if operation == CREATE:
-        if isExternalIpAssigned(public_ip, gateway):
-            raise cfy_exc.NonRecoverableError("Public IP {0} is already allocated".format(public_ip))
+        CheckAssignedExternalIp(public_ip, gateway)
         function = gateway.add_nat_rule
         message = "Create"
     elif operation == DELETE:
@@ -100,6 +117,9 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip, 
     if operation == CREATE:
         ctx.target.instance.runtime_properties[PUBLIC_IP] = public_ip
     else:
+        service_type = get_vcloud_config().get('service_type')
+        if isOndemand(service_type):
+            del_ondemand_public_ip(vca_client, gateway, ctx.target.instance.runtime_properties[PUBLIC_IP], ctx)
         del ctx.target.instance.runtime_properties[PUBLIC_IP]
 
 
@@ -120,14 +140,15 @@ def _get_gateway_ip_range(gateway, network_name):
     return scopes
 
 
-def _get_public_ip(ctx, gateway, operation):
+def _get_public_ip(vca_client, ctx, gateway, operation):
     public_ip = None
     if operation == CREATE:
-        if PUBLIC_IP in ctx.target.node.properties['nat']:
-            public_ip = check_ip(ctx.target.node.properties['nat'][PUBLIC_IP])
+        public_ip = check_ip(ctx.target.node.properties['nat'].get(PUBLIC_IP))
+        if public_ip:
+            CheckAssignedExternalIp(public_ip, gateway)
         else:
-            public_ip = getFreeIP(gateway)
-            ctx.logger.info("Assign external IP {0}".format(public_ip))
+            service_type = get_vcloud_config().get('service_type')
+            public_ip = get_public_ip(vca_client, gateway, service_type, ctx)
     elif operation == DELETE:
         if PUBLIC_IP in ctx.target.instance.runtime_properties:
             public_ip = ctx.target.instance.runtime_properties[PUBLIC_IP]
