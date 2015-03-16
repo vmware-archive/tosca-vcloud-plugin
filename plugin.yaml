@@ -97,8 +97,8 @@ node_types:
     cloudify.vcloud.nodes.SecurityGroup:
         derived_from: cloudify.nodes.SecurityGroup
         properties:
-            gateway:
-                default: ''
+            security_group:
+                default: {}
             rules:
                 default: []
             vcloud_config:
