@@ -1,14 +1,68 @@
 import mock
 import unittest
 from cloudify.mocks import MockCloudifyContext
-from network_plugin import floatingip, network, security_group, public_nat
+from network_plugin import floatingip, network, security_group, public_nat, keypair, port
 from server_plugin.server import VCLOUD_VAPP_NAME
 from network_plugin.network import VCLOUD_NETWORK_NAME
-from network_plugin import isExternalIpAssigned
+from network_plugin import CheckAssignedExternalIp
 from cloudify import exceptions as cfy_exc
 from tests.integration import TestCase, IntegrationTestConfig, VcloudTestConfig, VcloudOndemandTestConfig
 # for skipping test add this before test function:
 # @unittest.skip("skip test")
+
+
+class ValidationOperationsTestCase(TestCase):
+    def setUp(self):
+        name = "testnode"
+        self.ctx = MockCloudifyContext(
+            node_id=name,
+            node_name=name,
+            properties={})
+        ctx_patch = mock.patch('vcloud_plugin_common.ctx', self.ctx)
+        ctx_patch.start()
+        self.addCleanup(ctx_patch.stop)
+        super(ValidationFloatingIPOperationsTestCase, self).setUp()
+
+    def test_validation(self):
+
+        self.ctx.node.properties.update({'floatingip': IntegrationTestConfig().get()['floatingip']})
+        with mock.patch('network_plugin.floatingip.ctx', self.ctx) as _:
+            floatingip.creation_validation()
+        self.ctx.node.properties.clear()
+
+        self.ctx.node.properties.update({'private_key_path': "test_network_plugin.py"})
+        with mock.patch('network_plugin.keypair.ctx', self.ctx) as _:
+            keypair.creation_validation()
+        self.ctx.node.properties.clear()
+
+        self.ctx.node.properties.update(
+            {"resource_id": IntegrationTestConfig().get()['network']['name'],
+             "network": IntegrationTestConfig().get()['network'],
+             "use_external_resource": False})
+        with mock.patch('network_plugin.network.ctx', self.ctx) as _:
+            network.creation_validation()
+        self.ctx.node.properties.clear()
+
+        self.ctx.node.properties.update(
+            {'port': {
+                'network': IntegrationTestConfig().get()['management_network'],
+                'ip_allocation_mode': 'dhcp',
+                'primary_interface': True}})
+        with mock.patch('network_plugin.port.ctx', self.ctx) as _:
+            port.creation_validation()
+        self.ctx.node.properties.clear()
+
+        self.ctx.node.properties.update(
+            {"nat": IntegrationTestConfig().get()['public_nat']['nat'],
+             "rules": IntegrationTestConfig().get()['public_nat']['rules_net']})
+        with mock.patch('network_plugin.public_nat.ctx', self.ctx) as _:
+            public_nat.creation_validation()
+        self.ctx.node.properties.clear()
+
+        self.ctx.node.properties.update(IntegrationTestConfig().get()['security_group'])
+        with mock.patch('network_plugin.security_group.ctx', self.ctx) as _:
+            security_group.creation_validation()
+        self.ctx.node.properties.clear()
 
 
 class FloatingIPOperationsTestCase(TestCase):
@@ -37,28 +91,23 @@ class FloatingIPOperationsTestCase(TestCase):
     def test_floating_ip_create_delete_with_explicit_ip(self):
         self.ctx.target.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
         public_ip = self.ctx.target.node.properties['floatingip']['public_ip']
-        check_external = lambda: isExternalIpAssigned(public_ip, self._get_gateway())
-        self.assertFalse(check_external())
+        CheckAssignedExternalIp(public_ip, self._get_gateway())
         floatingip.connect_floatingip()
-        self.assertTrue(check_external())
         self.assertRaises(cfy_exc.NonRecoverableError,
-                          floatingip.connect_floatingip)
+                          CheckAssignedExternalIp, public_ip, self._get_gateway())
         floatingip.disconnect_floatingip()
-        self.assertFalse(check_external())
+        CheckAssignedExternalIp(public_ip, self._get_gateway())
 
     def test_floating_ip_create_delete_with_autoget_ip(self):
         self.ctx.target.node.properties['floatingip'].update(IntegrationTestConfig().get()['floatingip'])
         del self.ctx.target.node.properties['floatingip']['public_ip']
-
         floatingip.connect_floatingip()
         public_ip = self.ctx.target.instance.runtime_properties['public_ip']
-        check_external = lambda: isExternalIpAssigned(public_ip, self._get_gateway())
-        self.assertTrue(public_ip)
-        self.assertTrue(check_external())
         self.assertRaises(cfy_exc.NonRecoverableError,
-                          floatingip.connect_floatingip)
+                          CheckAssignedExternalIp, public_ip, self._get_gateway())
+        self.assertTrue(public_ip)
         floatingip.disconnect_floatingip()
-        self.assertFalse(check_external())
+        CheckAssignedExternalIp(public_ip, self._get_gateway())
 
     def _get_gateway(self):
         return self.vca_client.get_gateway(VcloudTestConfig().get()["vdc"],
@@ -95,11 +144,10 @@ class OndemandFloatingIPOperationsTestCase(TestCase):
         del self.ctx.target.node.properties['floatingip']['public_ip']
         floatingip.connect_floatingip()
         public_ip = self.ctx.target.instance.runtime_properties['public_ip']
-        check_external = lambda: isExternalIpAssigned(public_ip, self._get_gateway())
-        self.assertTrue(public_ip)
-        self.assertTrue(check_external())
+        self.assertRaises(cfy_exc.NonRecoverableError,
+                          CheckAssignedExternalIp, public_ip, self._get_gateway())
         floatingip.disconnect_floatingip()
-        self.assertFalse(check_external())
+        CheckAssignedExternalIp(public_ip, self._get_gateway())
 
     def _get_gateway(self):
         return self.vca_client.get_gateway(VcloudOndemandTestConfig().get()['vdc'], self.gateway_name)
@@ -246,4 +294,4 @@ class PublicNatOperationsTestCase(TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(verbosity=2)

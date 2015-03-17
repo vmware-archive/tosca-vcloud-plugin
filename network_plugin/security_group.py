@@ -1,8 +1,8 @@
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
-from vcloud_plugin_common import with_vca_client, get_vcloud_config
-from network_plugin import check_ip, get_vm_ip, save_gateway_configuration
+from vcloud_plugin_common import with_vca_client, get_mandatory
+from network_plugin import check_ip, get_vm_ip, save_gateway_configuration, check_protocol, get_gateway
 
 
 CREATE_RULE = 1
@@ -21,16 +21,29 @@ def delete(vca_client, **kwargs):
     _rule_operation(DELETE_RULE, vca_client)
 
 
+@operation
+@with_vca_client
+def creation_validation(vca_client, **kwargs):
+    security_group = get_mandatory(ctx.node.properties, 'security_group')
+    getaway = get_gateway(vca_client, security_group.get('edge_gateway'))
+    if not getaway.is_fw_enabled():
+        raise cfy_exc.NonRecoverableError("Giteway firewall is disabled. Please turn on firewall.")
+    rules = get_mandatory(ctx.node.properties, 'rules')
+    for rule in rules:
+        check_protocol(rule.get('protocol', "Any"))
+        dest_port = rule.get('port')
+        if dest_port and not isinstance(dest_port, int):
+            raise cfy_exc.NonRecoverableError("Parameter 'port' must be integer")
+
+
 def _rule_operation(operation, vca_client):
-    gateway = vca_client.get_gateway(get_vcloud_config()['vdc'],
-                                         ctx.target.node.properties['security_group'].get(
-                                             'edge_gateway', get_vcloud_config()['vdc']))
-    if not gateway:
-        raise cfy_exc.NonRecoverableError("Gateway not found")
+    gateway = get_gateway(vca_client,
+                          ctx.target.node.properties['security_group'].get('edge_gateway'))
     for rule in ctx.target.node.properties['rules']:
-        protocol = _check_protocol(rule['protocol'])
+        protocol = check_protocol(rule.get('protocol', "Any"))
         dest_port = str(rule['port'])
         description = rule['description']
+        dest_ip = check_ip(get_vm_ip(vca_client, ctx))
         if operation == CREATE_RULE:
             gateway.add_fw_rule(True, description, "allow", protocol, dest_port, dest_ip,
                                 "Any", "External", False)
@@ -42,11 +55,3 @@ def _rule_operation(operation, vca_client):
             error_message = "Could not delete firewall rule: {0}".format(description)
             ctx.logger.info("Firewall rule has been deleted {0}".format(description))
     save_gateway_configuration(gateway, vca_client, error_message)
-
-def _check_protocol(protocol):
-    valid_protocols = ["Tcp", "Udp", "Icmp", "Any"]
-    protocol = protocol.capitalize()
-    if protocol not in valid_protocols:
-        raise cfy_exc.NonRecoverableError(
-            "Unknown protocol: {0}. Valid protocols are: {1}".format(protocol, valid_protocols))
-    return protocol

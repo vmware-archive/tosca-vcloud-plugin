@@ -380,3 +380,17 @@ def get_vcloud_config():
     if config:
         static_config.update(config)
     return static_config
+
+
+def get_mandatory(obj, parameter):
+    value = obj.get(parameter)
+    if value:
+        return value
+    else:
+        raise cfy_exc.NonRecoverableError("Mandatory parameter {0} is absent".format(parameter))
+
+def isSubscription(service_type):
+    return not service_type or service_type == SUBSCRIPTION_SERVICE_TYPE
+
+def isOndemand(service_type):
+    return service_type == ONDEMAND_SERVICE_TYPE
