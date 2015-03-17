@@ -105,7 +105,7 @@ relationships:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
-                preconfigure:
+                establish:
                     implementation: vcloud.network_plugin.floatingip.connect_floatingip
                     inputs: {}
                 unlink:
