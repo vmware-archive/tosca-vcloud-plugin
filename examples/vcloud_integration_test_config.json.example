@@ -51,15 +51,18 @@
             "max_lease": 7200
          }
      },
-"security_group":
+    "security_group":
     {
-    "gateway" : "gatewayname",
-    "rule" :
+       "security_group":
+        {
+            "edge_gateway" : "gatewayname"
+        },
+        "rules" :[
         {
             "description": "Rule description",
             "protocol": "Tcp",
             "port": 29
-        }
+        }]
     },
     "public_nat":
     {
