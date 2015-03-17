@@ -183,6 +183,7 @@ node_templates:
                 service_type: { get_input: vcloud_service_type }
                 api_version: { get_input: vcloud_api_version }
                 org_url: { get_input: vcloud_org_url }
+                edge_gateway: { get_input: edge_gateway }
 
     manager_keypair:
         type: cloudify.vcloud.nodes.KeyPair

@@ -197,3 +197,13 @@ def check_protocol(protocol):
         raise cfy_exc.NonRecoverableError(
             "Unknown protocol: {0}. Valid protocols are: {1}".format(protocol, valid_protocols))
     return protocol
+
+def check_port(port):
+    if port.lower() == "any":
+        return port.lower()
+    if isinstance(port, int):
+        if port > 0 and port < 65536:
+            return port
+        else:
+            raise cfy_exc.NonRecoverableError("Invalid 'port' value. Port value must be between 1 and 65535")
+    raise cfy_exc.NonRecoverableError("Parameter 'port' must be integer, or 'any'")

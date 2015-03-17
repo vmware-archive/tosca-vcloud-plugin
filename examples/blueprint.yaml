@@ -149,3 +149,4 @@ node_templates:
                 url: https://vchs.vmware.com
                 service: M000000000-1111
                 vdc: M000000000-1111
+                edge_gateway: M000000000-1111
