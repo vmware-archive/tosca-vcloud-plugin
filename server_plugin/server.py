@@ -11,8 +11,6 @@
 #  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  * See the License for the specific language governing permissions and
 #  * limitations under the License.
-import random
-import string
 from cloudify import ctx
 from cloudify.decorators import operation
 from cloudify import exceptions as cfy_exc
@@ -30,6 +28,7 @@ GUEST_CUSTOMIZATION = 'guest_customization'
 HARDWARE = 'hardware'
 DEFAULT_EXECUTOR = "/bin/bash"
 DEFAULT_USER = "ubuntu"
+DEFAULT_HOME = "/home"
 
 
 @operation
@@ -51,13 +50,21 @@ def create(vca_client, **kwargs):
     vapp_name = server['name']
     vapp_template = server['template']
     vapp_catalog = server['catalog']
-
+    hardware = server.get('hardware')
+    cpu = None
+    memory = None
+    if hardware:
+        cpu = hardware.get('cpu')
+        memory = hardware.get('memory')
+        _check_hardware(cpu, memory)
     ctx.logger.info("Creating VApp with parameters: {0}".format(str(server)))
     task = vca_client.create_vapp(config['vdc'],
                                   vapp_name,
                                   vapp_template,
                                   vapp_catalog,
-                                  vm_name=vapp_name)
+                                  vm_name=vapp_name,
+                                  vm_cpus=cpu,
+                                  vm_memory=memory)
 
     if not task:
         raise cfy_exc.NonRecoverableError("Could not create vApp: {0}"
@@ -223,21 +230,36 @@ def _get_vm_network_connection(vapp, network_name):
 
 
 def _build_script(custom):
-    script = custom.get('script')
-    script_executor = custom.get('script_executor')
-    manager_public_key = custom.get('manager_public_key')
-    agent_public_key = custom.get('agent_public_key')
-    manager_user = custom.get('manager_user')
-    agent_user = custom.get('agent_user')
-    if not script and not manager_public_key and not agent_public_key:
+    pre_script = custom.get('pre_script', "")
+    post_script = custom.get('post_script', "")
+    public_keys = custom.get('public_keys')
+    if not pre_script and not post_script and not public_keys:
         return None
+    script_executor = custom.get('script_executor', DEFAULT_EXECUTOR)
+    public_keys_script = _build_public_keys_script(public_keys)
+    script_template = """#!{0}
+echo performing customization tasks with param $1 at `date "+DATE: %Y-%m-%d - TIME: %H:%M:%S"` >> /root/customization.log
+if [ "$1" = "precustomization" ];
+then
+  echo performing precustomization tasks on `date "+DATE: %Y-%m-%d - TIME: %H:%M:%S"` >> /root/customization.log
+  {1}
+  {2}
+fi
+if [ "$1" = "postcustomization" ];
+then
+  echo performing postcustomization tasks at `date "+DATE: %Y-%m-%d - TIME: %H:%M:%S"` >> /root/customization.log
+  {3}
+fi
+    """
+    script = script_template.format(script_executor, public_keys_script,
+                                    pre_script, post_script)
+    return script
 
-    executor = script_executor if script_executor else DEFAULT_EXECUTOR
-    manager_user = manager_user if manager_user else DEFAULT_USER
-    agent_user = agent_user if agent_user else DEFAULT_USER
 
-    ssh_dir_template = "/home/{0}/.ssh"
-    authorized_keys_template = "{0}/authorized_keys".format(ssh_dir_template)
+def _build_public_keys_script(public_keys):
+    key_commands = []
+    ssh_dir_template = "{0}/{1}/.ssh"
+    authorized_keys_template = "{0}/authorized_keys"
     add_key_template = "echo '{0}\n' >> {1}"
     test_ssh_dir_template = """
     if [ ! -d {1} ];then
@@ -249,39 +271,18 @@ def _build_script(custom):
       chmod 600 {2}
     fi
     """
-
-    manager_ssh_dir = ssh_dir_template.format(manager_user)
-    agent_ssh_dir = ssh_dir_template.format(agent_user)
-    manager_authorized_keys = authorized_keys_template.format(manager_user)
-    agent_authorized_keys = authorized_keys_template.format(agent_user)
-    manager_test_ssh_dir = test_ssh_dir_template.format(manager_user, manager_ssh_dir, manager_authorized_keys)
-    agent_test_ssh_dir = test_ssh_dir_template.format(agent_user, agent_ssh_dir, agent_authorized_keys)
-    configured_name = _create_file_name()
-
-    commands = []
-    commands.append("""#!{0}
-    if [ -f /root/{1} ]; then
-      exit
-    fi
-    touch /root/{1}
-    """.format(executor, configured_name))
-    if script:
-        commands.append(script)
-    if manager_public_key:
-        commands.append(manager_test_ssh_dir)
-        commands.append(add_key_template.format(manager_public_key, manager_authorized_keys))
-    if agent_public_key:
-        commands.append(agent_test_ssh_dir)
-        commands.append(add_key_template.format(agent_public_key, agent_authorized_keys))
-    script = "\n".join(commands)
-    return script
-
-
-def _create_file_name():
-    chars = string.ascii_lowercase + string.digits
-    configured_name = 'cloudify_confiured_{0}'.format(''.join([random.choice(chars)
-                                                               for _ in range(5)]))
-    return configured_name
+    for key in public_keys:
+        public_key = key.get('key')
+        if not public_key:
+            continue
+        user = key.get('user', DEFAULT_USER)
+        home = key.get('home', DEFAULT_HOME)
+        ssh_dir = ssh_dir_template.format(home, user)
+        authorized_keys = authorized_keys_template.format(ssh_dir)
+        test_ssh_dir = test_ssh_dir_template.format(user, ssh_dir, authorized_keys)
+        key_commands.append(test_ssh_dir)
+        key_commands.append(add_key_template.format(public_key, authorized_keys))
+    return "\n".join(key_commands)
 
 
 def _create_connections_list(vca_client):
@@ -343,3 +344,23 @@ def _isDhcpAvailable(vca_client, network_name):
             if admin_href == pool.get_Network().get_href():
                 return True
     return False
+
+
+def _check_hardware(cpu, memory):
+    if cpu is not None:
+        if isinstance(cpu, int):
+            if cpu < 1:
+                raise cfy_exc.NonRecoverableError("Too small quantity of CPU's: {0}".format(cpu))
+            if cpu > 64:
+                raise cfy_exc.NonRecoverableError("Too many of CPU's: {0}".format(cpu))
+        else:
+            raise cfy_exc.NonRecoverableError("Quantity of CPU's must be integer")
+
+    if memory is not None:
+        if isinstance(memory, int):
+            if memory < 512:
+                raise cfy_exc.NonRecoverableError("Too small quantity of memory: {0}".format(memory))
+            if memory > (512 * 1024):  # 512Gb
+                raise cfy_exc.NonRecoverableError("Too many memory: {0}".format(memory))
+        else:
+            raise cfy_exc.NonRecoverableError("Quantity of memory must be integer")
