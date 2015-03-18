@@ -115,6 +115,8 @@ node_types:
                 default: ''
             public_key:
                 default: {}
+            vcloud_config:
+                default: {}
         interfaces:
             cloudify.interfaces.validation:
                 creation:
