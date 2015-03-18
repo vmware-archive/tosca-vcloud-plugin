@@ -30,28 +30,28 @@ def delete(vca_client, **kwargs):
 def creation_validation(vca_client, **kwargs):
     getaway = get_gateway(vca_client, _get_gateway_name(ctx.node.properties))
     if not getaway.is_fw_enabled():
-        raise cfy_exc.NonRecoverableError("Giteway firewall is disabled. Please turn on firewall.")
+        raise cfy_exc.NonRecoverableError("Giteway firewall is disabled. Please, enable firewall.")
     rules = get_mandatory(ctx.node.properties, 'rules')
     for rule in rules:
         description = rule.get("description")
-        if description and not isinstance(description, str):
+        if description and not isinstance(description, unicode):
             raise cfy_exc.NonRecoverableError("Parameter 'description' must be string.")
 
         source = rule.get("source")
-        if source and not isinstance(source, str):
+        if source and not isinstance(source, unicode):
             raise cfy_exc.NonRecoverableError("Parameter 'source' must be valid IP address string.")
         if source.capitalize() not in ADDRESS_LITERALS:
             check_ip(source)
 
-        check_port(rule.get('source_port'), "any")
+        check_port(rule.get('source_port', "any"))
 
-        destination = get_mandatory(rule)
-        if not destination or not isinstance(destination, str):
+        destination = get_mandatory(rule, 'destination')
+        if not destination or not isinstance(destination, unicode):
             raise cfy_exc.NonRecoverableError("Parameter 'destination' must be valid IP address string.")
         if destination.capitalize() not in ADDRESS_LITERALS:
             check_ip(source)
 
-        check_port(get_mandatory('destination_port'))
+        check_port(get_mandatory(rule, 'destination_port'))
 
         check_protocol(rule.get('protocol', "any"))
 
@@ -65,22 +65,31 @@ def creation_validation(vca_client, **kwargs):
 
 
 def _rule_operation(operation, vca_client):
-    gateway = get_gateway(vca_client, _get_gateway_name(ctx.node.properties))
+    gateway = get_gateway(vca_client, _get_gateway_name(ctx.target.node.properties))
     for rule in ctx.target.node.properties['rules']:
-        protocol = check_protocol(rule.get('protocol', "Any"))
-        dest_port = str(rule['port'])
-        description = rule['description']
-        dest_ip = check_ip(get_vm_ip(vca_client, ctx))
+        description = rule.get('description', "Rule added by pyvcloud")
+        source_ip = rule.get("source", "external")
+        if source_ip.capitalize() not in ADDRESS_LITERALS:
+            check_ip(source_ip)
+        source_port = str(rule.get("source_port", "any")).capitalize()
+        dest_ip = rule.get("destination", get_vm_ip(vca_client, ctx))
+        if dest_ip.capitalize() not in ADDRESS_LITERALS:
+            check_ip(dest_ip)
+        dest_port = str(rule.get('destination_port', "any")).capitalize()
+        protocol = rule.get('protocol', "any").capitalize()
+        action = rule.get("action", "allow")
+        log = rule.get('log_traffic', False)
+
         if operation == CREATE_RULE:
-            gateway.add_fw_rule(True, description, "allow", protocol, dest_port, dest_ip,
-                                "Any", "External", False)
+            gateway.add_fw_rule(True, description, action, protocol, dest_port, dest_ip,
+                                source_port, source_ip, log)
             error_message = "Could not add firewall rule: {0}".format(description)
-            ctx.logger.info("Firewall rule has been created {0}".format(description))
+            ctx.logger.info("Firewall rule has been created: {0}".format(description))
         elif operation == DELETE_RULE:
             gateway.delete_fw_rule(protocol, dest_port, dest_ip,
-                                   "Any", "external")
+                                   source_port, source_ip)
             error_message = "Could not delete firewall rule: {0}".format(description)
-            ctx.logger.info("Firewall rule has been deleted {0}".format(description))
+            ctx.logger.info("Firewall rule has been deleted: {0}".format(description))
     save_gateway_configuration(gateway, vca_client, error_message)
 
 def _check_protocol(protocol):
