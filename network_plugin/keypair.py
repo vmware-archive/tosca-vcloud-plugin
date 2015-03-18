@@ -9,5 +9,7 @@ import os.path
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
     key = get_mandatory(ctx.node.properties, 'private_key_path')
-    if not os.path.isfile(key):
-        raise cfy_exc.NonRecoverableError("Private key file {0} is absent".format(key))
+    key_path = os.path.expanduser(key)
+    if not os.path.isfile(key_path):
+        raise cfy_exc.NonRecoverableError(
+            "Private key file {0} is absent".format(key_path))
