@@ -26,6 +26,10 @@ inputs:
         type: string
         default: 'subscription'
 
+    vcloud_region:
+        type: string
+        default: ''
+
     vcloud_api_version:
         type: string
         default: '5.6'
@@ -50,6 +54,14 @@ inputs:
 
     manager_server_template:
         type: string
+
+    manager_server_cpus:
+        type: string
+        default: 2
+
+    manager_server_memory:
+        type: string
+        default: 4096
 
     management_network_use_existing:
         type: boolean
@@ -126,6 +138,9 @@ node_templates:
                         - { get_property: [manager_keypair, public_key] }
                         - { get_property: [agent_keypair, public_key] }
                     computer_name: { get_input: manager_server_name }
+                hardware:
+                    cpu: { get_input: manager_server_cpus }
+                    memory: { get_input: manager_server_memory }
             management_network: { get_input: management_network_name }
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
         relationships:
@@ -181,6 +196,7 @@ node_templates:
                 service: { get_input: vcloud_service }
                 vdc: { get_input: vcloud_vdc }
                 service_type: { get_input: vcloud_service_type }
+                region: { get_input: vcloud_region }
                 api_version: { get_input: vcloud_api_version }
                 org_url: { get_input: vcloud_org_url }
 
