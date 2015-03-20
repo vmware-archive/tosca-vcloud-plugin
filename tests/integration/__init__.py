@@ -26,5 +26,5 @@ class TestCase(unittest.TestCase):
             node_name='test',
             properties={})
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
-            self.vcloud_config = get_vcloud_config()
+            self.vcloud_config = config
             self.vca_client = VcloudAirClient().get(config=config)

@@ -1,8 +1,14 @@
 {
+"test_vm": "vapp_name",
+"test_network_name": "test-network",
+"management_network": "networkname",
+"ondemand_management_network": "default-routed-network",
 "server":
     {
         "catalog": "",
         "template": "",
+        "ondemand_catalog": "Public Catalog",
+        "ondemand_template": "Ubuntu Server 12.04 LTS (amd64 20150127)",
         "guest_customization":
             {
             "admin_password": "123",
@@ -28,13 +34,11 @@
         "key": "agentkey",
         "user": "ubuntu"
     },
-    "management_network": "networkname",
 "floatingip":
     {
         "public_ip": "1.2.3.4",
         "edge_gateway": "gatewayname"
     },
-"test_vm": "vapp_name",
 "network":
     {
         "name": "newnetworkname",
