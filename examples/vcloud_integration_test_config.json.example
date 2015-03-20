@@ -60,8 +60,13 @@
         "rules" :[
         {
             "description": "Rule description",
+            "source": "external",
+            "source_port": 29,
+            "destination": "internal",
+            "destination_port": "any",
             "protocol": "Tcp",
-            "port": 29
+            "action": "allow",
+            "log_traffic": False
         }]
     },
     "public_nat":

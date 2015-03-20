@@ -5,6 +5,6 @@
 "service": "",
 "vdc": "",
 "service_type": "",
-"region": ""
+"edge_gateway" : ""
 }
 
