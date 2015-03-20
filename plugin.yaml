@@ -128,6 +128,7 @@ relationships:
                     implementation: vcloud.network_plugin.security_group.delete
                     inputs: {}
     cloudify.vcloud.net_connected_to_public_nat:
+        derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
                 establish:
@@ -137,6 +138,7 @@ relationships:
                     implementation: vcloud.network_plugin.public_nat.net_disconnect_from_nat
                     inputs: {}
     cloudify.vcloud.server_connected_to_public_nat:
+        derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
                 establish:
