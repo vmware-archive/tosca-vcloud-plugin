@@ -173,4 +173,7 @@ def _split_adresses(address_range):
 
 def _get_network_list(vca_client, vdc_name):
     vdc = vca_client.get_vdc(vdc_name)
+    if not vdc:
+        raise cfy_exc.NonRecoverableError(
+            "Vdc {0} not found.".format(vdc_name))
     return [net.name for net in vdc.AvailableNetworks.Network]

@@ -29,6 +29,8 @@ inputs:
     vcloud_region:
         type: string
         default: ''
+        description: >
+            Only required for ondemand service type.
 
     vcloud_api_version:
         type: string
@@ -88,6 +90,9 @@ inputs:
     floating_ip_public_ip:
         type: string
         default: ''
+        description: >
+            For 'ondemand' service type, the value of
+            floating_ip_public_ip can be empty
 
     agents_user:
         type: string
