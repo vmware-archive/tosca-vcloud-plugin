@@ -153,6 +153,7 @@ node_templates:
             use_external_resource: { get_input: management_network_use_existing }
             resource_id: { get_input: management_network_name }
             network:
+                name: { get_input: management_network_name }
                 edge_gateway: { get_input: edge_gateway }
                 static_range: 10.67.79.129-10.67.79.254
                 netmask: 255.255.255.0
