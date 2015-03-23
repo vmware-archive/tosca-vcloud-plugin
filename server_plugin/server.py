@@ -147,7 +147,7 @@ def create(vca_client, **kwargs):
 def start(vca_client, **kwargs):
     vapp_name = ctx.instance.runtime_properties.get(VCLOUD_VAPP_NAME)
     if not vapp_name:
-        ctx.logger.info("Could not start vApp by unknow name")
+        ctx.logger.info("No vapp name in runtime properties")
         return
     config = get_vcloud_config()
     vdc = vca_client.get_vdc(config['vdc'])
@@ -165,7 +165,7 @@ def start(vca_client, **kwargs):
 def stop(vca_client, **kwargs):
     vapp_name = ctx.instance.runtime_properties.get(VCLOUD_VAPP_NAME)
     if not vapp_name:
-        ctx.logger.info("Could not stop vApp by unknow name")
+        ctx.logger.info("No vapp name in runtime properties")
         return
     config = get_vcloud_config()
     vdc = vca_client.get_vdc(config['vdc'])
@@ -182,7 +182,7 @@ def stop(vca_client, **kwargs):
 def delete(vca_client, **kwargs):
     vapp_name = ctx.instance.runtime_properties.get(VCLOUD_VAPP_NAME)
     if not vapp_name:
-        ctx.logger.info("Could not delete vApp by unknow name")
+        ctx.logger.info("No vapp name in runtime properties")
         return
     config = get_vcloud_config()
     vdc = vca_client.get_vdc(config['vdc'])
@@ -200,7 +200,7 @@ def delete(vca_client, **kwargs):
 def get_state(vca_client, **kwargs):
     vapp_name = ctx.instance.runtime_properties.get(VCLOUD_VAPP_NAME)
     if not vapp_name:
-        ctx.logger.info("Could not get state of vApp by unknow name")
+        ctx.logger.info("No vapp name in runtime properties")
         return
     config = get_vcloud_config()
     vdc = vca_client.get_vdc(config['vdc'])
