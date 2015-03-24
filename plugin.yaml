@@ -65,6 +65,10 @@ node_types:
                 default: {}
             vcloud_config:
                 default: {}
+        interfaces:
+            cloudify.interfaces.validation:
+                creation:
+                    implementation: vcloud.network_plugin.port.creation_validation
 
     cloudify.vcloud.nodes.FloatingIP:
         derived_from: cloudify.nodes.VirtualIP
@@ -73,6 +77,10 @@ node_types:
                 default: {}
             vcloud_config:
                 default: {}
+        interfaces:
+            cloudify.interfaces.validation:
+                creation:
+                    implementation: vcloud.network_plugin.floatingip.creation_validation
 
     cloudify.vcloud.nodes.PublicNAT:
         derived_from: cloudify.nodes.VirtualIP
@@ -81,6 +89,10 @@ node_types:
                 default: {}
             rules:
                 default: []
+        interfaces:
+            cloudify.interfaces.validation:
+                creation:
+                    implementation: vcloud.network_plugin.public_nat.creation_validation
 
     cloudify.vcloud.nodes.SecurityGroup:
         derived_from: cloudify.nodes.SecurityGroup
@@ -91,6 +103,10 @@ node_types:
                 default: []
             vcloud_config:
                 default: {}
+        interfaces:
+            cloudify.interfaces.validation:
+                creation:
+                    implementation: vcloud.network_plugin.security_group.creation_validation
 
     cloudify.vcloud.nodes.KeyPair:
         derived_from: cloudify.nodes.Root
@@ -99,6 +115,12 @@ node_types:
                 default: ''
             public_key:
                 default: {}
+            vcloud_config:
+                default: {}
+        interfaces:
+            cloudify.interfaces.validation:
+                creation:
+                    implementation: vcloud.network_plugin.keypair.creation_validation
 
 relationships:
     cloudify.vcloud.server_connected_to_floating_ip:

@@ -15,9 +15,11 @@
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
-from vcloud_plugin_common import with_vca_client, wait_for_task, get_vcloud_config
+from vcloud_plugin_common import with_vca_client, wait_for_task, get_vcloud_config, get_mandatory
 import collections
-from network_plugin import check_ip, save_gateway_configuration, get_network_name, is_network_exists
+from network_plugin import (check_ip, is_valid_ip_range, is_separate_ranges,
+                            is_ips_in_same_subnet, save_gateway_configuration,
+                            get_network_name, is_network_exists)
 
 
 VCLOUD_NETWORK_NAME = 'vcloud_network_name'
@@ -88,12 +90,39 @@ def delete(vca_client, **kwargs):
 @operation
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
-    net_list = _get_network_list(vca_client, get_vcloud_config()['vdc'])
     network_name = get_network_name(ctx.node.properties)
-    if network_name in net_list:
-        ctx.logger.info('Network {0} is available.'.format(network_name))
-    else:
-        ctx.logger.info('Network {0} is not available.'.format(network_name))
+    ctx.logger.info("Validation cloudify.vcloud.nodes.Network node: {0}".format(network_name))
+
+    if is_network_exists(vca_client, network_name):
+        if ctx.node.properties.get('use_external_resource'):
+            return
+        else:
+            raise cfy_exc.NonRecoverableError("Network already exsists: {0}".format(network_name))
+
+    net_prop = get_mandatory(ctx.node.properties, "network")
+    gateway_name = get_mandatory(net_prop, 'edge_gateway')
+    if not vca_client.get_gateway(get_vcloud_config()['vdc'], gateway_name):
+        raise cfy_exc.NonRecoverableError("Gateway {0} not found".format(gateway_name))
+
+    static_ip = _split_adresses(get_mandatory(net_prop, 'static_range'))
+    check_ip(static_ip.start)
+    check_ip(static_ip.end)
+    check_ip(get_mandatory(net_prop, "dns"))
+    gateway_ip = check_ip(get_mandatory(net_prop, "gateway_ip"))
+    netmask = check_ip(get_mandatory(net_prop, "netmask"))
+
+    ips = [gateway_ip, static_ip.start, static_ip.end]
+    dhcp = net_prop.get("dhcp")
+    if dhcp:
+        dhcp_range = get_mandatory(net_prop["dhcp"], "dhcp_range")
+        if not dhcp_range:
+            raise cfy_exc.NonRecoverableError("Parameter 'dhcp_range' not defined")
+        dhcp_ip = _split_adresses(dhcp_range)
+        if not is_separate_ranges(static_ip, dhcp_ip):
+            raise cfy_exc.NonRecoverableError("Static_range and dhcp_range is overlapped.")
+        ips.extend([dhcp_ip.start, dhcp_ip.end])
+    if not is_ips_in_same_subnet(ips, netmask):
+            raise cfy_exc.NonRecoverableError("IP addresses in divverent subnets.")
 
 
 def _dhcp_operation(vca_client, network_name, operation):
@@ -130,10 +159,9 @@ def _split_adresses(address_range):
     try:
         start = check_ip(adresses[0])
         end = check_ip(adresses[1])
-        #NOTE(achirko) string comparison, doesn't work for ips
-        #if start > end:
-        #    raise cfy_exc.NonRecoverableError(
-        #        "Start address {0} is greater than end address: {1}".format(start, end))
+        if not is_valid_ip_range(start, end):
+            raise cfy_exc.NonRecoverableError(
+                "Start address {0} is greater than end address: {1}".format(start, end))
         return IPRange(start=start, end=end)
     except IndexError:
         raise cfy_exc.NonRecoverableError("Can't parse IP range:{0}".

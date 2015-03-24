@@ -205,6 +205,7 @@ node_templates:
                 region: { get_input: vcloud_region }
                 api_version: { get_input: vcloud_api_version }
                 org_url: { get_input: vcloud_org_url }
+                edge_gateway: { get_input: edge_gateway }
 
     manager_keypair:
         type: cloudify.vcloud.nodes.KeyPair
