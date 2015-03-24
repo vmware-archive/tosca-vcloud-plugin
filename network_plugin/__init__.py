@@ -19,7 +19,7 @@ def check_ip(address):
     except ValueError:
         raise cfy_exc.NonRecoverableError(
             "Incorrect IP address: {0}".format(address))
-    except TypeError as e:
+    except TypeError:
         raise cfy_exc.NonRecoverableError(
             "Incorrect type of IP address value : {0}".format(address))
 
@@ -66,7 +66,7 @@ def collectAssignedIps(gateway):
 
 def get_vm_ip(vca_client, ctx):
     try:
-        vappName = _get_vapp_name(ctx.source.instance.runtime_properties)
+        vappName = get_vapp_name(ctx.source.instance.runtime_properties)
         vdc = vca_client.get_vdc(get_vcloud_config()['vdc'])
         vapp = vca_client.get_vapp(vdc, vappName)
         if not vapp:
@@ -83,11 +83,11 @@ def get_vm_ip(vca_client, ctx):
         raise cfy_exc.NonRecoverableError("Could not get vm IP address")
 
 
-def _get_vapp_name(runtime_properties):
-    try:
-        return runtime_properties[VCLOUD_VAPP_NAME]
-    except (IndexError, AttributeError, KeyError):
-        raise cfy_exc.NonRecoverableError("Could not find vApp by name")
+def get_vapp_name(runtime_properties):
+    vapp_name = runtime_properties.get(VCLOUD_VAPP_NAME)
+    if not vapp_name:
+        raise cfy_exc.NonRecoverableError("Could not find vApp name in runtime properties")
+    return vapp_name
 
 
 def save_gateway_configuration(gateway, vca_client, message):
@@ -197,6 +197,7 @@ def check_protocol(protocol):
         raise cfy_exc.NonRecoverableError(
             "Unknown protocol: {0}. Valid protocols are: {1}".format(protocol, valid_protocols))
     return protocol
+
 
 def check_port(port):
     if isinstance(port, int):
