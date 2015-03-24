@@ -21,7 +21,7 @@ from vcloud_plugin_common import (get_vcloud_config,
                                   with_vca_client,
                                   STATUS_POWERED_ON)
 
-from network_plugin import get_network_name, get_network, is_network_exists
+from network_plugin import get_network_name, get_network, is_network_exists, get_vapp_name
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 GUEST_CUSTOMIZATION = 'guest_customization'
@@ -145,10 +145,7 @@ def create(vca_client, **kwargs):
 @operation
 @with_vca_client
 def start(vca_client, **kwargs):
-    vapp_name = ctx.instance.runtime_properties.get(VCLOUD_VAPP_NAME)
-    if not vapp_name:
-        ctx.logger.info("No vapp name in runtime properties")
-        return
+    vapp_name = get_vapp_name(ctx.instance.runtime_properties)
     config = get_vcloud_config()
     vdc = vca_client.get_vdc(config['vdc'])
     vapp = vca_client.get_vapp(vdc, vapp_name)
@@ -163,10 +160,7 @@ def start(vca_client, **kwargs):
 @operation
 @with_vca_client
 def stop(vca_client, **kwargs):
-    vapp_name = ctx.instance.runtime_properties.get(VCLOUD_VAPP_NAME)
-    if not vapp_name:
-        ctx.logger.info("No vapp name in runtime properties")
-        return
+    vapp_name = get_vapp_name(ctx.instance.runtime_properties)
     config = get_vcloud_config()
     vdc = vca_client.get_vdc(config['vdc'])
     vapp = vca_client.get_vapp(vdc, vapp_name)
@@ -180,10 +174,7 @@ def stop(vca_client, **kwargs):
 @operation
 @with_vca_client
 def delete(vca_client, **kwargs):
-    vapp_name = ctx.instance.runtime_properties.get(VCLOUD_VAPP_NAME)
-    if not vapp_name:
-        ctx.logger.info("No vapp name in runtime properties")
-        return
+    vapp_name = get_vapp_name(ctx.instance.runtime_properties)
     config = get_vcloud_config()
     vdc = vca_client.get_vdc(config['vdc'])
     vapp = vca_client.get_vapp(vdc, vapp_name)
@@ -198,10 +189,7 @@ def delete(vca_client, **kwargs):
 @operation
 @with_vca_client
 def get_state(vca_client, **kwargs):
-    vapp_name = ctx.instance.runtime_properties.get(VCLOUD_VAPP_NAME)
-    if not vapp_name:
-        ctx.logger.info("No vapp name in runtime properties")
-        return
+    vapp_name = get_vapp_name(ctx.instance.runtime_properties)
     config = get_vcloud_config()
     vdc = vca_client.get_vdc(config['vdc'])
     vapp = vca_client.get_vapp(vdc, vapp_name)
