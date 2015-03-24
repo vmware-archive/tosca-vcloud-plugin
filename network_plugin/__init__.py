@@ -91,8 +91,8 @@ def get_vapp_name(runtime_properties):
 
 
 def save_gateway_configuration(gateway, vca_client, message):
-    task = gateway.save_services_configuration()
-    if not task:
+    task, success  = gateway.save_services_configuration()
+    if not task or not success:
         raise cfy_exc.NonRecoverableError(
             message)
     wait_for_task(vca_client, task)
