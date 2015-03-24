@@ -65,7 +65,7 @@ def get_vm_ip(vca_client, ctx):
 def _get_vapp_name(runtime_properties):
     try:
         return runtime_properties[VCLOUD_VAPP_NAME]
-    except (IndexError, AttributeError):
+    except (IndexError, AttributeError, KeyError):
         raise cfy_exc.NonRecoverableError("Could not find vApp by name")
 
 
