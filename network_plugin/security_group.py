@@ -90,7 +90,11 @@ def _rule_operation(operation, vca_client):
                                    source_port, source_ip)
             error_message = "Could not delete firewall rule: {0}".format(description)
             ctx.logger.info("Firewall rule has been deleted: {0}".format(description))
-    save_gateway_configuration(gateway, vca_client, error_message)
+
+    if not  save_gateway_configuration(gateway, vca_client):
+        return ctx.operation.retry(message='Waiting for gateway.',
+                                   retry_after=10)
+
 
 def _check_protocol(protocol):
     valid_protocols = ["Tcp", "Udp", "Icmp", "Any"]
