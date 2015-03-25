@@ -9,7 +9,7 @@ from network_plugin import (check_ip, get_vm_ip, save_gateway_configuration,
 CREATE_RULE = 1
 DELETE_RULE = 2
 
-ADDRESS_LITERALS = ("Any", "Internal", "External")
+ADDRESS_LITERALS = ("Any", "Internal", "External", "Host")
 ACTIONS = ("allow", "deny")
 
 
@@ -68,13 +68,17 @@ def _rule_operation(operation, vca_client):
     gateway = get_gateway(vca_client, _get_gateway_name(ctx.target.node.properties))
     for rule in ctx.target.node.properties['rules']:
         description = rule.get('description', "Rule added by pyvcloud")
-        source_ip = rule.get("source", "external")
-        if source_ip.capitalize() not in ADDRESS_LITERALS:
+        source_ip = rule.get("source", "external").capitalize()
+        if source_ip not in ADDRESS_LITERALS:
             check_ip(source_ip)
+        elif source_ip == ADDRESS_LITERALS[-1]:
+            source_ip = get_vm_ip(vca_client, ctx)
         source_port = str(rule.get("source_port", "any")).capitalize()
-        dest_ip = rule.get("destination", get_vm_ip(vca_client, ctx))
-        if dest_ip.capitalize() not in ADDRESS_LITERALS:
+        dest_ip = rule.get("destination", "external").capitalize()
+        if dest_ip not in ADDRESS_LITERALS:
             check_ip(dest_ip)
+        elif dest_ip == ADDRESS_LITERALS[-1]:
+            dest_ip = get_vm_ip(vca_client, ctx)
         dest_port = str(rule.get('destination_port', "any")).capitalize()
         protocol = rule.get('protocol', "any").capitalize()
         action = rule.get("action", "allow")
@@ -83,18 +87,15 @@ def _rule_operation(operation, vca_client):
         if operation == CREATE_RULE:
             gateway.add_fw_rule(True, description, action, protocol, dest_port, dest_ip,
                                 source_port, source_ip, log)
-            error_message = "Could not add firewall rule: {0}".format(description)
             ctx.logger.info("Firewall rule has been created: {0}".format(description))
         elif operation == DELETE_RULE:
             gateway.delete_fw_rule(protocol, dest_port, dest_ip,
                                    source_port, source_ip)
-            error_message = "Could not delete firewall rule: {0}".format(description)
             ctx.logger.info("Firewall rule has been deleted: {0}".format(description))
 
-    if not  save_gateway_configuration(gateway, vca_client):
+    if not save_gateway_configuration(gateway, vca_client):
         return ctx.operation.retry(message='Waiting for gateway.',
                                    retry_after=10)
-
 
 
 def _get_gateway_name(properties):
