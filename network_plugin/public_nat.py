@@ -113,13 +113,18 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip, 
             if rule == "DNAT":
                 function(
                     rule, public_ip, str(original_port), ip, str(translated_port), protocol)
-    save_gateway_configuration(gateway, vca_client, "Could not save edge gateway NAT configuration")
+
+    if not  save_gateway_configuration(gateway, vca_client):
+        return ctx.operation.retry(message='Waiting for gateway.',
+                                   retry_after=10)
+
     if operation == CREATE:
         ctx.target.instance.runtime_properties[PUBLIC_IP] = public_ip
     else:
         service_type = get_vcloud_config().get('service_type')
         if isOndemand(service_type):
-            del_ondemand_public_ip(vca_client, gateway, ctx.target.instance.runtime_properties[PUBLIC_IP], ctx)
+            if not ctx.target.node.properties['nat'].get(PUBLIC_IP):
+                del_ondemand_public_ip(vca_client, gateway, ctx.target.instance.runtime_properties[PUBLIC_IP], ctx)
         del ctx.target.instance.runtime_properties[PUBLIC_IP]
 
 
