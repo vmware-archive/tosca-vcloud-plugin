@@ -82,7 +82,7 @@ def prepare_vm_operation(vca_client, operation):
         translated_port = ctx.target.node.properties['rules'].get('translated_port', "any")
     except KeyError as e:
         raise cfy_exc.NonRecoverableError("Parameter not found: {0}".format(e))
-    private_ip = check_ip(get_vm_ip(vca_client, ctx))
+    private_ip = get_vm_ip(vca_client, ctx)
     nat_network_operation(vca_client, gateway, operation, rule_type, public_ip, [private_ip], original_port, translated_port, protocol)
 
 
