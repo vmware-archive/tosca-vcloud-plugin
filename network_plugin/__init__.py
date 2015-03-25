@@ -100,7 +100,7 @@ def save_gateway_configuration(gateway, vca_client):
         if BUSY_MESSAGE in error.message:
             return False
         else:
-            raise cfy_exc.NonRecoverableError(task.message)
+            raise cfy_exc.NonRecoverableError(error.message)
 
 
 

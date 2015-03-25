@@ -123,7 +123,8 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip, 
     else:
         service_type = get_vcloud_config().get('service_type')
         if isOndemand(service_type):
-            del_ondemand_public_ip(vca_client, gateway, ctx.target.instance.runtime_properties[PUBLIC_IP], ctx)
+            if not ctx.target.node.properties['nat'].get(PUBLIC_IP):
+                del_ondemand_public_ip(vca_client, gateway, ctx.target.instance.runtime_properties[PUBLIC_IP], ctx)
         del ctx.target.instance.runtime_properties[PUBLIC_IP]
 
 
