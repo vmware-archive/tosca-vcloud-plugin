@@ -92,9 +92,9 @@ def delete(vca_client, **kwargs):
 def creation_validation(vca_client, **kwargs):
     network_name = get_network_name(ctx.node.properties)
     ctx.logger.info("Validation cloudify.vcloud.nodes.Network node: {0}".format(network_name))
-
     if is_network_exists(vca_client, network_name):
         if ctx.node.properties.get('use_external_resource'):
+            # TODO: check: default gateway must exists
             return
         else:
             raise cfy_exc.NonRecoverableError("Network already exsists: {0}".format(network_name))
@@ -150,7 +150,9 @@ def _dhcp_operation(vca_client, network_name, operation):
         ctx.logger.info("DHCP rule successful deleted for network {0}".format(network_name))
         error_message = "Could not delete DHCP pool"
 
-    save_gateway_configuration(gateway, vca_client, error_message)
+    if not  save_gateway_configuration(gateway, vca_client):
+        return ctx.operation.retry(message='Waiting for gateway.',
+                                   retry_after=10)
 
 
 def _split_adresses(address_range):

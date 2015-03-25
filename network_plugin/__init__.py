@@ -1,7 +1,7 @@
 from IPy import IP
 from cloudify import exceptions as cfy_exc
 import collections
-
+from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType
 from vcloud_plugin_common import wait_for_task, get_vcloud_config, isSubscription
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
@@ -11,7 +11,7 @@ DELETE = 2
 
 
 AssignedIPs = collections.namedtuple('AssignedIPs', 'external internal')
-
+BUSY_MESSAGE = "The entity gateway is busy completing an operation."
 
 def check_ip(address):
     try:
@@ -90,12 +90,19 @@ def get_vapp_name(runtime_properties):
     return vapp_name
 
 
-def save_gateway_configuration(gateway, vca_client, message):
+def save_gateway_configuration(gateway, vca_client):
     task = gateway.save_services_configuration()
-    if not task:
-        raise cfy_exc.NonRecoverableError(
-            message)
-    wait_for_task(vca_client, task)
+    if task:
+        wait_for_task(vca_client, task)
+        return True
+    else:
+        error = taskType.parseString(gateway.response.content, True)
+        if BUSY_MESSAGE in error.message:
+            return False
+        else:
+            raise cfy_exc.NonRecoverableError(task.message)
+
+
 
 
 def getFreeIP(gateway):
