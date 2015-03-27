@@ -6,12 +6,14 @@ from vcloud_plugin_common import wait_for_task, get_vcloud_config, isSubscriptio
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 PUBLIC_IP = 'public_ip'
+NAT_ROUTED = 'natRouted'
 CREATE = 1
 DELETE = 2
 
 
 AssignedIPs = collections.namedtuple('AssignedIPs', 'external internal')
 BUSY_MESSAGE = "The entity gateway is busy completing an operation."
+
 
 def check_ip(address):
     try:
@@ -73,12 +75,15 @@ def get_vm_ip(vca_client, ctx):
             raise cfy_exc.NonRecoverableError("Could not find vApp {0}".format(vappName))
 
         vm_info = vapp.get_vms_network_info()
-        # assume that we have 1 vm per vApp with minium 1 connection
-        connection = vm_info[0][0]
-        if connection['is_connected']:
-            return connection['ip']
-        else:
-            raise cfy_exc.NonRecoverableError("Network not connected")
+        # assume that we have 1 vm per vApp
+        for connection in vm_info[0]:
+            if connection['is_connected'] and connection['is_primary']:
+                if is_network_routed(vca_client, connection['network_name']):
+                    return connection['ip']
+                else:
+                    raise cfy_exc.NonRecoverableError("Primary network {0} not routed".format(connection['network_name']))
+            else:
+                raise cfy_exc.NonRecoverableError("Primary network {0} not connected".format(connection['network_name']))
     except IndexError:
         raise cfy_exc.NonRecoverableError("Could not get vm IP address")
 
@@ -101,8 +106,6 @@ def save_gateway_configuration(gateway, vca_client):
             return False
         else:
             raise cfy_exc.NonRecoverableError(error.message)
-
-
 
 
 def getFreeIP(gateway):
@@ -133,23 +136,23 @@ def get_network_name(properties):
 
 
 def is_network_exists(vca_client, network_name):
-    networks = vca_client.get_networks(get_vcloud_config()['vdc'])
-    return any([network_name == net.get_name() for net in networks])
+    return bool(vca_client.get_network(get_vcloud_config()['vdc'], network_name))
+
+
+def is_network_routed(vca_client, network_name):
+    network = get_network(vca_client, network_name)
+    return network.get_Configuration().get_FenceMode() == NAT_ROUTED
 
 
 def get_network(vca_client, network_name):
     if not network_name:
         raise cfy_exc.NonRecoverableError(
             "Network name is empty".format(network_name))
-    result = None
-    networks = vca_client.get_networks(get_vcloud_config()['vdc'])
-    for network in networks:
-        if network.get_name() == network_name:
-            result = network
-    if result is None:
+    network = vca_client.get_network(get_vcloud_config()['vdc'], network_name)
+    if not network:
         raise cfy_exc.NonRecoverableError(
             "Network {0} could not be found".format(network_name))
-    return result
+    return network
 
 
 def get_ondemand_public_ip(vca_client, gateway, ctx):
