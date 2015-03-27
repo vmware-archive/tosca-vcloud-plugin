@@ -156,6 +156,11 @@ def start(vca_client, **kwargs):
             raise cfy_exc.NonRecoverableError("Could not create vApp")
         wait_for_task(vca_client, task)
 
+    if not _get_state(vca_client, ctx):
+        return ctx.operation.retry(
+            message="Waiting for VM's configuration to complete",
+            retry_after=5)
+
 
 @operation
 @with_vca_client
@@ -186,9 +191,7 @@ def delete(vca_client, **kwargs):
     del ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
 
 
-@operation
-@with_vca_client
-def get_state(vca_client, **kwargs):
+def _get_state(vca_client, ctx):
     vapp_name = get_vapp_name(ctx.instance.runtime_properties)
     config = get_vcloud_config()
     vdc = vca_client.get_vdc(config['vdc'])
