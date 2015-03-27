@@ -96,7 +96,7 @@ class FloatingIPOperationsTestCase(TestCase):
         floatingip.disconnect_floatingip()
         CheckAssignedExternalIp(public_ip, self._get_gateway())
 
-    def _test_floating_ip_create_delete_with_autoget_ip(self):
+    def test_floating_ip_create_delete_with_autoget_ip(self):
         self.ctx.target.node.properties['floatingip'].update(self.test_config['floatingip'])
         del self.ctx.target.node.properties['floatingip']['public_ip']
         floatingip.connect_floatingip()
@@ -254,11 +254,11 @@ class PublicNatOperationsTestCase(TestCase):
 
 if __name__ == '__main__':
     tests = [
-#        ValidationOperationsTestCase,
+        ValidationOperationsTestCase,
         FloatingIPOperationsTestCase,
-#        OrgNetworkOperationsTestCase,
-#        SecurityGroupOperationsTestCase,
-#        PublicNatOperationsTestCase,
+        OrgNetworkOperationsTestCase,
+        SecurityGroupOperationsTestCase,
+        PublicNatOperationsTestCase,
     ]
 
     run_tests(tests)
