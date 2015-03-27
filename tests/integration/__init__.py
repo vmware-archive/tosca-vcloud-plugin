@@ -1,7 +1,9 @@
 import mock
 import unittest
+import time
 
 from cloudify import mocks as cfy_mocks
+from cloudify import exceptions as cfy_exceptions
 
 from vcloud_plugin_common import Config, VcloudAirClient
 
@@ -43,6 +45,14 @@ class TestCase(unittest.TestCase):
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             self.vca_client = VcloudAirClient().get(config=self.vcloud_config)
 
+    def _run_with_retry(self, func, ctx):
+        while True:
+            try:
+                return func(ctx=ctx)
+            except cfy_exceptions.OperationRetry as e:
+                ctx.operation._operation_retry = None
+                ctx.logger.info(format(str(e)))
+                time.sleep(e.retry_after)
 
 def prepare_test_config():
     pass

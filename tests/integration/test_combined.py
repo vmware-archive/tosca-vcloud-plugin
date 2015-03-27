@@ -159,7 +159,7 @@ class CombinedTestCase(TestCase):
             mock.patch('server_plugin.server.ctx', self.server_ctx),
             mock.patch('vcloud_plugin_common.ctx', self.server_ctx)):
                 server.create()
-                server.start()
+                self._run_with_retry(server.start, self.server_ctx)
 
     def _delete_server(self):
         with contextlib.nested(
