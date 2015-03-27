@@ -254,11 +254,11 @@ class PublicNatOperationsTestCase(TestCase):
 
 if __name__ == '__main__':
     tests = [
-        ValidationOperationsTestCase,
+#        ValidationOperationsTestCase,
         FloatingIPOperationsTestCase,
-        OrgNetworkOperationsTestCase,
-        SecurityGroupOperationsTestCase,
-        PublicNatOperationsTestCase,
+#        OrgNetworkOperationsTestCase,
+#        SecurityGroupOperationsTestCase,
+#        PublicNatOperationsTestCase,
     ]
 
     run_tests(tests)
