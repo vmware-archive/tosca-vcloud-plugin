@@ -70,7 +70,7 @@
             "destination_port": "any",
             "protocol": "Tcp",
             "action": "allow",
-            "log_traffic": False
+            "log_traffic": false
         }]
     },
     "public_nat":

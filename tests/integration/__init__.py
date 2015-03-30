@@ -9,7 +9,7 @@ from cloudify import exceptions as cfy_exceptions
 
 from vcloud_plugin_common import Config, VcloudAirClient
 
-SUBSCRIPTION = 'subcription'
+SUBSCRIPTION = 'subscription'
 ONDEMAND = 'ondemand'
 
 
