@@ -45,7 +45,7 @@ inputs:
             example docs. If you are unsure of how to obtain this, you will
             need to use password based login.
 
-    vcloud_vdc:
+    vcloud_org:
         type: string
 
     manager_server_name:
@@ -200,7 +200,7 @@ node_templates:
                 token: { get_input: vcloud_token }
                 url: { get_input: vcloud_url }
                 service: { get_input: vcloud_service }
-                vdc: { get_input: vcloud_vdc }
+                org: { get_input: vcloud_org }
                 service_type: { get_input: vcloud_service_type }
                 region: { get_input: vcloud_region }
                 api_version: { get_input: vcloud_api_version }

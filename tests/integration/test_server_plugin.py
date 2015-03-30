@@ -63,7 +63,7 @@ class ServerNoNetworkTestCase(TestCase):
 
     def test_server_create_delete(self):
         server.create()
-        vdc = self.vca_client.get_vdc(self.vcloud_config['vdc'])
+        vdc = self.vca_client.get_vdc(self.vcloud_config['org'])
         vapp = self.vca_client.get_vapp(
             vdc,
             self.ctx.node.properties['server']['name'])
@@ -78,7 +78,7 @@ class ServerNoNetworkTestCase(TestCase):
 
     def test_server_stop_start(self):
         server.create()
-        vdc = self.vca_client.get_vdc(self.vcloud_config['vdc'])
+        vdc = self.vca_client.get_vdc(self.vcloud_config['org'])
         vapp = self.vca_client.get_vapp(
             vdc,
             self.ctx.node.properties['server']['name'])
@@ -201,7 +201,7 @@ class ServerWithNetworkTestCase(TestCase):
     def _create_test(self):
         server.create()
         self._run_with_retry(server.start, self.ctx)
-        vdc = self.vca_client.get_vdc(self.vcloud_config['vdc'])
+        vdc = self.vca_client.get_vdc(self.vcloud_config['org'])
         vapp = self.vca_client.get_vapp(
             vdc,
             self.ctx.node.properties['server']['name'])

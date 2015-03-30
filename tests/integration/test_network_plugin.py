@@ -108,7 +108,7 @@ class FloatingIPOperationsTestCase(TestCase):
         CheckAssignedExternalIp(public_ip, self._get_gateway())
 
     def _get_gateway(self):
-        return self.vca_client.get_gateway(self.vcloud_config["vdc"],
+        return self.vca_client.get_gateway(self.vcloud_config["org"],
                                            self.ctx.target.node.properties['floatingip']['edge_gateway'])
 
 
@@ -124,7 +124,7 @@ class OrgNetworkOperationsTestCase(TestCase):
                         "network": self.test_config['network'],
                         "vcloud_config": self.vcloud_config,
                         "use_external_resource": False})
-        self.vdc_name = self.vcloud_config["vdc"]
+        self.org_name = self.vcloud_config["org"]
         ctx_patch1 = mock.patch('network_plugin.network.ctx', self.ctx)
         ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
         ctx_patch1.start()
@@ -134,7 +134,7 @@ class OrgNetworkOperationsTestCase(TestCase):
         super(self.__class__, self).setUp()
 
     def get_pools(self):
-        gateway = self.vca_client.get_gateways(self.vdc_name)[0]
+        gateway = self.vca_client.get_gateways(self.org_name)[0]
         if not gateway:
             raise cfy_exc.NonRecoverableError("Gateway not found")
         gatewayConfiguration = gateway.me.get_Configuration()
@@ -148,15 +148,15 @@ class OrgNetworkOperationsTestCase(TestCase):
 
     def test_orgnetwork_create_delete(self):
         self.assertNotIn(self.net_name,
-                         network._get_network_list(self.vca_client, self.vdc_name))
+                         network._get_network_list(self.vca_client, self.org_name))
         start_pools = len(self.get_pools())
         network.create()
         self.assertIn(self.net_name,
-                      network._get_network_list(self.vca_client, self.vdc_name))
+                      network._get_network_list(self.vca_client, self.org_name))
         self.assertEqual(start_pools + 1, len(self.get_pools()))
         network.delete()
         self.assertNotIn(self.net_name,
-                         network._get_network_list(self.vca_client, self.vdc_name))
+                         network._get_network_list(self.vca_client, self.org_name))
         self.assertEqual(start_pools, len(self.get_pools()))
 
 
@@ -178,7 +178,7 @@ class SecurityGroupOperationsTestCase(TestCase):
         ctx_patch2.start()
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
-        self.vdc_name = self.vcloud_config["vdc"]
+        self.org_name = self.vcloud_config["org"]
         super(self.__class__, self).setUp()
 
     def tearDown(self):
@@ -192,7 +192,7 @@ class SecurityGroupOperationsTestCase(TestCase):
         self.assertEqual(rules, len(self.get_rules()))
 
     def get_rules(self):
-        gateway = self.vca_client.get_gateways(self.vdc_name)[0]
+        gateway = self.vca_client.get_gateways(self.org_name)[0]
         if not gateway:
             raise cfy_exc.NonRecoverableError("Gateway not found")
         gatewayConfiguration = gateway.me.get_Configuration()
@@ -248,5 +248,5 @@ class PublicNatOperationsTestCase(TestCase):
         return len(self._get_gateway().get_nat_rules())
 
     def _get_gateway(self):
-        return self.vca_client.get_gateway(self.vcloud_config["vdc"],
+        return self.vca_client.get_gateway(self.vcloud_config["org"],
                                            self.ctx.target.node.properties['nat']['edge_gateway'])

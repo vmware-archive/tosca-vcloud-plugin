@@ -133,7 +133,7 @@ class VcloudAirClient(object):
         password = cfg.get('password')
         token = cfg.get('token')
         service = cfg.get('service')
-        vdc = cfg.get('vdc')
+        org_name = cfg.get('org')
         service_type = cfg.get('service_type', SUBSCRIPTION_SERVICE_TYPE)
         region = cfg.get('region')
         org_url = cfg.get('org_url', None)
@@ -141,13 +141,13 @@ class VcloudAirClient(object):
         if not (all([url, token]) or all([url, username, password])):
             raise cfy_exc.NonRecoverableError(
                 "Login credentials must be specified")
-        if service_type == SUBSCRIPTION_SERVICE_TYPE and not (service and vdc):
+        if service_type == SUBSCRIPTION_SERVICE_TYPE and not (service and org_name):
             raise cfy_exc.NonRecoverableError(
                 "vCloud service and vDC must be specified")
 
         if service_type == SUBSCRIPTION_SERVICE_TYPE:
             vcloud_air = self._subscription_login(
-                url, username, password, token, service, vdc)
+                url, username, password, token, service, org_name)
         elif service_type == ONDEMAND_SERVICE_TYPE:
             vcloud_air = self._ondemand_login(
                 url, username, password, token, region)
@@ -155,14 +155,14 @@ class VcloudAirClient(object):
         # 'private' as well, for user friendliness of inputs
         elif service_type in (PRIVATE_SERVICE_TYPE, 'private'):
             vcloud_air = self._private_login(
-                url, username, password, token, vdc, org_url, api_version)
+                url, username, password, token, org_name, org_url, api_version)
         else:
             cfy_exc.NonRecoverableError(
                 "Unrecognized service type: {0}".format(service_type))
         return vcloud_air
 
     def _subscription_login(self, url, username, password, token, service,
-                            vdc):
+                            org_name):
         logined = False
         vdc_logined = False
 
@@ -192,7 +192,7 @@ class VcloudAirClient(object):
                     break
 
         for _ in range(self.LOGIN_RETRY_NUM):
-            vdc_logined = vca.login_to_org(service, vdc)
+            vdc_logined = vca.login_to_org(service, org_name)
             if vdc_logined is False:
                 ctx.logger.info("Login to VDC failed. Retrying...")
                 time.sleep(RELOGIN_TIMEOUT)
@@ -282,7 +282,7 @@ class VcloudAirClient(object):
         atexit.register(vca.logout)
         return vca
 
-    def _private_login(self, url, username, password, token, vdc,
+    def _private_login(self, url, username, password, token, org_name,
                        org_url=None, api_version='5.6'):
         logined = False
 
@@ -294,7 +294,7 @@ class VcloudAirClient(object):
 
         if logined is False and password:
             for _ in range(self.LOGIN_RETRY_NUM):
-                logined = vca.login(password, org=vdc)
+                logined = vca.login(password, org=org_name)
                 if logined is False:
                     ctx.logger.info("Login using password failed. Retrying...")
                     time.sleep(RELOGIN_TIMEOUT)

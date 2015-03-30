@@ -3,7 +3,7 @@
 "password": "",
 "url": "",
 "service": "",
-"vdc": "",
+"org": "",
 "service_type": "",
 "edge_gateway" : ""
 }
