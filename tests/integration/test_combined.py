@@ -13,7 +13,7 @@ from network_plugin import floatingip, network
 from server_plugin import server
 from vcloud_plugin_common import get_vcloud_config, VcloudAirClient
 
-from tests.integration import TestCase, IntegrationTestConfig
+from tests.integration import TestCase
 
 RANDOM_PREFIX_LENGTH = 5
 

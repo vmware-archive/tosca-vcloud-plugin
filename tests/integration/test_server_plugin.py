@@ -7,7 +7,7 @@ import time
 from cloudify import mocks as cfy_mocks
 
 from server_plugin import server
-from tests.integration import TestCase, run_tests
+from tests.integration import TestCase
 
 RANDOM_PREFIX_LENGTH = 5
 
@@ -238,11 +238,3 @@ class ServerWithNetworkTestCase(TestCase):
                 break
             time.sleep(2)
         self.assertTrue(verified)
-
-
-if __name__ == '__main__':
-    tests = [
-        ServerNoNetworkTestCase,
-        ServerWithNetworkTestCase,
-    ]
-    run_tests(tests)
