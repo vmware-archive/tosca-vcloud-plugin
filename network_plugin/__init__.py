@@ -66,7 +66,7 @@ def collectAssignedIps(gateway):
     return set(ips)
 
 
-def get_vm_ip(vca_client, ctx):
+def get_vm_ip(vca_client, ctx, gateway):
     try:
         vappName = get_vapp_name(ctx.source.instance.runtime_properties)
         vdc = vca_client.get_vdc(get_vcloud_config()['vdc'])
@@ -78,12 +78,11 @@ def get_vm_ip(vca_client, ctx):
         # assume that we have 1 vm per vApp
         for connection in vm_info[0]:
             if connection['is_connected'] and connection['is_primary']:
-                if is_network_routed(vca_client, connection['network_name']):
+                if is_network_routed(vca_client, connection['network_name'], gateway):
                     return connection['ip']
                 else:
                     raise cfy_exc.NonRecoverableError("Primary network {0} not routed".format(connection['network_name']))
-            else:
-                raise cfy_exc.NonRecoverableError("Primary network {0} not connected".format(connection['network_name']))
+        raise cfy_exc.NonRecoverableError("Primary network {0} not connected".format(connection['network_name']))
     except IndexError:
         raise cfy_exc.NonRecoverableError("Could not get vm IP address")
 
@@ -139,9 +138,15 @@ def is_network_exists(vca_client, network_name):
     return bool(vca_client.get_network(get_vcloud_config()['vdc'], network_name))
 
 
-def is_network_routed(vca_client, network_name):
+def is_network_routed(vca_client, network_name, gateway):
     network = get_network(vca_client, network_name)
-    return network.get_Configuration().get_FenceMode() == NAT_ROUTED
+    if network.get_Configuration().get_FenceMode() != NAT_ROUTED:
+        return False
+    interfaces = gateway.get_interfaces('internal')
+    for interface in interfaces:
+        if interface.get_Name() == network_name:
+            return True
+    return False
 
 
 def get_network(vca_client, network_name):
