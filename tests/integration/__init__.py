@@ -5,7 +5,17 @@ import time
 
 
 from cloudify import mocks as cfy_mocks
-from cloudify import exceptions as cfy_exceptions
+try:
+    from cloudify.exceptions import OperationRetry
+except ImportError:
+    from cloudify.exceptions import RecoverableError
+
+    class OperationRetry(RecoverableError):
+        def __init__(self, message=None, retry_after=None):
+            self.message = message
+            self.retry_after = retry_after
+
+
 
 from vcloud_plugin_common import Config, VcloudAirClient
 
@@ -69,6 +79,12 @@ To define servist type for tests, add one of command line key to nosetest comman
             self.vca_client = VcloudAirClient().get(config=self.vcloud_config)
 
     def _run_with_retry(self, func, ctx):
+
+        def retry(message, retry_after):
+            raise OperationRetry(message, retry_after)
+
+        ctx.operation.retry = retry
+
         while True:
             try:
                 return func(ctx=ctx)
