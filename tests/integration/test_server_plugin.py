@@ -4,6 +4,7 @@ import socket
 import string
 import time
 
+from cloudify import exceptions as cfy_exc
 from cloudify import mocks as cfy_mocks
 
 from server_plugin import server
@@ -14,6 +15,7 @@ RANDOM_PREFIX_LENGTH = 5
 
 class ServerNoNetworkTestCase(TestCase):
     def setUp(self):
+        super(ServerNoNetworkTestCase, self).setUp()
         chars = string.ascii_uppercase + string.digits
         self.name_prefix = ('plugin_test_{0}_'
                             .format(''.join(
@@ -48,7 +50,6 @@ class ServerNoNetworkTestCase(TestCase):
         ctx_patch2.start()
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
-        super(ServerNoNetworkTestCase, self).setUp()
 
     def tearDown(self):
         try:
@@ -60,6 +61,31 @@ class ServerNoNetworkTestCase(TestCase):
         except Exception:
             pass
         super(ServerNoNetworkTestCase, self).tearDown()
+
+    def test_server_creation_validation(self):
+        success = True
+        msg = None
+        try:
+            server.creation_validation()
+        except cfy_exc.NonRecoverableError as e:
+            success = False
+            msg = e.message
+        self.assertTrue(success, msg)
+
+    def test_server_creation_validation_catalog_not_found(self):
+        self.ctx.node.properties['server']['catalog'] = 'fake-catalog'
+        self.assertRaises(cfy_exc.NonRecoverableError,
+                          server.creation_validation)
+
+    def test_server_creation_validation_template_not_found(self):
+        self.ctx.node.properties['server']['template'] = 'fake-template'
+        self.assertRaises(cfy_exc.NonRecoverableError,
+                          server.creation_validation)
+
+    def test_server_creation_validation_parameter_missing(self):
+        del self.ctx.node.properties['server']['template']
+        self.assertRaises(cfy_exc.NonRecoverableError,
+                          server.creation_validation)
 
     def test_server_create_delete(self):
         server.create()
@@ -113,6 +139,7 @@ class ServerNoNetworkTestCase(TestCase):
 
 class ServerWithNetworkTestCase(TestCase):
     def setUp(self):
+        super(ServerWithNetworkTestCase, self).setUp()
         chars = string.ascii_uppercase + string.digits
         self.name_prefix = ('plugin_test_{0}_'
                             .format(''.join(
@@ -173,7 +200,6 @@ class ServerWithNetworkTestCase(TestCase):
         ctx_patch2.start()
         self.addCleanup(ctx_patch1.stop)
         self.addCleanup(ctx_patch2.stop)
-        super(ServerWithNetworkTestCase, self).setUp()
 
     def tearDown(self):
         try:
@@ -216,7 +242,7 @@ class ServerWithNetworkTestCase(TestCase):
         server.create()
         self._run_with_retry(server.start, self.ctx)
         for _ in range(num_tries):
-            result = server.get_state()
+            result = server._get_state()
             if result is True:
                 self.assertTrue('ip' in self.ctx.instance.runtime_properties)
                 self.assertTrue('networks'

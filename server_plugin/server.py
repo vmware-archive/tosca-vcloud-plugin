@@ -33,6 +33,37 @@ DEFAULT_HOME = "/home"
 
 @operation
 @with_vca_client
+def creation_validation(vca_client, **kwargs):
+    def get_catalog(catalog_name):
+        catalogs = vca_client.get_catalogs()
+        for catalog in catalogs:
+            if catalog.get_name() == catalog_name: return catalog
+
+    def get_template(catalog, template_name):
+        for template in catalog.get_CatalogItems().get_CatalogItem():
+            if template.get_name() == template_name: return template
+
+    server_dict = ctx.node.properties['server']
+    required_params = ('catalog', 'template')
+    missed_params = set(required_params) - set(server_dict.keys())
+    if len(missed_params) > 0:
+        raise cfy_exc.NonRecoverableError(
+            "{0} server properties must be specified"
+            .format(list(missed_params)))
+
+    catalog = get_catalog(server_dict['catalog'])
+    if catalog is None:
+        raise cfy_exc.NonRecoverableError(
+            "Catalog {0} could not be found".format(server_dict['catalog']))
+
+    template = get_template(catalog, server_dict['template'])
+    if template is None:
+        raise cfy_exc.NonRecoverableError(
+            "Template {0} could not be found".format(server_dict['template']))
+
+
+@operation
+@with_vca_client
 def create(vca_client, **kwargs):
     config = get_vcloud_config()
     server = {
@@ -40,12 +71,6 @@ def create(vca_client, **kwargs):
     }
     server.update(ctx.node.properties['server'])
     transform_resource_name(server, ctx)
-    required_params = ('catalog', 'template')
-    missed_params = set(required_params) - set(server.keys())
-    if len(missed_params) > 0:
-        raise cfy_exc.NonRecoverableError(
-            "{0} server properties must be specified"
-            .format(list(missed_params)))
 
     vapp_name = server['name']
     vapp_template = server['template']
