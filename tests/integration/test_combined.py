@@ -13,7 +13,7 @@ from network_plugin import floatingip, network
 from server_plugin import server
 from vcloud_plugin_common import get_vcloud_config, VcloudAirClient
 
-from tests.integration import TestCase, IntegrationTestConfig
+from tests.integration import TestCase
 
 RANDOM_PREFIX_LENGTH = 5
 
@@ -159,7 +159,7 @@ class CombinedTestCase(TestCase):
             mock.patch('server_plugin.server.ctx', self.server_ctx),
             mock.patch('vcloud_plugin_common.ctx', self.server_ctx)):
                 server.create()
-                server.start()
+                self._run_with_retry(server.start, self.server_ctx)
 
     def _delete_server(self):
         with contextlib.nested(

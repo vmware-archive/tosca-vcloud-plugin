@@ -5,7 +5,7 @@ from server_plugin.server import VCLOUD_VAPP_NAME
 from network_plugin.network import VCLOUD_NETWORK_NAME
 from network_plugin import CheckAssignedExternalIp
 from cloudify import exceptions as cfy_exc
-from tests.integration import (TestCase, run_tests)
+from tests.integration import TestCase
 
 # for skipping test add this before test function:
 # @unittest.skip("skip test")
@@ -96,7 +96,7 @@ class FloatingIPOperationsTestCase(TestCase):
         floatingip.disconnect_floatingip()
         CheckAssignedExternalIp(public_ip, self._get_gateway())
 
-    def _test_floating_ip_create_delete_with_autoget_ip(self):
+    def test_floating_ip_create_delete_with_autoget_ip(self):
         self.ctx.target.node.properties['floatingip'].update(self.test_config['floatingip'])
         del self.ctx.target.node.properties['floatingip']['public_ip']
         floatingip.connect_floatingip()
@@ -250,15 +250,3 @@ class PublicNatOperationsTestCase(TestCase):
     def _get_gateway(self):
         return self.vca_client.get_gateway(self.vcloud_config["vdc"],
                                            self.ctx.target.node.properties['nat']['edge_gateway'])
-
-
-if __name__ == '__main__':
-    tests = [
-        ValidationOperationsTestCase,
-        FloatingIPOperationsTestCase,
-        OrgNetworkOperationsTestCase,
-        SecurityGroupOperationsTestCase,
-        PublicNatOperationsTestCase,
-    ]
-
-    run_tests(tests)

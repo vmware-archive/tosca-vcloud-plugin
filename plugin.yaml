@@ -30,10 +30,6 @@ node_types:
                 delete:
                     implementation: vcloud.server_plugin.server.delete
                     inputs: {}
-            cloudify.interfaces.host:
-                get_state:
-                    implementation: vcloud.server_plugin.server.get_state
-                    inputs: {}
 
     cloudify.vcloud.nodes.Network:
         derived_from: cloudify.nodes.Network

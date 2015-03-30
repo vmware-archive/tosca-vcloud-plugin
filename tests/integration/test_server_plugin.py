@@ -7,7 +7,7 @@ import time
 from cloudify import mocks as cfy_mocks
 
 from server_plugin import server
-from tests.integration import TestCase, run_tests
+from tests.integration import TestCase
 
 RANDOM_PREFIX_LENGTH = 5
 
@@ -85,7 +85,7 @@ class ServerNoNetworkTestCase(TestCase):
         self.assertFalse(vapp is None)
         self.assertFalse(server._vapp_is_on(vapp))
 
-        server.start()
+        self._run_with_retry(server.start, self.ctx)
         vapp = self.vca_client.get_vapp(
             vdc,
             self.ctx.node.properties['server']['name'])
@@ -97,7 +97,7 @@ class ServerNoNetworkTestCase(TestCase):
             self.ctx.node.properties['server']['name'])
         self.assertFalse(server._vapp_is_on(vapp))
 
-        server.start()
+        self._run_with_retry(server.start, self.ctx)
         vapp = self.vca_client.get_vapp(
             vdc,
             self.ctx.node.properties['server']['name'])
@@ -200,7 +200,7 @@ class ServerWithNetworkTestCase(TestCase):
 
     def _create_test(self):
         server.create()
-        server.start()
+        self._run_with_retry(server.start, self.ctx)
         vdc = self.vca_client.get_vdc(self.vcloud_config['vdc'])
         vapp = self.vca_client.get_vapp(
             vdc,
@@ -214,7 +214,7 @@ class ServerWithNetworkTestCase(TestCase):
         num_tries = 5
         verified = False
         server.create()
-        server.start()
+        self._run_with_retry(server.start, self.ctx)
         for _ in range(num_tries):
             result = server.get_state()
             if result is True:
@@ -238,11 +238,3 @@ class ServerWithNetworkTestCase(TestCase):
                 break
             time.sleep(2)
         self.assertTrue(verified)
-
-
-if __name__ == '__main__':
-    tests = [
-        ServerNoNetworkTestCase,
-        ServerWithNetworkTestCase,
-    ]
-    run_tests(tests)
