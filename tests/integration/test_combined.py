@@ -37,7 +37,8 @@ class CombinedTestCase(TestCase):
             properties={
                 "network": self.test_config['network'],
                 "use_external_resource": network_use_existing,
-                "resource_id": self.network_name})
+                "resource_id": self.network_name,
+                "vcloud_config": self.vcloud_config})
 
     def _setup_server(self, ip_allocation_mode):
         self.server_name = self.name_prefix + 'server'
@@ -60,7 +61,8 @@ class CombinedTestCase(TestCase):
             operation=self._get_retry(),
             properties={
                 'server': self.test_config['server'],
-                'management_network': self.network_name
+                'management_network': self.network_name,
+                "vcloud_config": self.vcloud_config
             }
         )
         self.server_ctx.instance.relationships = [port_relationship]
@@ -75,6 +77,7 @@ class CombinedTestCase(TestCase):
                 properties={'floatingip': self.test_config['floatingip']}),
             source=cfy_mocks.MockCloudifyContext(
                 node_id="source",
+                properties={'vcloud_config': self.vcloud_config},
                 runtime_properties={server.VCLOUD_VAPP_NAME: self.server_name}
             )
         )
