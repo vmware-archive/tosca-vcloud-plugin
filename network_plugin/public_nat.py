@@ -58,14 +58,14 @@ def creation_validation(vca_client, **kwargs):
 def prepare_network_operation(vca_client, operation):
     try:
         network_name = ctx.source.instance.runtime_properties[VCLOUD_NETWORK_NAME]
-        vdc_name = get_vcloud_config()['vdc']
+        org_name = get_vcloud_config()['org']
         rule_type = ctx.target.node.properties['rules']['type']
         gateway = get_gateway(vca_client,
                               ctx.target.node.properties['nat']['edge_gateway'])
         public_ip = _get_public_ip(vca_client, ctx, gateway, operation)
     except KeyError as e:
         raise cfy_exc.NonRecoverableError("Parameter not found: {0}".format(e))
-    ip_ranges = _get_network_ip_range(vca_client, vdc_name, network_name)
+    ip_ranges = _get_network_ip_range(vca_client, org_name, network_name)
     ip_ranges.extend(_get_gateway_ip_range(gateway, network_name))
     nat_network_operation(vca_client, gateway, operation, rule_type, public_ip, ip_ranges, "any", "any", "any")
 
@@ -128,8 +128,8 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip, 
         del ctx.target.instance.runtime_properties[PUBLIC_IP]
 
 
-def _get_network_ip_range(vca_client, vdc_name, network_name):
-    networks = vca_client.get_networks(vdc_name)
+def _get_network_ip_range(vca_client, org_name, network_name):
+    networks = vca_client.get_networks(org_name)
     scopes = []
     for scope in [net.Configuration.IpScopes.IpScope for net in networks if network_name == net.get_name()]:
         for ip in scope[0].IpRanges.IpRange:
@@ -148,7 +148,7 @@ def _get_gateway_ip_range(gateway, network_name):
 def _get_public_ip(vca_client, ctx, gateway, operation):
     public_ip = None
     if operation == CREATE:
-        public_ip = check_ip(ctx.target.node.properties['nat'].get(PUBLIC_IP))
+        public_ip = ctx.target.node.properties['nat'].get(PUBLIC_IP)
         if public_ip:
             CheckAssignedExternalIp(public_ip, gateway)
         else:

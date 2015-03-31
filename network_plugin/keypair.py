@@ -1,7 +1,7 @@
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
-from vcloud_plugin_common import with_vca_client, get_mandatory
+from vcloud_plugin_common import with_vca_client
 import os.path
 
 

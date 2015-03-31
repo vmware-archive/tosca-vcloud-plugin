@@ -1,0 +1,6 @@
+password: password
+region: uk-slough-1-6.vchs.vmware.com
+service_type: ondemand
+url: iam.vchs.vmware.com
+username: user
+org: VDC1

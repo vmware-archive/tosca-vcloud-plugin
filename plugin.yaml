@@ -1,5 +1,5 @@
 imports:
-    - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
+    - http://www.getcloudify.org/spec/cloudify/3.2m6/types.yaml
 
 plugins:
     vcloud:
@@ -29,10 +29,6 @@ node_types:
                     inputs: {}
                 delete:
                     implementation: vcloud.server_plugin.server.delete
-                    inputs: {}
-            cloudify.interfaces.host:
-                get_state:
-                    implementation: vcloud.server_plugin.server.get_state
                     inputs: {}
 
     cloudify.vcloud.nodes.Network:
@@ -150,6 +146,7 @@ relationships:
                     implementation: vcloud.network_plugin.security_group.delete
                     inputs: {}
     cloudify.vcloud.net_connected_to_public_nat:
+        derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
                 establish:
@@ -159,6 +156,7 @@ relationships:
                     implementation: vcloud.network_plugin.public_nat.net_disconnect_from_nat
                     inputs: {}
     cloudify.vcloud.server_connected_to_public_nat:
+        derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
                 establish:

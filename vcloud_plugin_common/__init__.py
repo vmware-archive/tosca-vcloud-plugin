@@ -14,7 +14,7 @@
 
 import atexit
 from functools import wraps
-import json
+import yaml
 import os
 import requests
 import time
@@ -98,7 +98,7 @@ def transform_resource_name(res, ctx):
 class Config(object):
 
     VCLOUD_CONFIG_PATH_ENV_VAR = 'VCLOUD_CONFIG_PATH'
-    VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_config.json'
+    VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_config.yaml'
 
     def get(self):
         cfg = {}
@@ -108,7 +108,7 @@ class Config(object):
         config_path = os.getenv(env_name, default_location)
         try:
             with open(config_path) as f:
-                cfg = json.loads(f.read())
+                cfg = yaml.load(f.read())
         except IOError:
             pass
         return cfg
@@ -133,7 +133,7 @@ class VcloudAirClient(object):
         password = cfg.get('password')
         token = cfg.get('token')
         service = cfg.get('service')
-        vdc = cfg.get('vdc')
+        org_name = cfg.get('org')
         service_type = cfg.get('service_type', SUBSCRIPTION_SERVICE_TYPE)
         region = cfg.get('region')
         org_url = cfg.get('org_url', None)
@@ -141,13 +141,13 @@ class VcloudAirClient(object):
         if not (all([url, token]) or all([url, username, password])):
             raise cfy_exc.NonRecoverableError(
                 "Login credentials must be specified")
-        if service_type == SUBSCRIPTION_SERVICE_TYPE and not (service and vdc):
+        if service_type == SUBSCRIPTION_SERVICE_TYPE and not (service and org_name):
             raise cfy_exc.NonRecoverableError(
                 "vCloud service and vDC must be specified")
 
         if service_type == SUBSCRIPTION_SERVICE_TYPE:
             vcloud_air = self._subscription_login(
-                url, username, password, token, service, vdc)
+                url, username, password, token, service, org_name)
         elif service_type == ONDEMAND_SERVICE_TYPE:
             vcloud_air = self._ondemand_login(
                 url, username, password, token, region)
@@ -155,14 +155,14 @@ class VcloudAirClient(object):
         # 'private' as well, for user friendliness of inputs
         elif service_type in (PRIVATE_SERVICE_TYPE, 'private'):
             vcloud_air = self._private_login(
-                url, username, password, token, vdc, org_url, api_version)
+                url, username, password, token, org_name, org_url, api_version)
         else:
             cfy_exc.NonRecoverableError(
                 "Unrecognized service type: {0}".format(service_type))
         return vcloud_air
 
     def _subscription_login(self, url, username, password, token, service,
-                            vdc):
+                            org_name):
         logined = False
         vdc_logined = False
 
@@ -171,36 +171,33 @@ class VcloudAirClient(object):
             version='5.6')
         if token:
             for _ in range(self.LOGIN_RETRY_NUM):
-                success = vca.login(token=token)
-                if success is False:
+                logined = vca.login(token=token)
+                if logined is False:
                     ctx.logger.info("Login using token failed.")
                     time.sleep(RELOGIN_TIMEOUT)
                     continue
                 else:
-                    logined = True
                     ctx.logger.info("Login using token successful.")
                     break
 
         if logined is False and password:
             for _ in range(self.LOGIN_RETRY_NUM):
-                success = vca.login(password)
-                if success is False:
+                logined = vca.login(password)
+                if logined is False:
                     ctx.logger.info("Login using password failed. Retrying...")
                     time.sleep(RELOGIN_TIMEOUT)
                     continue
                 else:
-                    logined = True
                     ctx.logger.info("Login using password successful.")
                     break
 
         for _ in range(self.LOGIN_RETRY_NUM):
-            success = vca.login_to_org(service, vdc)
-            if success is False:
+            vdc_logined = vca.login_to_org(service, org_name)
+            if vdc_logined is False:
                 ctx.logger.info("Login to VDC failed. Retrying...")
                 time.sleep(RELOGIN_TIMEOUT)
                 continue
             else:
-                vdc_logined = True
                 ctx.logger.info("Login to VDC successful.")
                 break
 
@@ -225,27 +222,26 @@ class VcloudAirClient(object):
 
         if token:
             for _ in range(self.LOGIN_RETRY_NUM):
-                success = vca.login(token=token)
-                if success is False:
+                logined = vca.login(token=token)
+                if logined is False:
                     ctx.logger.info("Login using token failed.")
                     time.sleep(RELOGIN_TIMEOUT)
                     continue
                 else:
-                    logined = True
                     ctx.logger.info("Login using token successful.")
                     break
 
         if logined is False and password:
             for _ in range(self.LOGIN_RETRY_NUM):
-                success = vca.login(password)
-                if success is False:
+                logined = vca.login(password)
+                if logined is False:
                     ctx.logger.info("Login using password failed. Retrying...")
                     time.sleep(RELOGIN_TIMEOUT)
                     continue
                 else:
-                    logined = True
                     ctx.logger.info("Login using password successful.")
                     break
+
         for _ in range(self.LOGIN_RETRY_NUM):
             all_instances = vca.get_instances() or []
             instances = [instance for instance in all_instances
@@ -253,29 +249,27 @@ class VcloudAirClient(object):
             if len(instances) == 0:
                 cfy_exc.NonRecoverableError("No instances to login to.")
             instance = instances[0]
-            success = vca.login_to_instance(instance['id'], password, token,
+            instance_logined = vca.login_to_instance(instance['id'], password, token,
                                             None)
-            if success is False:
+            if instance_logined is False:
                 ctx.logger.info("Login to instance failed. Retrying...")
                 time.sleep(RELOGIN_TIMEOUT)
                 continue
             else:
-                instance_logined = True
                 ctx.logger.info("Login to instance successful.")
                 break
 
         for _ in range(self.LOGIN_RETRY_NUM):
             instance = vca.get_instances()[0]
 
-            success = vca.login_to_instance(instance['id'], None,
+            instance_logined = vca.login_to_instance(instance['id'], None,
                                             vca.vcloud_session.token,
                                             vca.vcloud_session.org_url)
-            if success is False:
+            if instance_logined is False:
                 ctx.logger.info("Login to instance failed. Retrying...")
                 time.sleep(RELOGIN_TIMEOUT)
                 continue
             else:
-                instance_logined = True
                 ctx.logger.info("Login to instance successful.")
                 break
 
@@ -288,7 +282,7 @@ class VcloudAirClient(object):
         atexit.register(vca.logout)
         return vca
 
-    def _private_login(self, url, username, password, token, vdc,
+    def _private_login(self, url, username, password, token, org_name,
                        org_url=None, api_version='5.6'):
         logined = False
 
@@ -300,13 +294,12 @@ class VcloudAirClient(object):
 
         if logined is False and password:
             for _ in range(self.LOGIN_RETRY_NUM):
-                success = vca.login(password, org=vdc)
-                if success is False:
+                logined = vca.login(password, org=org_name)
+                if logined is False:
                     ctx.logger.info("Login using password failed. Retrying...")
                     time.sleep(RELOGIN_TIMEOUT)
                     continue
                 else:
-                    logined = True
                     token = vca.token
                     # Set org_url based on the session, no matter what was
                     # passed in to the application, as this is guaranteed to
@@ -319,13 +312,12 @@ class VcloudAirClient(object):
         # don't seem to be able to retrieve any VDCs
         if token:
             for _ in range(self.LOGIN_RETRY_NUM):
-                success = vca.login(token=token, org_url=org_url)
-                if success is False:
+                logined = vca.login(token=token, org_url=org_url)
+                if logined is False:
                     ctx.logger.info("Login using token failed.")
                     time.sleep(RELOGIN_TIMEOUT)
                     continue
                 else:
-                    logined = True
                     ctx.logger.info("Login using token successful.")
                     break
 

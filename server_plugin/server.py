@@ -58,7 +58,7 @@ def create(vca_client, **kwargs):
         memory = hardware.get('memory')
         _check_hardware(cpu, memory)
     ctx.logger.info("Creating VApp with parameters: {0}".format(str(server)))
-    task = vca_client.create_vapp(config['vdc'],
+    task = vca_client.create_vapp(config['org'],
                                   vapp_name,
                                   vapp_template,
                                   vapp_catalog,
@@ -76,7 +76,7 @@ def create(vca_client, **kwargs):
 
     if connections:
         for index, connection in enumerate(connections):
-            vdc = vca_client.get_vdc(config['vdc'])
+            vdc = vca_client.get_vdc(config['org'])
             vapp = vca_client.get_vapp(vdc, vapp_name)
             if vapp is None:
                 raise cfy_exc.NonRecoverableError(
@@ -118,7 +118,7 @@ def create(vca_client, **kwargs):
 
     custom = server.get(GUEST_CUSTOMIZATION)
     if custom:
-        vdc = vca_client.get_vdc(config['vdc'])
+        vdc = vca_client.get_vdc(config['org'])
         vapp = vca_client.get_vapp(vdc, vapp_name)
         script = _build_script(custom)
         password = custom.get('admin_password')
@@ -147,7 +147,7 @@ def create(vca_client, **kwargs):
 def start(vca_client, **kwargs):
     vapp_name = get_vapp_name(ctx.instance.runtime_properties)
     config = get_vcloud_config()
-    vdc = vca_client.get_vdc(config['vdc'])
+    vdc = vca_client.get_vdc(config['org'])
     vapp = vca_client.get_vapp(vdc, vapp_name)
     if _vapp_is_on(vapp) is False:
         ctx.logger.info("Power-on VApp {0}".format(vapp_name))
@@ -156,13 +156,18 @@ def start(vca_client, **kwargs):
             raise cfy_exc.NonRecoverableError("Could not create vApp")
         wait_for_task(vca_client, task)
 
+    if not _get_state(vca_client, ctx):
+        return ctx.operation.retry(
+            message="Waiting for VM's configuration to complete",
+            retry_after=5)
+
 
 @operation
 @with_vca_client
 def stop(vca_client, **kwargs):
     vapp_name = get_vapp_name(ctx.instance.runtime_properties)
     config = get_vcloud_config()
-    vdc = vca_client.get_vdc(config['vdc'])
+    vdc = vca_client.get_vdc(config['org'])
     vapp = vca_client.get_vapp(vdc, vapp_name)
     ctx.logger.info("Power-off and undeploy VApp {0}".format(vapp_name))
     task = vapp.undeploy()
@@ -176,7 +181,7 @@ def stop(vca_client, **kwargs):
 def delete(vca_client, **kwargs):
     vapp_name = get_vapp_name(ctx.instance.runtime_properties)
     config = get_vcloud_config()
-    vdc = vca_client.get_vdc(config['vdc'])
+    vdc = vca_client.get_vdc(config['org'])
     vapp = vca_client.get_vapp(vdc, vapp_name)
     ctx.logger.info("Deleting VApp {0}".format(vapp_name))
     task = vapp.delete()
@@ -186,12 +191,10 @@ def delete(vca_client, **kwargs):
     del ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
 
 
-@operation
-@with_vca_client
-def get_state(vca_client, **kwargs):
+def _get_state(vca_client, ctx):
     vapp_name = get_vapp_name(ctx.instance.runtime_properties)
     config = get_vcloud_config()
-    vdc = vca_client.get_vdc(config['vdc'])
+    vdc = vca_client.get_vdc(config['org'])
     vapp = vca_client.get_vapp(vdc, vapp_name)
     nw_connections = _get_vm_network_connections(vapp)
     if len(nw_connections) == 0:
@@ -346,9 +349,9 @@ def _create_connection(network, ip_address, mac_address, ip_allocation_mode,
 
 
 def _isDhcpAvailable(vca_client, network_name):
-    vdc = get_vcloud_config()['vdc']
-    admin_href = vca_client.get_admin_network_href(vdc, network_name)
-    for gate in vca_client.get_gateways(vdc):
+    org_name = get_vcloud_config()['org']
+    admin_href = vca_client.get_admin_network_href(org_name, network_name)
+    for gate in vca_client.get_gateways(org_name):
         for pool in gate.get_dhcp_pools():
             if admin_href == pool.get_Network().get_href():
                 return True
