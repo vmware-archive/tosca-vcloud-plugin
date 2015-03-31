@@ -1,10 +1,10 @@
 imports:
-    - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
+    - http://www.getcloudify.org/spec/cloudify/3.2m6/types.yaml
 
 plugins:
     vcloud:
         executor: central_deployment_agent
-        source: https://github.com/cloudify-cosmo/tosca-vcloud-plugin/archive/master.zip
+        source: https://github.com/cloudify-cosmo/tosca-vcloud-plugin/archive/1.2-build.zip
 
 node_types:
     cloudify.vcloud.nodes.Server:
@@ -146,6 +146,7 @@ relationships:
                     implementation: vcloud.network_plugin.security_group.delete
                     inputs: {}
     cloudify.vcloud.net_connected_to_public_nat:
+        derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
                 establish:
@@ -155,6 +156,7 @@ relationships:
                     implementation: vcloud.network_plugin.public_nat.net_disconnect_from_nat
                     inputs: {}
     cloudify.vcloud.server_connected_to_public_nat:
+        derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
                 establish:

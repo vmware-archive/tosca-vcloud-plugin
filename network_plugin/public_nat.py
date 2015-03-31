@@ -148,7 +148,7 @@ def _get_gateway_ip_range(gateway, network_name):
 def _get_public_ip(vca_client, ctx, gateway, operation):
     public_ip = None
     if operation == CREATE:
-        public_ip = check_ip(ctx.target.node.properties['nat'].get(PUBLIC_IP))
+        public_ip = ctx.target.node.properties['nat'].get(PUBLIC_IP)
         if public_ip:
             CheckAssignedExternalIp(public_ip, gateway)
         else:
