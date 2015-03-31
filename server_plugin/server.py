@@ -229,15 +229,20 @@ def _get_state(vca_client, ctx):
         return True
     management_network_name = ctx.node.properties['management_network']
     networks = {}
+
+    if not all([connection['ip'] for connection in nw_connections]):
+        ctx.logger.info("Network configuration is not finished yet.")
+        return False
+
     for connection in nw_connections:
         networks[connection['network_name']] = connection['ip']
         if connection['network_name'] == management_network_name:
             ctx.logger.info("Management network ip address {0}"
                             .format(connection['ip']))
-            if connection['ip']:
-                ctx.instance.runtime_properties['ip'] = connection['ip']
-                ctx.instance.runtime_properties['networks'] = networks
-                return True
+            ctx.instance.runtime_properties['ip'] = connection['ip']
+            ctx.instance.runtime_properties['networks'] = networks
+            return True
+
     return False
 
 
