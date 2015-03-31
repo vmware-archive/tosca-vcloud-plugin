@@ -67,7 +67,7 @@ def collectAssignedIps(gateway):
 def get_vm_ip(vca_client, ctx):
     try:
         vappName = get_vapp_name(ctx.source.instance.runtime_properties)
-        vdc = vca_client.get_vdc(get_vcloud_config()['vdc'])
+        vdc = vca_client.get_vdc(get_vcloud_config()['org'])
         vapp = vca_client.get_vapp(vdc, vappName)
         if not vapp:
             raise cfy_exc.NonRecoverableError("Could not find vApp {0}".format(vappName))
@@ -133,7 +133,7 @@ def get_network_name(properties):
 
 
 def is_network_exists(vca_client, network_name):
-    networks = vca_client.get_networks(get_vcloud_config()['vdc'])
+    networks = vca_client.get_networks(get_vcloud_config()['org'])
     return any([network_name == net.get_name() for net in networks])
 
 
@@ -142,7 +142,7 @@ def get_network(vca_client, network_name):
         raise cfy_exc.NonRecoverableError(
             "Network name is empty".format(network_name))
     result = None
-    networks = vca_client.get_networks(get_vcloud_config()['vdc'])
+    networks = vca_client.get_networks(get_vcloud_config()['org'])
     for network in networks:
         if network.get_name() == network_name:
             result = network
@@ -160,7 +160,7 @@ def get_ondemand_public_ip(vca_client, gateway, ctx):
     else:
         raise cfy_exc.NonRecoverableError("Can't get public ip for ondemand service")
     # update gateway for new IP address
-    gateway = vca_client.get_gateways(get_vcloud_config()['vdc'])[0]
+    gateway = vca_client.get_gateways(get_vcloud_config()['org'])[0]
     new_public_ips = set(gateway.get_public_ips())
     new_ip = new_public_ips - old_public_ips
     if new_ip:
@@ -190,7 +190,7 @@ def get_public_ip(vca_client, gateway, service_type, ctx):
 
 
 def get_gateway(vca_client, gateway_name):
-    gateway = vca_client.get_gateway(get_vcloud_config()['vdc'],
+    gateway = vca_client.get_gateway(get_vcloud_config()['org'],
                                      gateway_name)
     if not gateway:
         raise cfy_exc.NonRecoverableError("Gateway {0}  not found".format(gateway_name))

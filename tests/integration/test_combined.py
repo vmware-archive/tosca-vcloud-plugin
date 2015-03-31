@@ -2,7 +2,6 @@ import contextlib
 import ipaddress
 import mock
 import random
-import socket
 import string
 import time
 import unittest
@@ -11,7 +10,6 @@ from cloudify import mocks as cfy_mocks
 
 from network_plugin import floatingip, network
 from server_plugin import server
-from vcloud_plugin_common import get_vcloud_config, VcloudAirClient
 
 from tests.integration import TestCase
 
@@ -63,6 +61,7 @@ class CombinedTestCase(TestCase):
         self.server_ctx = cfy_mocks.MockCloudifyContext(
             node_id=self.server_name,
             node_name=self.server_name,
+            operation=self._get_retry(),
             properties={
                 'server': self.test_config['server'],
                 'management_network': self.network_name
@@ -101,7 +100,7 @@ class CombinedTestCase(TestCase):
             netmask = self.network_ctx.node.properties['network']['netmask']
             gw_interface = ipaddress.IPv4Interface(
                 gw_ip + '/' + netmask)
-            vdc = self.vca_client.get_vdc(self.vcloud_config['vdc'])
+            vdc = self.vca_client.get_vdc(self.vcloud_config['org'])
             vapp = self.vca_client.get_vapp(
                 vdc,
                 self.server_ctx.instance.runtime_properties[server.VCLOUD_VAPP_NAME])
@@ -130,7 +129,7 @@ class CombinedTestCase(TestCase):
             netmask = self.network_ctx.node.properties['network']['netmask']
             gw_interface = ipaddress.IPv4Interface(
                 gw_ip + '/' + netmask)
-            vdc = self.vca_client.get_vdc(self.vcloud_config['vdc'])
+            vdc = self.vca_client.get_vdc(self.vcloud_config['org'])
             vapp = self.vca_client.get_vapp(
                 vdc,
                 self.server_ctx.instance.runtime_properties[server.VCLOUD_VAPP_NAME])
