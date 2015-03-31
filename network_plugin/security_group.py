@@ -30,7 +30,7 @@ def delete(vca_client, **kwargs):
 def creation_validation(vca_client, **kwargs):
     getaway = get_gateway(vca_client, _get_gateway_name(ctx.node.properties))
     if not getaway.is_fw_enabled():
-        raise cfy_exc.NonRecoverableError("Giteway firewall is disabled. Please, enable firewall.")
+        raise cfy_exc.NonRecoverableError("Gateway firewall is disabled. Please, enable firewall.")
     rules = get_mandatory(ctx.node.properties, 'rules')
     for rule in rules:
         description = rule.get("description")

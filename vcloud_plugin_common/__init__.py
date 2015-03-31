@@ -14,7 +14,7 @@
 
 import atexit
 from functools import wraps
-import json
+import yaml
 import os
 import requests
 import time
@@ -98,7 +98,7 @@ def transform_resource_name(res, ctx):
 class Config(object):
 
     VCLOUD_CONFIG_PATH_ENV_VAR = 'VCLOUD_CONFIG_PATH'
-    VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_config.json'
+    VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_config.yaml'
 
     def get(self):
         cfg = {}
@@ -108,7 +108,7 @@ class Config(object):
         config_path = os.getenv(env_name, default_location)
         try:
             with open(config_path) as f:
-                cfg = json.loads(f.read())
+                cfg = yaml.load(f.read())
         except IOError:
             pass
         return cfg

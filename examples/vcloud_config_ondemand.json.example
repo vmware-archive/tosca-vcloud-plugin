@@ -1,8 +1,0 @@
-{
-    "username": "user",
-    "password": "password",
-    "url": "iam.vchs.vmware.com",
-    "org": "VDC1",
-    "service_type": "ondemand",
-    "region": "uk-slough-1-6.vchs.vmware.com"
-}

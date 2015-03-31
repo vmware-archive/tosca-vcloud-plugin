@@ -1,8 +1,8 @@
-import mock
-import unittest
 from testconfig import config
+import mock
 import time
-
+import unittest
+import yaml
 
 from cloudify import mocks as cfy_mocks
 try:
@@ -25,22 +25,22 @@ ONDEMAND = 'ondemand'
 
 class IntegrationSubscriptionTestConfig(Config):
     VCLOUD_CONFIG_PATH_ENV_VAR = 'VCLOUD_INTEGRATION_TEST_CONFIG_PATH'
-    VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_integration_subscription_test_config.json'
+    VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_integration_subscription_test_config.yaml'
 
 
 class IntegrationOndemandTestConfig(Config):
     VCLOUD_CONFIG_PATH_ENV_VAR = 'VCLOUD_INTEGRATION_TEST_CONFIG_PATH'
-    VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_integration_ondemand_test_config.json'
+    VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_integration_ondemand_test_config.yaml'
 
 
 class VcloudSubscriptionTestConfig(Config):
     VCLOUD_CONFIG_PATH_ENV_VAR = 'VCLOUD_CONFIG_PATH'
-    VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_config_subscription.json'
+    VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_config_subscription.yaml'
 
 
 class VcloudOndemandTestConfig(Config):
     VCLOUD_CONFIG_PATH_ENV_VAR = 'VCLOUD_CONFIG_PATH'
-    VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_config_ondemand.json'
+    VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_config_ondemand.yaml'
 
 
 class TestCase(unittest.TestCase):
