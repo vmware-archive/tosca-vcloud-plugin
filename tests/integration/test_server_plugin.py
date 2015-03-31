@@ -26,6 +26,7 @@ class ServerNoNetworkTestCase(TestCase):
         self.ctx = cfy_mocks.MockCloudifyContext(
             node_id=name,
             node_name=name,
+            operation=self._get_retry(),
             properties={
                 'server':
                 {
@@ -155,6 +156,7 @@ class ServerWithNetworkTestCase(TestCase):
         self.ctx = cfy_mocks.MockCloudifyContext(
             node_id=name,
             node_name=name,
+            operation=self._get_retry(),
             properties={
                 'server':
                 {

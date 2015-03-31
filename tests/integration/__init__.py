@@ -78,17 +78,20 @@ To define servist type for tests, add one of command line key to nosetest comman
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             self.vca_client = VcloudAirClient().get(config=self.vcloud_config)
 
-    def _run_with_retry(self, func, ctx):
-
+    def _get_retry(self):
         def retry(message, retry_after):
             raise OperationRetry(message, retry_after)
 
-        ctx.operation.retry = retry
+        operation_mock = mock.Mock()
+        operation_mock.retry = retry
+        return operation_mock
+
+    def _run_with_retry(self, func, ctx):
 
         while True:
             try:
                 return func(ctx=ctx)
-            except cfy_exceptions.OperationRetry as e:
+            except OperationRetry as e:
                 ctx.operation._operation_retry = None
                 ctx.logger.info(format(str(e)))
                 time.sleep(e.retry_after)
