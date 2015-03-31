@@ -34,22 +34,24 @@ def creation_validation(vca_client, **kwargs):
     rules = get_mandatory(ctx.node.properties, 'rules')
     for rule in rules:
         description = rule.get("description")
-        if description and not isinstance(description, unicode):
+        if description and not (isinstance(description, unicode) or isinstance(description, str)):
             raise cfy_exc.NonRecoverableError("Parameter 'description' must be string.")
 
         source = rule.get("source")
-        if source and not isinstance(source, unicode):
-            raise cfy_exc.NonRecoverableError("Parameter 'source' must be valid IP address string.")
-        if source.capitalize() not in ADDRESS_LITERALS:
-            check_ip(source)
+        if source:
+            if not (isinstance(source, unicode) or isinstance(source, str)):
+                raise cfy_exc.NonRecoverableError("Parameter 'source' must be valid IP address string.")
+            if source.capitalize() not in ADDRESS_LITERALS:
+                check_ip(source)
 
         check_port(rule.get('source_port', "any"))
 
-        destination = get_mandatory(rule, 'destination')
-        if not destination or not isinstance(destination, unicode):
-            raise cfy_exc.NonRecoverableError("Parameter 'destination' must be valid IP address string.")
-        if destination.capitalize() not in ADDRESS_LITERALS:
-            check_ip(source)
+        destination = rule.get('destination')
+        if destination:
+            if not (isinstance(destination, unicode) or isinstance(destination, str)):
+                raise cfy_exc.NonRecoverableError("Parameter 'destination' must be valid IP address string.")
+            if destination.capitalize() not in ADDRESS_LITERALS:
+                check_ip(source)
 
         check_port(get_mandatory(rule, 'destination_port'))
 
@@ -67,7 +69,7 @@ def creation_validation(vca_client, **kwargs):
 def _rule_operation(operation, vca_client):
     gateway = get_gateway(vca_client, _get_gateway_name(ctx.target.node.properties))
     for rule in ctx.target.node.properties['rules']:
-        description = rule.get('description', "Rule added by pyvcloud")
+        description = rule.get('description', "Rule added by pyvcloud").strip()
         source_ip = rule.get("source", "external").capitalize()
         if source_ip not in ADDRESS_LITERALS:
             check_ip(source_ip)
