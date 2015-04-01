@@ -157,7 +157,7 @@ class VcloudAirClient(object):
             vcloud_air = self._private_login(
                 url, username, password, token, vdc, org_url, api_version)
         else:
-            cfy_exc.NonRecoverableError(
+            raise cfy_exc.NonRecoverableError(
                 "Unrecognized service type: {0}".format(service_type))
         return vcloud_air
 
@@ -251,7 +251,7 @@ class VcloudAirClient(object):
             instances = [instance for instance in all_instances
                          if instance['region'] == region]
             if len(instances) == 0:
-                cfy_exc.NonRecoverableError("No instances to login to.")
+                raise cfy_exc.NonRecoverableError("No instances to login to.")
             instance = instances[0]
             success = vca.login_to_instance(instance['id'], password, token,
                                             None)
