@@ -214,6 +214,7 @@ node_templates:
             public_key:
                 key: { get_input: manager_public_key }
                 user: { get_input: manager_server_user }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
     agent_keypair:
         type: cloudify.vcloud.nodes.KeyPair
@@ -222,6 +223,7 @@ node_templates:
             public_key:
                 key: { get_input: agent_public_key }
                 user: { get_input: agents_user }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
     manager:
         type: cloudify.nodes.CloudifyManager
