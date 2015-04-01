@@ -1,6 +1,3 @@
-imports:
-    - http://www.getcloudify.org/spec/cloudify/3.2m6/types.yaml
-
 plugins:
     vcloud:
         executor: central_deployment_agent
