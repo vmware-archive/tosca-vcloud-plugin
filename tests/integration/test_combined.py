@@ -27,7 +27,8 @@ class CombinedTestCase(TestCase):
                                 for _ in range(RANDOM_PREFIX_LENGTH))))
 
     def _setup_network(self):
-        network_use_existing = self.test_config['combined']['network_use_existing']
+        network_use_existing = \
+            self.test_config['combined']['network_use_existing']
         existing_network = self.test_config['combined']['network_name']
         self.network_name = (existing_network if network_use_existing
                              else self.name_prefix + "network")
@@ -102,9 +103,11 @@ class CombinedTestCase(TestCase):
             vdc = self.vca_client.get_vdc(self.vcloud_config['org'])
             vapp = self.vca_client.get_vapp(
                 vdc,
-                self.server_ctx.instance.runtime_properties[server.VCLOUD_VAPP_NAME])
-            nw_connection = server._get_vm_network_connection(vapp,
-                                                              self.network_name)
+                self.server_ctx.instance.runtime_properties[
+                    server.VCLOUD_VAPP_NAME]
+            )
+            nw_connection = server._get_vm_network_connection(
+                vapp, self.network_name)
             self.assertTrue(ipaddress.IPv4Address(unicode(nw_connection['ip']))
                             in gw_interface.network,
                             "vm ip: {0}, expected network: {1}"
@@ -131,9 +134,11 @@ class CombinedTestCase(TestCase):
             vdc = self.vca_client.get_vdc(self.vcloud_config['org'])
             vapp = self.vca_client.get_vapp(
                 vdc,
-                self.server_ctx.instance.runtime_properties[server.VCLOUD_VAPP_NAME])
-            nw_connection = server._get_vm_network_connection(vapp,
-                                                              self.network_name)
+                self.server_ctx.instance.runtime_properties[
+                    server.VCLOUD_VAPP_NAME]
+            )
+            nw_connection = server._get_vm_network_connection(
+                vapp, self.network_name)
             self.assertTrue(ipaddress.IPv4Address(unicode(nw_connection['ip']))
                             in gw_interface.network,
                             "vm ip: {0}, expected network: {1}"

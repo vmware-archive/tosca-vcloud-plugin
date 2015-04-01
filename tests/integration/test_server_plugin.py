@@ -36,14 +36,16 @@ class ServerNoNetworkTestCase(TestCase):
                     'catalog': server_test_dict['catalog'],
                     'template': server_test_dict['template'],
                     'hardware': server_test_dict['hardware'],
-                    'guest_customization': server_test_dict.get('guest_customization')
+                    'guest_customization':
+                    server_test_dict.get('guest_customization')
                 },
                 'management_network': self.test_config['management_network'],
                 'vcloud_config': self.vcloud_config
             }
         )
-        self.ctx.node.properties['server']['guest_customization']['public_keys'] = [self.test_config['manager_keypair'],
-                                                                                    self.test_config['agent_keypair']]
+        self.ctx.node.properties['server']['guest_customization'][
+            'public_keys'] = [self.test_config['manager_keypair'],
+                              self.test_config['agent_keypair']]
         self.ctx.instance.relationships = []
         ctx_patch1 = mock.patch('server_plugin.server.ctx', self.ctx)
         ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)

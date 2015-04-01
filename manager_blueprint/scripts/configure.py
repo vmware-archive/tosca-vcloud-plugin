@@ -21,7 +21,8 @@ def _copy_vsphere_configuration_to_manager(vcloud_config):
 
 def _get_distro():
     """ detect current distro """
-    return fabric.api.run('python -c "import platform; print platform.dist()[0]"')
+    return fabric.api.run(
+        'python -c "import platform; print platform.dist()[0]"')
 
 
 def _update_vm():
@@ -34,4 +35,5 @@ def _update_vm():
         # install:
         # * zram-config for minimize out-of-memory cases with zswap
         # * other packages for create deployments from source
-        fabric.api.run("sudo apt-get install zram-config gcc python-dev libxml2-dev libxslt-dev -q -y 2>&1")
+        fabric.api.run("sudo apt-get install zram-config gcc python-dev "
+                       "libxml2-dev libxslt-dev -q -y 2>&1")

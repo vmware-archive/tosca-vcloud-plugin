@@ -2,7 +2,6 @@ from testconfig import config
 import mock
 import time
 import unittest
-import yaml
 
 from cloudify import mocks as cfy_mocks
 try:
@@ -15,8 +14,6 @@ except ImportError:
             self.message = message
             self.retry_after = retry_after
 
-
-
 from vcloud_plugin_common import Config, VcloudAirClient
 
 SUBSCRIPTION = 'subscription'
@@ -25,12 +22,14 @@ ONDEMAND = 'ondemand'
 
 class IntegrationSubscriptionTestConfig(Config):
     VCLOUD_CONFIG_PATH_ENV_VAR = 'VCLOUD_INTEGRATION_TEST_CONFIG_PATH'
-    VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_integration_subscription_test_config.yaml'
+    VCLOUD_CONFIG_PATH_DEFAULT = \
+        '~/vcloud_integration_subscription_test_config.yaml'
 
 
 class IntegrationOndemandTestConfig(Config):
     VCLOUD_CONFIG_PATH_ENV_VAR = 'VCLOUD_INTEGRATION_TEST_CONFIG_PATH'
-    VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_integration_ondemand_test_config.yaml'
+    VCLOUD_CONFIG_PATH_DEFAULT = \
+        '~/vcloud_integration_ondemand_test_config.yaml'
 
 
 class VcloudSubscriptionTestConfig(Config):
@@ -47,20 +46,24 @@ class TestCase(unittest.TestCase):
 
     def __init__(self, testname):
         super(TestCase, self).__init__(testname)
-        test_configs = {SUBSCRIPTION: (VcloudSubscriptionTestConfig().get(), IntegrationSubscriptionTestConfig().get()),
-                        ONDEMAND: (VcloudOndemandTestConfig().get(), IntegrationOndemandTestConfig().get())}
+        test_configs = {
+            SUBSCRIPTION: (VcloudSubscriptionTestConfig().get(),
+                           IntegrationSubscriptionTestConfig().get()),
+            ONDEMAND: (VcloudOndemandTestConfig().get(),
+                       IntegrationOndemandTestConfig().get())}
         if not config:
-            raise RuntimeError("""Vcloud Service type not defined.
-To define servist type for tests, add one of command line key to nosetest command:
- --tc=ondemand:
- --tc=subscription:""")
+            raise RuntimeError(
+                "Vcloud Service type not defined."
+                "To define service type for tests, add one of command line key"
+                " to nosetest command: --tc=ondemand: --tc=subscription:")
         if len(config) != 1:
             raise RuntimeError("Config must contain 1 element")
         self.service_type = config.keys()[0]
         service_config = test_configs.get(self.service_type)
         if not service_config:
-            raise RuntimeError("Unknown service_type: {0}. Parameter must one of {1}".
-                               format(self.service_type, (SUBSCRIPTION, ONDEMAND)))
+            raise RuntimeError(
+                "Unknown service_type: {0}. Parameter must one of {1}".
+                format(self.service_type, (SUBSCRIPTION, ONDEMAND)))
         self.vcloud_config = service_config[0]
         self.test_config = service_config[1]
 
