@@ -74,13 +74,13 @@ def _rule_operation(operation, vca_client):
         if source_ip not in ADDRESS_LITERALS:
             check_ip(source_ip)
         elif source_ip == ADDRESS_LITERALS[-1]:
-            source_ip = get_vm_ip(vca_client, ctx)
+            source_ip = get_vm_ip(vca_client, ctx, gateway)
         source_port = str(rule.get("source_port", "any")).capitalize()
         dest_ip = rule.get("destination", "external").capitalize()
         if dest_ip not in ADDRESS_LITERALS:
             check_ip(dest_ip)
         elif dest_ip == ADDRESS_LITERALS[-1]:
-            dest_ip = get_vm_ip(vca_client, ctx)
+            dest_ip = get_vm_ip(vca_client, ctx, gateway)
         dest_port = str(rule.get('destination_port', "any")).capitalize()
         protocol = rule.get('protocol', "any").capitalize()
         action = rule.get("action", "allow")

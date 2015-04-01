@@ -40,7 +40,7 @@ def _floatingip_operation(operation, vca_client, ctx):
     service_type = get_vcloud_config().get('service_type')
     gateway = get_gateway(vca_client,
                           ctx.target.node.properties['floatingip']['edge_gateway'])
-    internal_ip = check_ip(get_vm_ip(vca_client, ctx))
+    internal_ip = get_vm_ip(vca_client, ctx, gateway)
 
     nat_operation = None
     public_ip = ctx.target.instance.runtime_properties.get(PUBLIC_IP) or \
