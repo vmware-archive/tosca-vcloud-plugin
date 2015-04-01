@@ -2,7 +2,7 @@ tosca_definitions_version: cloudify_dsl_1_0
 
 imports:
     - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
-    - https://raw.githubusercontent.com/vmware/tosca-vcloud-plugin/1.1m1/plugin.yaml
+    - https://raw.githubusercontent.com/vmware/tosca-vcloud-plugin/master/plugin.yaml
     - http://www.getcloudify.org/spec/fabric-plugin/1.1/plugin.yaml
 
 inputs:
@@ -25,6 +25,12 @@ inputs:
     vcloud_service_type:
         type: string
         default: 'subscription'
+
+    vcloud_region:
+        type: string
+        default: ''
+        description: >
+            Only required for ondemand service type.
 
     vcloud_api_version:
         type: string
@@ -51,6 +57,14 @@ inputs:
     manager_server_template:
         type: string
 
+    manager_server_cpus:
+        type: string
+        default: 2
+
+    manager_server_memory:
+        type: string
+        default: 4096
+
     management_network_use_existing:
         type: boolean
         default: false
@@ -76,6 +90,9 @@ inputs:
     floating_ip_public_ip:
         type: string
         default: ''
+        description: >
+            For 'ondemand' service type, the value of
+            floating_ip_public_ip can be empty
 
     agents_user:
         type: string
@@ -122,9 +139,13 @@ node_templates:
                 catalog: { get_input: manager_server_catalog }
                 template: { get_input: manager_server_template }
                 guest_customization:
-                    manager_public_key: { get_input: manager_public_key }
-                    agent_public_key: { get_input: agent_public_key }
+                    public_keys:
+                        - { get_property: [manager_keypair, public_key] }
+                        - { get_property: [agent_keypair, public_key] }
                     computer_name: { get_input: manager_server_name }
+                hardware:
+                    cpu: { get_input: manager_server_cpus }
+                    memory: { get_input: manager_server_memory }
             management_network: { get_input: management_network_name }
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
         relationships:
@@ -180,8 +201,28 @@ node_templates:
                 service: { get_input: vcloud_service }
                 vdc: { get_input: vcloud_vdc }
                 service_type: { get_input: vcloud_service_type }
+                region: { get_input: vcloud_region }
                 api_version: { get_input: vcloud_api_version }
                 org_url: { get_input: vcloud_org_url }
+                edge_gateway: { get_input: edge_gateway }
+
+    manager_keypair:
+        type: cloudify.vcloud.nodes.KeyPair
+        properties:
+            private_key_path: { get_input: manager_private_key_path }
+            public_key:
+                key: { get_input: manager_public_key }
+                user: { get_input: manager_server_user }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+            
+    agent_keypair:
+        type: cloudify.vcloud.nodes.KeyPair
+        properties:
+            private_key_path: { get_input: agent_private_key_path }
+            public_key:
+                key: { get_input: agent_public_key }
+                user: { get_input: agents_user }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
     manager:
         type: cloudify.nodes.CloudifyManager
