@@ -48,6 +48,9 @@ inputs:
     vcloud_org:
         type: string
 
+    vcloud_vdc:
+        type: string
+
     manager_server_name:
         type: string
 
