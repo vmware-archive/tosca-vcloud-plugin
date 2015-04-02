@@ -28,7 +28,6 @@ class ServerNoNetworkTestCase(TestCase):
         self.ctx = cfy_mocks.MockCloudifyContext(
             node_id=name,
             node_name=name,
-            operation=self._get_retry(),
             properties={
                 'server':
                 {
@@ -185,7 +184,6 @@ class ServerWithNetworkTestCase(TestCase):
         self.ctx = cfy_mocks.MockCloudifyContext(
             node_id=name,
             node_name=name,
-            operation=self._get_retry(),
             properties={
                 'server':
                 {
@@ -246,7 +244,7 @@ class ServerWithNetworkTestCase(TestCase):
         server.create()
         self._run_with_retry(server.start, self.ctx)
         for _ in range(num_tries):
-            result = server._get_state()
+            result = server._get_state(self.vca_client)
             if result is True:
                 self.assertTrue('ip' in self.ctx.instance.runtime_properties)
                 self.assertTrue('networks'

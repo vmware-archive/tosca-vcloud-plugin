@@ -1,9 +1,9 @@
 tosca_definitions_version: cloudify_dsl_1_0
 
 imports:
-    - http://www.getcloudify.org/spec/cloudify/3.2m6/types.yaml
+    - http://www.getcloudify.org/spec/cloudify/3.2m8/types.yaml
     - https://raw.githubusercontent.com/cloudify-cosmo/tosca-vcloud-plugin/master/plugin.yaml
-    - http://www.getcloudify.org/spec/fabric-plugin/1.2m6/plugin.yaml
+    - http://www.getcloudify.org/spec/fabric-plugin/1.2m8/plugin.yaml
 
 inputs:
     vcloud_username:
@@ -290,16 +290,16 @@ node_templates:
                         task_mapping: cloudify_cli.bootstrap.tasks.stop_manager_container
                         fabric_env:
                             user: { get_input: manager_server_user }
-                            key_filename: { get_property: [management_keypair, private_key_path] }
-                            host_string: { get_attribute: [manager_server_ip, floating_ip_address] }
+                            key_filename: { get_property: [manager_keypair, private_key_path] }
+                            host_string: { get_attribute: [manager_floating_ip, floating_ip_address] }
                 delete:
                     implementation: fabric.fabric_plugin.tasks.run_module_task
                     inputs:
                         task_mapping: cloudify_cli.bootstrap.tasks.stop_docker_service
                         fabric_env:
                             user: { get_input: manager_server_user }
-                            key_filename: { get_property: [management_keypair, private_key_path] }
-                            host_string: { get_attribute: [manager_server_ip, floating_ip_address] }
+                            key_filename: { get_property: [manager_keypair, private_key_path] }
+                            host_string: { get_attribute: [manager_floating_ip, floating_ip_address] }
             cloudify.interfaces.validation:
                 creation:
                     implementation: cli.cloudify_cli.bootstrap.tasks.creation_validation

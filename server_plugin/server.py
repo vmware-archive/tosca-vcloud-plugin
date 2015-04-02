@@ -184,7 +184,7 @@ def start(vca_client, **kwargs):
             raise cfy_exc.NonRecoverableError("Could not create vApp")
         wait_for_task(vca_client, task)
 
-    if not _get_state(vca_client, ctx):
+    if not _get_state(vca_client):
         return ctx.operation.retry(
             message="Waiting for VM's configuration to complete",
             retry_after=5)
@@ -219,7 +219,7 @@ def delete(vca_client, **kwargs):
     del ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
 
 
-def _get_state(vca_client, ctx):
+def _get_state(vca_client):
     vapp_name = get_vapp_name(ctx.instance.runtime_properties)
     config = get_vcloud_config()
     vdc = vca_client.get_vdc(config['vdc'])
@@ -231,19 +231,20 @@ def _get_state(vca_client, ctx):
         ctx.instance.runtime_properties['networks'] = {}
         return True
     management_network_name = ctx.node.properties['management_network']
-    networks = {}
 
     if not all([connection['ip'] for connection in nw_connections]):
         ctx.logger.info("Network configuration is not finished yet.")
         return False
 
+    ctx.instance.runtime_properties['networks'] = {
+        connection['network_name']: connection['ip']
+        for connection in nw_connections}
+
     for connection in nw_connections:
-        networks[connection['network_name']] = connection['ip']
         if connection['network_name'] == management_network_name:
             ctx.logger.info("Management network ip address {0}"
                             .format(connection['ip']))
             ctx.instance.runtime_properties['ip'] = connection['ip']
-            ctx.instance.runtime_properties['networks'] = networks
             return True
 
     return False
