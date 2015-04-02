@@ -4,16 +4,7 @@ import time
 import unittest
 
 from cloudify import mocks as cfy_mocks
-try:
-    from cloudify.exceptions import OperationRetry
-except ImportError:
-    from cloudify.exceptions import RecoverableError
-
-    class OperationRetry(RecoverableError):
-        def __init__(self, message=None, retry_after=None):
-            self.message = message
-            self.retry_after = retry_after
-
+from cloudify.exceptions import OperationRetry
 from vcloud_plugin_common import Config, VcloudAirClient
 
 SUBSCRIPTION = 'subscription'
@@ -80,14 +71,6 @@ class TestCase(unittest.TestCase):
             properties={})
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             self.vca_client = VcloudAirClient().get(config=self.vcloud_config)
-
-    def _get_retry(self):
-        def retry(message, retry_after):
-            raise OperationRetry(message, retry_after)
-
-        operation_mock = mock.Mock()
-        operation_mock.retry = retry
-        return operation_mock
 
     def _run_with_retry(self, func, ctx):
 
