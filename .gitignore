@@ -4,6 +4,8 @@ dist
 .idea
 *.iml
 *.patch
+*.orig
+*.rej
 *.diff
 *.egg*
 .Python
