@@ -59,7 +59,6 @@ class CombinedTestCase(TestCase):
         self.server_ctx = cfy_mocks.MockCloudifyContext(
             node_id=self.server_name,
             node_name=self.server_name,
-            operation=self._get_retry(),
             properties={
                 'server': self.test_config['server'],
                 'management_network': self.network_name,

@@ -48,6 +48,9 @@ inputs:
     vcloud_org:
         type: string
 
+    vcloud_vdc:
+        type: string
+
     manager_server_name:
         type: string
 
@@ -201,6 +204,7 @@ node_templates:
                 url: { get_input: vcloud_url }
                 service: { get_input: vcloud_service }
                 org: { get_input: vcloud_org }
+                vdc: { get_input: vcloud_vdc }
                 service_type: { get_input: vcloud_service_type }
                 region: { get_input: vcloud_region }
                 api_version: { get_input: vcloud_api_version }

@@ -31,7 +31,7 @@ DELETE_POOL = 2
 @operation
 @with_vca_client
 def create(vca_client, **kwargs):
-    org_name = get_vcloud_config()['org']
+    vdc_name = get_vcloud_config()['vdc']
     if ctx.node.properties['use_external_resource']:
         network_name = ctx.node.properties['resource_id']
         if not is_network_exists(vca_client, network_name):
@@ -44,7 +44,7 @@ def create(vca_client, **kwargs):
     net_prop = ctx.node.properties["network"]
     network_name = get_network_name(ctx.node.properties)
     if network_name in _get_network_list(vca_client,
-                                         get_vcloud_config()['org']):
+                                         get_vcloud_config()['vdc']):
         raise cfy_exc.NonRecoverableError(
             "Network {0} already exists, but parameter "
             "'use_external_resource' is 'false' or absent"
@@ -52,7 +52,7 @@ def create(vca_client, **kwargs):
 
     ip = _split_adresses(net_prop['static_range'])
     gateway_name = net_prop['edge_gateway']
-    if not vca_client.get_gateway(org_name, gateway_name):
+    if not vca_client.get_gateway(vdc_name, gateway_name):
         raise cfy_exc.NonRecoverableError(
             "Gateway {0} not found".format(gateway_name))
     start_address = check_ip(ip.start)
@@ -63,7 +63,7 @@ def create(vca_client, **kwargs):
     dns2 = ""
     dns_suffix = net_prop.get("dns_suffix")
     success, result = vca_client.create_vdc_network(
-        org_name, network_name, gateway_name, start_address,
+        vdc_name, network_name, gateway_name, start_address,
         end_address, gateway_ip, netmask, dns1, dns2, dns_suffix)
     if success:
         ctx.logger.info("Network {0} has been successfully created."
@@ -87,7 +87,7 @@ def delete(vca_client, **kwargs):
     network_name = get_network_name(ctx.node.properties)
     _dhcp_operation(vca_client, network_name, DELETE_POOL)
     success, task = vca_client.delete_vdc_network(
-        get_vcloud_config()['org'], network_name)
+        get_vcloud_config()['vdc'], network_name)
     if success:
         ctx.logger.info(
             "Network {0} has been successful deleted.".format(network_name))
@@ -113,7 +113,7 @@ def creation_validation(vca_client, **kwargs):
 
     net_prop = get_mandatory(ctx.node.properties, "network")
     gateway_name = get_mandatory(net_prop, 'edge_gateway')
-    if not vca_client.get_gateway(get_vcloud_config()['org'], gateway_name):
+    if not vca_client.get_gateway(get_vcloud_config()['vdc'], gateway_name):
         raise cfy_exc.NonRecoverableError(
             "Gateway {0} not found".format(gateway_name))
 
@@ -146,7 +146,7 @@ def _dhcp_operation(vca_client, network_name, operation):
     if dhcp_settings is None:
         return
     gateway_name = ctx.node.properties["network"]['edge_gateway']
-    gateway = vca_client.get_gateway(get_vcloud_config()['org'], gateway_name)
+    gateway = vca_client.get_gateway(get_vcloud_config()['vdc'], gateway_name)
     if not gateway:
         raise cfy_exc.NonRecoverableError(
             "Gateway {0} not found!".format(gateway_name))
@@ -167,7 +167,7 @@ def _dhcp_operation(vca_client, network_name, operation):
         ctx.logger.info("DHCP rule successful deleted for network {0}"
                         .format(network_name))
 
-    if not save_gateway_configuration(gateway, vca_client):
+    if not  save_gateway_configuration(gateway, vca_client):
         return ctx.operation.retry(message='Waiting for gateway.',
                                    retry_after=10)
 
@@ -191,9 +191,9 @@ def _split_adresses(address_range):
             "Incorrect Ip addresses: {0}".format(address_range))
 
 
-def _get_network_list(vca_client, org_name):
-    vdc = vca_client.get_vdc(org_name)
+def _get_network_list(vca_client, vdc_name):
+    vdc = vca_client.get_vdc(vdc_name)
     if not vdc:
         raise cfy_exc.NonRecoverableError(
-            "Vdc {0} not found.".format(org_name))
+            "Vdc {0} not found.".format(vdc_name))
     return [net.name for net in vdc.AvailableNetworks.Network]
