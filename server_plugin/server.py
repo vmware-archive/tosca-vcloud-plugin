@@ -21,7 +21,8 @@ from vcloud_plugin_common import (get_vcloud_config,
                                   with_vca_client,
                                   STATUS_POWERED_ON)
 
-from network_plugin import get_network_name, get_network, is_network_exists, get_vapp_name
+from network_plugin import (get_network_name, get_network, is_network_exists,
+                            get_vapp_name)
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 GUEST_CUSTOMIZATION = 'guest_customization'
@@ -33,6 +34,39 @@ DEFAULT_HOME = "/home"
 
 @operation
 @with_vca_client
+def creation_validation(vca_client, **kwargs):
+    def get_catalog(catalog_name):
+        catalogs = vca_client.get_catalogs()
+        for catalog in catalogs:
+            if catalog.get_name() == catalog_name:
+                return catalog
+
+    def get_template(catalog, template_name):
+        for template in catalog.get_CatalogItems().get_CatalogItem():
+            if template.get_name() == template_name:
+                return template
+
+    server_dict = ctx.node.properties['server']
+    required_params = ('catalog', 'template')
+    missed_params = set(required_params) - set(server_dict.keys())
+    if len(missed_params) > 0:
+        raise cfy_exc.NonRecoverableError(
+            "{0} server properties must be specified"
+            .format(list(missed_params)))
+
+    catalog = get_catalog(server_dict['catalog'])
+    if catalog is None:
+        raise cfy_exc.NonRecoverableError(
+            "Catalog {0} could not be found".format(server_dict['catalog']))
+
+    template = get_template(catalog, server_dict['template'])
+    if template is None:
+        raise cfy_exc.NonRecoverableError(
+            "Template {0} could not be found".format(server_dict['template']))
+
+
+@operation
+@with_vca_client
 def create(vca_client, **kwargs):
     config = get_vcloud_config()
     server = {
@@ -40,12 +74,6 @@ def create(vca_client, **kwargs):
     }
     server.update(ctx.node.properties['server'])
     transform_resource_name(server, ctx)
-    required_params = ('catalog', 'template')
-    missed_params = set(required_params) - set(server.keys())
-    if len(missed_params) > 0:
-        raise cfy_exc.NonRecoverableError(
-            "{0} server properties must be specified"
-            .format(list(missed_params)))
 
     vapp_name = server['name']
     vapp_template = server['template']
@@ -204,15 +232,20 @@ def _get_state(vca_client, ctx):
         return True
     management_network_name = ctx.node.properties['management_network']
     networks = {}
+
+    if not all([connection['ip'] for connection in nw_connections]):
+        ctx.logger.info("Network configuration is not finished yet.")
+        return False
+
     for connection in nw_connections:
         networks[connection['network_name']] = connection['ip']
         if connection['network_name'] == management_network_name:
             ctx.logger.info("Management network ip address {0}"
                             .format(connection['ip']))
-            if connection['ip']:
-                ctx.instance.runtime_properties['ip'] = connection['ip']
-                ctx.instance.runtime_properties['networks'] = networks
-                return True
+            ctx.instance.runtime_properties['ip'] = connection['ip']
+            ctx.instance.runtime_properties['networks'] = networks
+            return True
+
     return False
 
 
@@ -241,16 +274,19 @@ def _build_script(custom):
     script_executor = custom.get('script_executor', DEFAULT_EXECUTOR)
     public_keys_script = _build_public_keys_script(public_keys)
     script_template = """#!{0}
-echo performing customization tasks with param $1 at `date "+DATE: %Y-%m-%d - TIME: %H:%M:%S"` >> /root/customization.log
+echo performing customization tasks with param $1 \
+at `date "+DATE: %Y-%m-%d - TIME: %H:%M:%S"` >> /root/customization.log
 if [ "$1" = "precustomization" ];
 then
-  echo performing precustomization tasks on `date "+DATE: %Y-%m-%d - TIME: %H:%M:%S"` >> /root/customization.log
+  echo performing precustomization tasks \
+  on `date "+DATE: %Y-%m-%d - TIME: %H:%M:%S"` >> /root/customization.log
   {1}
   {2}
 fi
 if [ "$1" = "postcustomization" ];
 then
-  echo performing postcustomization tasks at `date "+DATE: %Y-%m-%d - TIME: %H:%M:%S"` >> /root/customization.log
+  echo performing postcustomization tasks \
+  at `date "+DATE: %Y-%m-%d - TIME: %H:%M:%S"` >> /root/customization.log
   {3}
 fi
     """
@@ -282,9 +318,11 @@ def _build_public_keys_script(public_keys):
         home = key.get('home', DEFAULT_HOME)
         ssh_dir = ssh_dir_template.format(home, user)
         authorized_keys = authorized_keys_template.format(ssh_dir)
-        test_ssh_dir = test_ssh_dir_template.format(user, ssh_dir, authorized_keys)
+        test_ssh_dir = test_ssh_dir_template.format(
+            user, ssh_dir, authorized_keys)
         key_commands.append(test_ssh_dir)
-        key_commands.append(add_key_template.format(public_key, authorized_keys))
+        key_commands.append(
+            add_key_template.format(public_key, authorized_keys))
     return "\n".join(key_commands)
 
 
@@ -295,7 +333,8 @@ def _create_connections_list(vca_client):
 
     management_network_name = ctx.node.properties.get('management_network')
     if not management_network_name:
-        raise cfy_exc.NonRecoverableError("Parameter 'managment_network' for Server node is not defined.")
+        raise cfy_exc.NonRecoverableError(
+            "Parameter 'managment_network' for Server node is not defined.")
 
     if not is_network_exists(vca_client, management_network_name):
         raise cfy_exc.NonRecoverableError(
@@ -303,17 +342,21 @@ def _create_connections_list(vca_client):
 
     for port in ports:
         port_properties = port.node.properties['port']
-        connections.append(_create_connection(port_properties['network'],
-                                              port_properties.get('ip_address'),
-                                              port_properties.get('mac_address'),
-                                              port_properties.get('ip_allocation_mode',
-                                                                  'DHCP').upper(),
-                                              port_properties.get('primary_interface', False)))
+        connections.append(
+            _create_connection(port_properties['network'],
+                               port_properties.get('ip_address'),
+                               port_properties.get('mac_address'),
+                               port_properties.get('ip_allocation_mode',
+                                                   'DHCP').upper(),
+                               port_properties.get('primary_interface', False))
+        )
     for net in networks:
-        connections.append(_create_connection(get_network_name(net.node.properties),
-                                              None, None, 'DHCP'))
+        connections.append(
+            _create_connection(get_network_name(net.node.properties),
+                               None, None, 'DHCP'))
 
-    if not any([conn['network'] == management_network_name for conn in connections]):
+    if not any([conn['network'] == management_network_name
+                for conn in connections]):
         connections.append(_create_connection(management_network_name,
                                               None, None, 'DHCP'))
 
@@ -323,10 +366,16 @@ def _create_connections_list(vca_client):
 
     for conn in connections:
         network_name = conn['network']
-        if conn['ip_allocation_mode'] == 'DHCP' and not _isDhcpAvailable(vca_client, network_name):
-            raise cfy_exc.NonRecoverableError("DHCP for network {0} is not available".format(network_name))
+        if (conn['ip_allocation_mode'] == 'DHCP'
+                and not _isDhcpAvailable(vca_client, network_name)):
+            raise cfy_exc.NonRecoverableError(
+                "DHCP for network {0} is not available"
+                .format(network_name))
+
         if primary_iface_set is False:
-            conn['primary_interface'] = (network_name == management_network_name)
+            conn['primary_interface'] = \
+                (network_name == management_network_name)
+
     return connections
 
 
@@ -362,17 +411,23 @@ def _check_hardware(cpu, memory):
     if cpu is not None:
         if isinstance(cpu, int):
             if cpu < 1:
-                raise cfy_exc.NonRecoverableError("Too small quantity of CPU's: {0}".format(cpu))
+                raise cfy_exc.NonRecoverableError(
+                    "Too small quantity of CPU's: {0}".format(cpu))
             if cpu > 64:
-                raise cfy_exc.NonRecoverableError("Too many of CPU's: {0}".format(cpu))
+                raise cfy_exc.NonRecoverableError(
+                    "Too many of CPU's: {0}".format(cpu))
         else:
-            raise cfy_exc.NonRecoverableError("Quantity of CPU's must be integer")
+            raise cfy_exc.NonRecoverableError(
+                "Quantity of CPU's must be integer")
 
     if memory is not None:
         if isinstance(memory, int):
             if memory < 512:
-                raise cfy_exc.NonRecoverableError("Too small quantity of memory: {0}".format(memory))
+                raise cfy_exc.NonRecoverableError(
+                    "Too small quantity of memory: {0}".format(memory))
             if memory > (512 * 1024):  # 512Gb
-                raise cfy_exc.NonRecoverableError("Too many memory: {0}".format(memory))
+                raise cfy_exc.NonRecoverableError(
+                    "Too many memory: {0}".format(memory))
         else:
-            raise cfy_exc.NonRecoverableError("Quantity of memory must be integer")
+            raise cfy_exc.NonRecoverableError(
+                "Quantity of memory must be integer")

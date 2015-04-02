@@ -141,7 +141,8 @@ class VcloudAirClient(object):
         if not (all([url, token]) or all([url, username, password])):
             raise cfy_exc.NonRecoverableError(
                 "Login credentials must be specified")
-        if service_type == SUBSCRIPTION_SERVICE_TYPE and not (service and org_name):
+        if (service_type == SUBSCRIPTION_SERVICE_TYPE
+                and not (service and org_name)):
             raise cfy_exc.NonRecoverableError(
                 "vCloud service and vDC must be specified")
 
@@ -157,7 +158,7 @@ class VcloudAirClient(object):
             vcloud_air = self._private_login(
                 url, username, password, token, org_name, org_url, api_version)
         else:
-            cfy_exc.NonRecoverableError(
+            raise cfy_exc.NonRecoverableError(
                 "Unrecognized service type: {0}".format(service_type))
         return vcloud_air
 
@@ -247,10 +248,10 @@ class VcloudAirClient(object):
             instances = [instance for instance in all_instances
                          if instance['region'] == region]
             if len(instances) == 0:
-                cfy_exc.NonRecoverableError("No instances to login to.")
+                raise cfy_exc.NonRecoverableError("No instances to login to.")
             instance = instances[0]
-            instance_logined = vca.login_to_instance(instance['id'], password, token,
-                                            None)
+            instance_logined = vca.login_to_instance(
+                instance['id'], password, token, None)
             if instance_logined is False:
                 ctx.logger.info("Login to instance failed. Retrying...")
                 time.sleep(RELOGIN_TIMEOUT)
@@ -262,9 +263,11 @@ class VcloudAirClient(object):
         for _ in range(self.LOGIN_RETRY_NUM):
             instance = vca.get_instances()[0]
 
-            instance_logined = vca.login_to_instance(instance['id'], None,
-                                            vca.vcloud_session.token,
-                                            vca.vcloud_session.org_url)
+            instance_logined = vca.login_to_instance(
+                instance['id'],
+                None,
+                vca.vcloud_session.token,
+                vca.vcloud_session.org_url)
             if instance_logined is False:
                 ctx.logger.info("Login to instance failed. Retrying...")
                 time.sleep(RELOGIN_TIMEOUT)
@@ -276,8 +279,9 @@ class VcloudAirClient(object):
         if logined is False:
             raise cfy_exc.NonRecoverableError("Invalid login credentials")
         if instance_logined is False:
-            raise cfy_exc.RecoverableError(message="Could not login to instance",
-                                           retry_after=RELOGIN_TIMEOUT)
+            raise cfy_exc.RecoverableError(
+                message="Could not login to instance",
+                retry_after=RELOGIN_TIMEOUT)
 
         atexit.register(vca.logout)
         return vca
@@ -379,10 +383,13 @@ def get_mandatory(obj, parameter):
     if value:
         return value
     else:
-        raise cfy_exc.NonRecoverableError("Mandatory parameter {0} is absent".format(parameter))
+        raise cfy_exc.NonRecoverableError(
+            "Mandatory parameter {0} is absent".format(parameter))
 
-def isSubscription(service_type):
+
+def is_subscription(service_type):
     return not service_type or service_type == SUBSCRIPTION_SERVICE_TYPE
 
-def isOndemand(service_type):
+
+def is_ondemand(service_type):
     return service_type == ONDEMAND_SERVICE_TYPE

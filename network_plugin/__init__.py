@@ -2,16 +2,19 @@ from IPy import IP
 from cloudify import exceptions as cfy_exc
 import collections
 from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType
-from vcloud_plugin_common import wait_for_task, get_vcloud_config, isSubscription
+from vcloud_plugin_common import (wait_for_task, get_vcloud_config,
+                                  is_subscription)
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 PUBLIC_IP = 'public_ip'
+NAT_ROUTED = 'natRouted'
 CREATE = 1
 DELETE = 2
 
 
 AssignedIPs = collections.namedtuple('AssignedIPs', 'external internal')
 BUSY_MESSAGE = "The entity gateway is busy completing an operation."
+
 
 def check_ip(address):
     try:
@@ -42,7 +45,8 @@ def is_ips_in_same_subnet(ips, netmask):
 def CheckAssignedExternalIp(ip, gateway):
     if ip in [address.external for address in collectAssignedIps(gateway)]:
         raise cfy_exc.NonRecoverableError(
-            "IP address: {0} already assigned. Gateway has free IP: {1}".format(ip, getFreeIP(gateway)))
+            "IP address: {0} already assigned. Gateway has free IP: {1}"
+            .format(ip, getFreeIP(gateway)))
 
 
 def CheckAssignedInternalIp(ip, gateway):
@@ -58,27 +62,37 @@ def collectAssignedIps(gateway):
             rule = natRule.get_GatewayNatRule()
             rule_type = natRule.get_RuleType()
             if rule_type == "DNAT":
-                ips.append(AssignedIPs(rule.get_OriginalIp(), rule.get_TranslatedIp()))
+                ips.append(AssignedIPs(rule.get_OriginalIp(),
+                                       rule.get_TranslatedIp()))
             else:
-                ips.append(AssignedIPs(rule.get_TranslatedIp(), rule.get_OriginalIp()))
+                ips.append(AssignedIPs(rule.get_TranslatedIp(),
+                                       rule.get_OriginalIp()))
     return set(ips)
 
 
-def get_vm_ip(vca_client, ctx):
+def get_vm_ip(vca_client, ctx, gateway):
     try:
         vappName = get_vapp_name(ctx.source.instance.runtime_properties)
         vdc = vca_client.get_vdc(get_vcloud_config()['org'])
         vapp = vca_client.get_vapp(vdc, vappName)
         if not vapp:
-            raise cfy_exc.NonRecoverableError("Could not find vApp {0}".format(vappName))
+            raise cfy_exc.NonRecoverableError(
+                "Could not find vApp {0}".format(vappName))
 
         vm_info = vapp.get_vms_network_info()
-        # assume that we have 1 vm per vApp with minium 1 connection
-        connection = vm_info[0][0]
-        if connection['is_connected']:
-            return connection['ip']
-        else:
-            raise cfy_exc.NonRecoverableError("Network not connected")
+        # assume that we have 1 vm per vApp
+        for connection in vm_info[0]:
+            if connection['is_connected'] and connection['is_primary']:
+                if is_network_routed(vca_client,
+                                     connection['network_name'],
+                                     gateway):
+                    return connection['ip']
+                else:
+                    raise cfy_exc.NonRecoverableError(
+                        "Primary network {0} not routed"
+                        .format(connection['network_name']))
+        raise cfy_exc.NonRecoverableError("Primary network {0} not connected"
+                                          .format(connection['network_name']))
     except IndexError:
         raise cfy_exc.NonRecoverableError("Could not get vm IP address")
 
@@ -86,7 +100,8 @@ def get_vm_ip(vca_client, ctx):
 def get_vapp_name(runtime_properties):
     vapp_name = runtime_properties.get(VCLOUD_VAPP_NAME)
     if not vapp_name:
-        raise cfy_exc.NonRecoverableError("Could not find vApp name in runtime properties")
+        raise cfy_exc.NonRecoverableError(
+            "Could not find vApp name in runtime properties")
     return vapp_name
 
 
@@ -103,11 +118,10 @@ def save_gateway_configuration(gateway, vca_client):
             raise cfy_exc.NonRecoverableError(error.message)
 
 
-
-
 def getFreeIP(gateway):
     public_ips = set(gateway.get_public_ips())
-    allocated_ips = set([address.external for address in collectAssignedIps(gateway)])
+    allocated_ips = set([address.external
+                         for address in collectAssignedIps(gateway)])
     available_ips = public_ips - allocated_ips
     if not available_ips:
         raise cfy_exc.NonRecoverableError(
@@ -133,23 +147,30 @@ def get_network_name(properties):
 
 
 def is_network_exists(vca_client, network_name):
-    networks = vca_client.get_networks(get_vcloud_config()['org'])
-    return any([network_name == net.get_name() for net in networks])
+    return bool(vca_client.get_network(get_vcloud_config()['org'],
+                                       network_name))
+
+
+def is_network_routed(vca_client, network_name, gateway):
+    network = get_network(vca_client, network_name)
+    if network.get_Configuration().get_FenceMode() != NAT_ROUTED:
+        return False
+    interfaces = gateway.get_interfaces('internal')
+    for interface in interfaces:
+        if interface.get_Name() == network_name:
+            return True
+    return False
 
 
 def get_network(vca_client, network_name):
     if not network_name:
         raise cfy_exc.NonRecoverableError(
             "Network name is empty".format(network_name))
-    result = None
-    networks = vca_client.get_networks(get_vcloud_config()['org'])
-    for network in networks:
-        if network.get_name() == network_name:
-            result = network
-    if result is None:
+    network = vca_client.get_network(get_vcloud_config()['org'], network_name)
+    if not network:
         raise cfy_exc.NonRecoverableError(
             "Network {0} could not be found".format(network_name))
-    return result
+    return network
 
 
 def get_ondemand_public_ip(vca_client, gateway, ctx):
@@ -158,7 +179,8 @@ def get_ondemand_public_ip(vca_client, gateway, ctx):
     if task:
         wait_for_task(vca_client, task)
     else:
-        raise cfy_exc.NonRecoverableError("Can't get public ip for ondemand service")
+        raise cfy_exc.NonRecoverableError(
+            "Can't get public ip for ondemand service")
     # update gateway for new IP address
     gateway = vca_client.get_gateways(get_vcloud_config()['org'])[0]
     new_public_ips = set(gateway.get_public_ips())
@@ -177,11 +199,12 @@ def del_ondemand_public_ip(vca_client, gateway, ip, ctx):
         wait_for_task(vca_client, task)
         ctx.logger.info("Public IP {0} deallocated".format(ip))
     else:
-        raise cfy_exc.NonRecoverableError("Can't deallocate public ip {0} for ondemand service".format(ip))
+        raise cfy_exc.NonRecoverableError(
+            "Can't deallocate public ip {0} for ondemand service".format(ip))
 
 
 def get_public_ip(vca_client, gateway, service_type, ctx):
-    if isSubscription(service_type):
+    if is_subscription(service_type):
         public_ip = getFreeIP(gateway)
         ctx.logger.info("Assign external IP {0}".format(public_ip))
     else:
@@ -193,7 +216,8 @@ def get_gateway(vca_client, gateway_name):
     gateway = vca_client.get_gateway(get_vcloud_config()['org'],
                                      gateway_name)
     if not gateway:
-        raise cfy_exc.NonRecoverableError("Gateway {0}  not found".format(gateway_name))
+        raise cfy_exc.NonRecoverableError(
+            "Gateway {0}  not found".format(gateway_name))
     return gateway
 
 
@@ -202,7 +226,8 @@ def check_protocol(protocol):
     protocol = protocol.capitalize()
     if protocol not in valid_protocols:
         raise cfy_exc.NonRecoverableError(
-            "Unknown protocol: {0}. Valid protocols are: {1}".format(protocol, valid_protocols))
+            "Unknown protocol: {0}. Valid protocols are: {1}"
+            .format(protocol, valid_protocols))
     return protocol
 
 
@@ -211,9 +236,11 @@ def check_port(port):
         if port > 0 and port < 65536:
             return port
         else:
-            raise cfy_exc.NonRecoverableError("Invalid 'port' value. Port value must be between 1 and 65535")
+            raise cfy_exc.NonRecoverableError(
+                "Invalid 'port' value. Port value must be between 1 and 65535")
     elif isinstance(port, unicode):
             if port.lower() == "any":
                 return port.lower()
     else:
-        raise cfy_exc.NonRecoverableError("Parameter 'port' must be integer, or 'any'")
+        raise cfy_exc.NonRecoverableError(
+            "Parameter 'port' must be integer, or 'any'")

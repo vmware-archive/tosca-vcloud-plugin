@@ -1,11 +1,13 @@
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
-from vcloud_plugin_common import with_vca_client, get_vcloud_config, isSubscription, isOndemand, get_mandatory
-from network_plugin import (check_ip, CheckAssignedExternalIp, CheckAssignedInternalIp,
-                            get_vm_ip, save_gateway_configuration, getFreeIP,
-                            CREATE, DELETE, PUBLIC_IP, get_gateway, get_public_ip,
-                            del_ondemand_public_ip)
+from vcloud_plugin_common import (with_vca_client, get_vcloud_config,
+                                  is_subscription, is_ondemand, get_mandatory)
+from network_plugin import (check_ip, CheckAssignedExternalIp,
+                            CheckAssignedInternalIp, get_vm_ip,
+                            save_gateway_configuration, getFreeIP,
+                            CREATE, DELETE, PUBLIC_IP, get_gateway,
+                            get_public_ip, del_ondemand_public_ip)
 
 
 @operation
@@ -32,19 +34,19 @@ def creation_validation(vca_client, **kwargs):
         check_ip(public_ip)
         CheckAssignedExternalIp(public_ip, gateway)
     else:
-        if isSubscription(service_type):
+        if is_subscription(service_type):
             getFreeIP(gateway)
 
 
 def _floatingip_operation(operation, vca_client, ctx):
     service_type = get_vcloud_config().get('service_type')
-    gateway = get_gateway(vca_client,
-                          ctx.target.node.properties['floatingip']['edge_gateway'])
-    internal_ip = check_ip(get_vm_ip(vca_client, ctx))
+    gateway = get_gateway(
+        vca_client, ctx.target.node.properties['floatingip']['edge_gateway'])
+    internal_ip = get_vm_ip(vca_client, ctx, gateway)
 
     nat_operation = None
-    public_ip = ctx.target.instance.runtime_properties.get(PUBLIC_IP) or \
-                ctx.target.node.properties['floatingip'].get(PUBLIC_IP)
+    public_ip = (ctx.target.instance.runtime_properties.get(PUBLIC_IP)
+                 or ctx.target.node.properties['floatingip'].get(PUBLIC_IP))
     if operation == CREATE:
         CheckAssignedInternalIp(internal_ip, gateway)
         if public_ip:
@@ -66,16 +68,20 @@ def _floatingip_operation(operation, vca_client, ctx):
 
     nat_operation(gateway, vca_client, "SNAT", internal_ip, external_ip)
     nat_operation(gateway, vca_client, "DNAT", external_ip, internal_ip)
-    if not  save_gateway_configuration(gateway, vca_client):
+    if not save_gateway_configuration(gateway, vca_client):
         return ctx.operation.retry(message='Waiting for gateway.',
                                    retry_after=10)
 
     if operation == CREATE:
         ctx.target.instance.runtime_properties[PUBLIC_IP] = external_ip
     else:
-        if isOndemand(service_type):
+        if is_ondemand(service_type):
             if not ctx.target.node.properties['floatingip'].get(PUBLIC_IP):
-                del_ondemand_public_ip(vca_client, gateway, ctx.target.instance.runtime_properties[PUBLIC_IP], ctx)
+                del_ondemand_public_ip(
+                    vca_client,
+                    gateway,
+                    ctx.target.instance.runtime_properties[PUBLIC_IP],
+                    ctx)
         del ctx.target.instance.runtime_properties[PUBLIC_IP]
 
 
