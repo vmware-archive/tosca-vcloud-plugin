@@ -402,7 +402,9 @@ def _isDhcpAvailable(vca_client, network_name):
     vdc_name = get_vcloud_config()['vdc']
     network = vca_client.get_network(vdc_name, network_name)
     if network.get_Configuration().get_FenceMode() == "bridged":
-        return True         # Can't tell whether bridged networks have DHCP so just hope for the best
+        # NOTE(nmishkin) Can't tell whether bridged networks have DHCP
+        # so just hope for the best
+        return True
     # TODO: Why not just get the gateway directly from the network?
     admin_href = vca_client.get_admin_network_href(vdc_name, network_name)
     for gate in vca_client.get_gateways(vdc_name):
