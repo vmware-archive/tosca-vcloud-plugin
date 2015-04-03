@@ -43,5 +43,5 @@ def _install_docker():
     kernel_version = fabric.api.run(
         'python -c "import platform; print platform.release()"')
     if kernel_version.startswith("3.13"):
-	fabric.api.run("wget -qO- https://get.docker.com/ | sudo sh")
+        fabric.api.run("wget -qO- https://get.docker.com/ | sudo sh")
 

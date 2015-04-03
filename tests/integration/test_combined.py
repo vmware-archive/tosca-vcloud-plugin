@@ -177,7 +177,7 @@ class CombinedTestCase(TestCase):
             num_tries = 10
             verified = False
             for _ in range(num_tries):
-                result = server._get_state()
+                result = server._get_state(self.vca_client)
                 if result is True:
                     verified = True
                     break
