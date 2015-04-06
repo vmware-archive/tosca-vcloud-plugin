@@ -35,8 +35,7 @@ def _update_vm():
         # install:
         # * zram-config for minimize out-of-memory cases with zswap
         # * other packages for create deployments from source
-        fabric.api.run("sudo apt-get install zram-config gcc python-dev "
-                       "libxml2-dev libxslt-dev -q -y 2>&1")
+        fabric.api.run("sudo apt-get install zram-config -q -y 2>&1")
         _install_docker()
 
 

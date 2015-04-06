@@ -260,7 +260,7 @@ node_templates:
 
         interfaces:
             cloudify.interfaces.lifecycle:
-                configure:
+                create:
                     implementation: fabric.fabric_plugin.tasks.run_task
                     inputs:
                         tasks_file: scripts/configure.py
@@ -271,7 +271,7 @@ node_templates:
                             user: { get_input: manager_server_user }
                             key_filename: { get_input: manager_private_key_path }
                             host_string: { get_attribute: [manager_floating_ip, public_ip] }
-                start:
+                configure:
                     implementation: fabric.fabric_plugin.tasks.run_module_task
                     inputs:
                         task_mapping: cloudify_cli.bootstrap.tasks.bootstrap_docker
@@ -279,6 +279,17 @@ node_templates:
                             cloudify_packages: { get_property: [manager, cloudify_packages] }
                             agent_local_key_path: { get_property: [agent_keypair, private_key_path] }
                             provider_context: { get_attribute: [manager, provider_context] }
+                        fabric_env:
+                            user: { get_input: manager_server_user }
+                            key_filename: { get_input: manager_private_key_path }
+                            host_string: { get_attribute: [manager_floating_ip, public_ip] }
+                start:
+                    implementation: fabric.fabric_plugin.tasks.run_task
+                    inputs:
+                        tasks_file: scripts/configure_docker.py
+                        task_name: configure
+                        task_properties:
+                            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
                         fabric_env:
                             user: { get_input: manager_server_user }
                             key_filename: { get_input: manager_private_key_path }
