@@ -218,7 +218,6 @@ node_templates:
             public_key:
                 key: { get_input: manager_public_key }
                 user: { get_input: manager_server_user }
-            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
     agent_keypair:
         type: cloudify.vcloud.nodes.KeyPair
@@ -227,7 +226,6 @@ node_templates:
             public_key:
                 key: { get_input: agent_public_key }
                 user: { get_input: agents_user }
-            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
     manager:
         type: cloudify.nodes.CloudifyManager
@@ -284,7 +282,7 @@ node_templates:
                         fabric_env:
                             user: { get_input: manager_server_user }
                             key_filename: { get_input: manager_private_key_path }
-                            host_string: { get_attribute: [manager_server, public_ip] }
+                            host_string: { get_attribute: [manager_floating_ip, public_ip] }
                 stop:
                     implementation: fabric.fabric_plugin.tasks.run_module_task
                     inputs:
