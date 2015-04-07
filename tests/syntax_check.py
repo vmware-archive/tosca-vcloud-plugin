@@ -4,7 +4,7 @@ import yaml
 import json
 
 yaml_files = ['../examples/blueprint.yaml',
-              '../manager_blueprint/vcloud.yaml',
+              '../manager_blueprint/vcloud-manager-blueprint.yaml',
               '../plugin.yaml']
 
 json_files = ['../examples/vcloud_config.json.example',
