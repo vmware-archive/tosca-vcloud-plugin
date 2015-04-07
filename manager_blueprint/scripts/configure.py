@@ -8,7 +8,7 @@ import vcloud_plugin_common
 
 def configure(vcloud_config):
     _copy_vsphere_configuration_to_manager(vcloud_config)
-    _update_vm()
+    _install_docker()
 
 
 def _copy_vsphere_configuration_to_manager(vcloud_config):
@@ -19,29 +19,10 @@ def _copy_vsphere_configuration_to_manager(vcloud_config):
                    vcloud_plugin_common.Config.VCLOUD_CONFIG_PATH_DEFAULT)
 
 
-def _get_distro():
-    """ detect current distro """
-    return fabric.api.run(
-        'python -c "import platform; print platform.dist()[0]"')
-
-
-def _update_vm():
-    """ install some packeges for future deployments creation """
-    distro = _get_distro()
-    if 'Ubuntu' in distro:
-        # update system to last version
-        fabric.api.run("sudo apt-get update -q -y 2>&1")
-        fabric.api.run("sudo apt-get dist-upgrade -q -y 2>&1")
-        # install:
-        # * zram-config for minimize out-of-memory cases with zswap
-        # * other packages for create deployments from source
-        fabric.api.run("sudo apt-get install zram-config gcc python-dev "
-                       "libxml2-dev libxslt-dev -q -y 2>&1")
-        _install_docker()
-
-
 def _install_docker():
+    distro = fabric.api.run(
+        'python -c "import platform; print platform.dist()[0]"')
     kernel_version = fabric.api.run(
         'python -c "import platform; print platform.release()"')
-    if kernel_version.startswith("3.13"):
+    if kernel_version.startswith("3.13") and 'Ubuntu' in distro:
         fabric.api.run("wget -qO- https://get.docker.com/ | sudo sh")
