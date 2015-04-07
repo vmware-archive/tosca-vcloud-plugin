@@ -238,7 +238,7 @@ def check_port(port):
         else:
             raise cfy_exc.NonRecoverableError(
                 "Invalid 'port' value. Port value must be between 1 and 65535")
-    elif isinstance(port, unicode) or isinstance(port, str):
+    elif isinstance(port, basestring):
         if port.lower() == "any":
             return port.lower()
     raise cfy_exc.NonRecoverableError(
