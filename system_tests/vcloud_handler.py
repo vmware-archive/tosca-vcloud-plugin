@@ -64,6 +64,10 @@ class CloudifyVcloudInputsConfigReader(BaseCloudifyInputsConfigReader):
         return self.config['management_network_name']
 
     @property
+    def edge_gateway(self):
+        return self.config['edge_gateway']
+
+    @property
     def floating_ip_public_ip(self):
         return self.config['floating_ip_public_ip']
 
