@@ -36,15 +36,13 @@ def creation_validation(vca_client, **kwargs):
     rules = get_mandatory(ctx.node.properties, 'rules')
     for rule in rules:
         description = rule.get("description")
-        if (description
-                and not (isinstance(description, unicode)
-                         or isinstance(description, str))):
+        if description and not isinstance(description, basestring):
             raise cfy_exc.NonRecoverableError(
                 "Parameter 'description' must be string.")
 
         source = rule.get("source")
         if source:
-            if not (isinstance(source, unicode) or isinstance(source, str)):
+            if not isinstance(source, basestring):
                 raise cfy_exc.NonRecoverableError(
                     "Parameter 'source' must be valid IP address string.")
             if source.capitalize() not in ADDRESS_LITERALS:
@@ -54,8 +52,7 @@ def creation_validation(vca_client, **kwargs):
 
         destination = rule.get('destination')
         if destination:
-            if not (isinstance(destination, unicode)
-                    or isinstance(destination, str)):
+            if not isinstance(destination, basestring):
                 raise cfy_exc.NonRecoverableError(
                     "Parameter 'destination' must be valid IP address string.")
             if destination.capitalize() not in ADDRESS_LITERALS:
@@ -66,7 +63,7 @@ def creation_validation(vca_client, **kwargs):
         check_protocol(rule.get('protocol', "any"))
 
         action = get_mandatory(rule, "action")
-        if not isinstance(action, str) and action.lower() not in ACTIONS:
+        if not isinstance(action, basestring) and action.lower() not in ACTIONS:
             raise cfy_exc.NonRecoverableError(
                 "Action must be on of{0}.".format(ACTIONS))
 
