@@ -219,6 +219,18 @@ def delete(vca_client, **kwargs):
     del ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
 
 
+def _get_management_network_from_node():
+    management_network_name = ctx.node.properties.get('management_network')
+    if not management_network_name:
+        resources = ctx.provider_context.get('resources')
+        if 'int_network' in resources:
+            management_network_name = resources['int_network'].get('name')
+    if not management_network_name:
+        raise cfy_exc.NonRecoverableError(
+            "Parameter 'managment_network' for Server node is not defined.")
+    return management_network_name
+
+
 def _get_state(vca_client):
     vapp_name = get_vapp_name(ctx.instance.runtime_properties)
     config = get_vcloud_config()
@@ -230,7 +242,7 @@ def _get_state(vca_client):
         ctx.instance.runtime_properties['ip'] = None
         ctx.instance.runtime_properties['networks'] = {}
         return True
-    management_network_name = ctx.node.properties['management_network']
+    management_network_name = _get_management_network_from_node()
 
     if not all([connection['ip'] for connection in nw_connections]):
         ctx.logger.info("Network configuration is not finished yet.")
@@ -246,7 +258,6 @@ def _get_state(vca_client):
                             .format(connection['ip']))
             ctx.instance.runtime_properties['ip'] = connection['ip']
             return True
-
     return False
 
 
@@ -332,10 +343,7 @@ def _create_connections_list(vca_client):
     ports = _get_connected(ctx.instance, 'port')
     networks = _get_connected(ctx.instance, 'network')
 
-    management_network_name = ctx.node.properties.get('management_network')
-    if not management_network_name:
-        raise cfy_exc.NonRecoverableError(
-            "Parameter 'managment_network' for Server node is not defined.")
+    management_network_name = _get_management_network_from_node()
 
     if not is_network_exists(vca_client, management_network_name):
         raise cfy_exc.NonRecoverableError(
