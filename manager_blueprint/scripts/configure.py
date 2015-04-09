@@ -5,10 +5,9 @@ import fabric
 
 import vcloud_plugin_common
 from cloudify import ctx
-from network_plugin import get_network_name
-
 
 PROVIDER_CONTEXT_RUNTIME_PROPERTY = 'provider_context'
+
 
 def configure(vcloud_config):
     _copy_vsphere_configuration_to_manager(vcloud_config)
@@ -47,14 +46,12 @@ def _save_context():
 
         if "management_network" == node_instance.node_id:
             resources['int_network'] = {
-                "name": props.get('resource_id'),
-                "use_external_resource": props.get('use_external_resource')
-            }
-        if "manager_floating_ip" == node_instance.node_id:
-            resources['floating_ip'] = {
-                "ip": run_props.get('public_ip')
+                "name": props.get('resource_id')
             }
 
-    return {
+    provider = {
         'resources': resources
     }
+
+    ctx.instance.runtime_properties[PROVIDER_CONTEXT_RUNTIME_PROPERTY] = \
+        provider
