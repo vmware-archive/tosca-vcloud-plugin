@@ -16,4 +16,4 @@ manager_public_key: some_key
 agent_public_key: some_key
 management_port_ip_allocation_mode: pool
 vcloud_service_type: ondemand
-vcloud_region: some_region
+vcloud_instance: 00000000-0000-0000-0000-000000000000

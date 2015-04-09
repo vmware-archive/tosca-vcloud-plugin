@@ -135,7 +135,7 @@ class VcloudAirClient(object):
         service = cfg.get('service')
         org_name = cfg.get('org')
         service_type = cfg.get('service_type', SUBSCRIPTION_SERVICE_TYPE)
-        region = cfg.get('region')
+        instance = cfg.get('instance')
         org_url = cfg.get('org_url', None)
         api_version = cfg.get('api_version', '5.6')
         if not (all([url, token]) or all([url, username, password])):
@@ -151,7 +151,7 @@ class VcloudAirClient(object):
                 url, username, password, token, service, org_name)
         elif service_type == ONDEMAND_SERVICE_TYPE:
             vcloud_air = self._ondemand_login(
-                url, username, password, token, region)
+                url, username, password, token, instance)
         # The actual service type for private is 'vcd', but we should accept
         # 'private' as well, for user friendliness of inputs
         elif service_type in (PRIVATE_SERVICE_TYPE, 'private'):
@@ -211,10 +211,16 @@ class VcloudAirClient(object):
         atexit.register(vca.logout)
         return vca
 
-    def _ondemand_login(self, url, username, password, token, region):
-        if region is None:
+    def _ondemand_login(self, url, username, password, token, instance_id):
+        def get_instance(vca, instance_id):
+            instances = vca.get_instances() or []
+            for instance in instances:
+                if instance['id'] == instance_id:
+                    return instance
+
+        if instance_id is None:
             raise cfy_exc.NonRecoverableError(
-                "Region should be specified for OnDemand login")
+                "Instance ID should be specified for OnDemand login")
         logined = False
         instance_logined = False
 
@@ -243,15 +249,14 @@ class VcloudAirClient(object):
                     ctx.logger.info("Login using password successful.")
                     break
 
+        instance = get_instance(vca, instance_id)
+        if instance is None:
+            raise cfy_exc.NonRecoverableError(
+                "Instance {0} could not be found.".format(instance_id))
+
         for _ in range(self.LOGIN_RETRY_NUM):
-            all_instances = vca.get_instances() or []
-            instances = [instance for instance in all_instances
-                         if instance['region'] == region]
-            if len(instances) == 0:
-                raise cfy_exc.NonRecoverableError("No instances to login to.")
-            instance = instances[0]
             instance_logined = vca.login_to_instance(
-                instance['id'], password, token, None)
+                instance_id, password, token, None)
             if instance_logined is False:
                 ctx.logger.info("Login to instance failed. Retrying...")
                 time.sleep(RELOGIN_TIMEOUT)
@@ -261,10 +266,9 @@ class VcloudAirClient(object):
                 break
 
         for _ in range(self.LOGIN_RETRY_NUM):
-            instance = vca.get_instances()[0]
 
             instance_logined = vca.login_to_instance(
-                instance['id'],
+                instance_id,
                 None,
                 vca.vcloud_session.token,
                 vca.vcloud_session.org_url)
