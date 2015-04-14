@@ -29,3 +29,23 @@ For OnDemand
 ```
 nosetests --tc=ondemand: tosca-vcloud-plugin/tests/integration
 ```
+Run tests using tox. For subscription account use the following command
+```
+tox -e subscription
+```
+For OnDemand
+```
+tox -e ondemand
+```
+For all accounts
+```
+tox
+```
+For specify particular test, you can add full test name after '--'. 
+For example 
+```
+tox -e ondemand -- \test_network_plugin.py
+tox -e ondemand -- \test_network_plugin.py:ValidationOperationsTestCase
+tox -e ondemand -- \test_network_plugin.py:ValidationOperationsTestCase.test_validation
+
+```
