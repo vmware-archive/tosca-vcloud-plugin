@@ -1,3 +1,4 @@
+import os
 import mock
 from cloudify.mocks import MockCloudifyContext
 from network_plugin import (floatingip, network, security_group, public_nat,
@@ -36,7 +37,7 @@ class ValidationOperationsTestCase(TestCase):
             floatingip.creation_validation()
 
         self.ctx.node.properties.update(
-            {'private_key_path': "test_network_plugin.py"})
+            {'private_key_path': os.path.realpath(__file__)})
         with mock.patch('network_plugin.keypair.ctx', self.ctx):
             keypair.creation_validation()
 
