@@ -132,7 +132,9 @@ node_templates:
                 static_range: 10.10.0.2-10.10.0.128
                 netmask: 255.255.255.0
                 gateway_ip: 10.10.0.1
-                dns: 10.10.0.1
+                dns:
+                    - 8.8.8.8
+                    - 10.10.0.1
                 dns_suffix: test
                 dhcp:
                     dhcp_range: 10.10.0.129-10.10.0.254

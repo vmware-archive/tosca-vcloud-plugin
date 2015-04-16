@@ -16,7 +16,8 @@ network:
         default_lease: 3600
         dhcp_range: 192.168.0.200-192.168.0.210
         max_lease: 7200
-    dns: 10.147.115.1
+    dns:
+        - 10.147.115.1
     dns_suffix: example.com
     edge_gateway: gatewayname
     gateway_ip: 192.168.0.1
