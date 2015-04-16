@@ -83,6 +83,14 @@ inputs:
         type: string
         default: ''
 
+    management_network_public_nat_use_existing:
+        type: boolean
+        default: false
+
+    management_network_public_ip:
+        type: string
+        default: ''
+
     edge_gateway:
         type: string
         default: gateway
@@ -184,6 +192,21 @@ node_templates:
                 dns: 10.67.79.1
                 dhcp:
                     dhcp_range: 10.67.79.2-10.67.79.128
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+        relationships:
+            - target: management_network_internet_access
+              type: cloudify.vcloud.net_connected_to_public_nat
+
+    management_network_internet_access:
+        type: cloudify.vcloud.nodes.PublicNAT
+        properties:
+            use_external_resource: { get_input: management_network_public_nat_use_existing }
+            nat:
+                edge_gateway: { get_input: edge_gateway }
+                public_ip: { get_input: management_network_public_ip }
+            rules:
+                type:
+                  - SNAT
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
     manager_floating_ip:
