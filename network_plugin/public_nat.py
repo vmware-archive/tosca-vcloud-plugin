@@ -13,12 +13,18 @@ from network_plugin.network import VCLOUD_NETWORK_NAME
 @operation
 @with_vca_client
 def net_connect_to_nat(vca_client, **kwargs):
+    if ctx.target.node.properties['use_external_resource'] is True:
+        ctx.logger.info("Using existing Public NAT.")
+        return
     prepare_network_operation(vca_client, CREATE)
 
 
 @operation
 @with_vca_client
 def net_disconnect_from_nat(vca_client, **kwargs):
+    if ctx.target.node.properties['use_external_resource'] is True:
+        ctx.logger.info("Using existing Public NAT.")
+        return
     prepare_network_operation(vca_client, DELETE)
 
 

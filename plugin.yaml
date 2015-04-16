@@ -81,10 +81,14 @@ node_types:
     cloudify.vcloud.nodes.PublicNAT:
         derived_from: cloudify.nodes.VirtualIP
         properties:
+            use_external_resource:
+                default: false
             nat:
                 default: {}
             rules:
                 default: []
+            vcloud_config:
+                default: {}
         interfaces:
             cloudify.interfaces.validation:
                 creation:
