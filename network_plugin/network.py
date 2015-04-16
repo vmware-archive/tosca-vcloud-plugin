@@ -126,6 +126,10 @@ def creation_validation(vca_client, **kwargs):
         check_ip(dns_list[0])
         if len(dns_list) > 1:
             check_ip(dns_list[1])
+    else:
+        raise cfy_exc.NonRecoverableError(
+            "DNS servers not defined")
+
     gateway_ip = check_ip(get_mandatory(net_prop, "gateway_ip"))
     netmask = check_ip(get_mandatory(net_prop, "netmask"))
 
