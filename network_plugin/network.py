@@ -59,9 +59,13 @@ def create(vca_client, **kwargs):
     end_address = ip.end
     gateway_ip = net_prop["gateway_ip"]
     netmask = net_prop["netmask"]
-    dns_list = net_prop["dns"]
-    dns1 = dns_list[0]
-    dns2 = dns_list[1] if len(dns_list) > 1 else ""
+    dns1 = ""
+    dns2 = ""
+    dns_list = net_prop.get("dns")
+    if dns_list:
+        dns1 = dns_list[0]
+        if len(dns_list) > 1:
+            dns2 = dns_list[1]
     dns_suffix = net_prop.get("dns_suffix")
     success, result = vca_client.create_vdc_network(
         vdc_name, network_name, gateway_name, start_address,
@@ -121,15 +125,10 @@ def creation_validation(vca_client, **kwargs):
     static_ip = _split_adresses(get_mandatory(net_prop, 'static_range'))
     check_ip(static_ip.start)
     check_ip(static_ip.end)
-    dns_list = get_mandatory(net_prop, "dns")
+    dns_list = net_prop.get("dns")
     if dns_list:
-        check_ip(dns_list[0])
-        if len(dns_list) > 1:
-            check_ip(dns_list[1])
-    else:
-        raise cfy_exc.NonRecoverableError(
-            "DNS servers not defined")
-
+        for ip in dns_list:
+            check_ip(ip)
     gateway_ip = check_ip(get_mandatory(net_prop, "gateway_ip"))
     netmask = check_ip(get_mandatory(net_prop, "netmask"))
 
