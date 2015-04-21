@@ -55,12 +55,17 @@ def create(vca_client, **kwargs):
     if not vca_client.get_gateway(vdc_name, gateway_name):
         raise cfy_exc.NonRecoverableError(
             "Gateway {0} not found".format(gateway_name))
-    start_address = check_ip(ip.start)
-    end_address = check_ip(ip.end)
-    gateway_ip = check_ip(net_prop["gateway_ip"])
-    netmask = check_ip(net_prop["netmask"])
-    dns1 = check_ip(net_prop["dns"]) if net_prop.get('dns') else ""
+    start_address = ip.start
+    end_address = ip.end
+    gateway_ip = net_prop["gateway_ip"]
+    netmask = net_prop["netmask"]
+    dns1 = ""
     dns2 = ""
+    dns_list = net_prop.get("dns")
+    if dns_list:
+        dns1 = dns_list[0]
+        if len(dns_list) > 1:
+            dns2 = dns_list[1]
     dns_suffix = net_prop.get("dns_suffix")
     success, result = vca_client.create_vdc_network(
         vdc_name, network_name, gateway_name, start_address,
@@ -120,7 +125,10 @@ def creation_validation(vca_client, **kwargs):
     static_ip = _split_adresses(get_mandatory(net_prop, 'static_range'))
     check_ip(static_ip.start)
     check_ip(static_ip.end)
-    check_ip(get_mandatory(net_prop, "dns"))
+    dns_list = net_prop.get("dns")
+    if dns_list:
+        for ip in dns_list:
+            check_ip(ip)
     gateway_ip = check_ip(get_mandatory(net_prop, "gateway_ip"))
     netmask = check_ip(get_mandatory(net_prop, "netmask"))
 

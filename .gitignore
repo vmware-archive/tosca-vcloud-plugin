@@ -12,5 +12,5 @@ dist
 bin
 include
 lib
-
+.tox
 

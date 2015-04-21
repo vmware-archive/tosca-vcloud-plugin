@@ -8,6 +8,7 @@ manager_server_name: some-server
 manager_server_catalog: default-catalog
 manager_server_template: Ubuntu Server 12.04 LTS (amd64 20150127)
 management_network_use_existing: true
+management_network_public_nat_use_existing: true
 management_network_name: some-net
 floating_ip_public_ip:
 manager_private_key_path: ~/.ssh/manager.pem
@@ -16,4 +17,4 @@ manager_public_key: some_key
 agent_public_key: some_key
 management_port_ip_allocation_mode: pool
 vcloud_service_type: ondemand
-vcloud_region: some_region
+vcloud_instance: 00000000-0000-0000-0000-000000000000

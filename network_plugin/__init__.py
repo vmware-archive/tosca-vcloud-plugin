@@ -25,7 +25,6 @@ def check_ip(address):
     except TypeError:
         raise cfy_exc.NonRecoverableError(
             "Incorrect type of IP address value : {0}".format(address))
-
     return address
 
 

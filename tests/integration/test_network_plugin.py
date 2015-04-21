@@ -1,3 +1,4 @@
+import os
 import mock
 from cloudify.mocks import MockCloudifyContext
 from network_plugin import (floatingip, network, security_group, public_nat,
@@ -36,7 +37,7 @@ class ValidationOperationsTestCase(TestCase):
             floatingip.creation_validation()
 
         self.ctx.node.properties.update(
-            {'private_key_path': "test_network_plugin.py"})
+            {'private_key_path': os.path.realpath(__file__)})
         with mock.patch('network_plugin.keypair.ctx', self.ctx):
             keypair.creation_validation()
 
@@ -241,6 +242,7 @@ class PublicNatOperationsTestCase(TestCase):
                 node_id="target",
                 properties={
                     "nat": self.test_config['public_nat']['nat'],
+                    'use_external_resource': False,
                     "rules": {}}),
             source=MockCloudifyContext(
                 node_id="source",
@@ -279,7 +281,7 @@ class PublicNatOperationsTestCase(TestCase):
             self.test_config['public_nat']['rules_port']
         rules_count = self.get_rules_count()
         public_nat.server_connect_to_nat()
-        self.assertEqual(rules_count + 2, self.get_rules_count())
+        self.assertEqual(rules_count + 3, self.get_rules_count())
         public_nat.server_disconnect_from_nat()
         self.assertEqual(rules_count, self.get_rules_count())
 

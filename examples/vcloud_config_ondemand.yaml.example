@@ -1,5 +1,5 @@
 password: password
-region: uk-slough-1-6.vchs.vmware.com
+instance: 00000000-0000-0000-0000-000000000000
 service_type: ondemand
 url: iam.vchs.vmware.com
 username: user
