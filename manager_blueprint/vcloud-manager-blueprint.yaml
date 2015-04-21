@@ -207,8 +207,7 @@ node_templates:
                 edge_gateway: { get_input: edge_gateway }
                 public_ip: { get_input: management_network_public_ip }
             rules:
-                type:
-                  - SNAT
+                - type: SNAT
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
     manager_floating_ip:
