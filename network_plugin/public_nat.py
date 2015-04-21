@@ -177,7 +177,10 @@ def _get_network_ip_range(vca_client, org_name, network_name):
 
 def _get_gateway_ip_range(gateway, network_name):
     addresses = []
-    for pool in gateway.get_dhcp_pools():
+    pools = gateway.get_dhcp_pools()
+    if not pools:
+        return None
+    for pool in pools:
         if pool.Network.name == network_name:
             addresses.append(IP(pool.get_LowIpAddress()))
             addresses.append(IP(pool.get_HighIpAddress()))
