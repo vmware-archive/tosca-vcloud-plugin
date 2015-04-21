@@ -242,6 +242,7 @@ class PublicNatOperationsTestCase(TestCase):
                 node_id="target",
                 properties={
                     "nat": self.test_config['public_nat']['nat'],
+                    'use_external_resource': False,
                     "rules": {}}),
             source=MockCloudifyContext(
                 node_id="source",
@@ -280,7 +281,7 @@ class PublicNatOperationsTestCase(TestCase):
             self.test_config['public_nat']['rules_port']
         rules_count = self.get_rules_count()
         public_nat.server_connect_to_nat()
-        self.assertEqual(rules_count + 2, self.get_rules_count())
+        self.assertEqual(rules_count + 3, self.get_rules_count())
         public_nat.server_disconnect_from_nat()
         self.assertEqual(rules_count, self.get_rules_count())
 

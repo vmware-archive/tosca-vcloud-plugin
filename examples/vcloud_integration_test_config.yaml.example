@@ -31,15 +31,17 @@ public_nat:
         public_ip: 23.92.245.236
     network_name: newnet
     rules_net:
-        type:
-        - SNAT
+        - type: SNAT
     rules_port:
-        original_port: 80
-        protocol: Tcp
-        translated_port: 8080
-        type:
-        - SNAT
-        - DNAT
+        -   type: SNAT
+        -   type: DNAT
+            original_port: 80
+            translated_port: 8080
+            protocol: Tcp
+        -   type: DNAT
+            original_port: 90
+            translated_port: 9090
+            protocol: Tcp
     test_vm: vapp_name
 security_group:
     rules:
