@@ -251,8 +251,7 @@ node_templates:
     management_server_internet_access:
         type: cloudify.vcloud.nodes.PublicNAT
         properties:
-            use_external_resource: { get_input: management_network_public_nat_use_existing }
-            nat:
+                nat:
                 edge_gateway: { get_input: edge_gateway }
                 public_ip: { get_input: manager_server_public_ip }
             rules:
