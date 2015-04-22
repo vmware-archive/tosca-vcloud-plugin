@@ -10,7 +10,7 @@ manager_server_template: Ubuntu Server 12.04 LTS (amd64 20150127)
 management_network_use_existing: true
 management_network_public_nat_use_existing: true
 management_network_name: some-net
-floating_ip_public_ip:
+management_server_public_ip:
 manager_private_key_path: ~/.ssh/manager.pem
 agent_private_key_path: ~/.ssh/manager.pem
 manager_public_key: some_key

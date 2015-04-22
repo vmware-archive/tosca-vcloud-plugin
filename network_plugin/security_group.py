@@ -48,7 +48,7 @@ def creation_validation(vca_client, **kwargs):
             if source.capitalize() not in ADDRESS_LITERALS:
                 check_ip(source)
 
-        check_port(rule.get('source_port', "any"))
+        check_port(rule.get('source_port', 'any'))
 
         destination = rule.get('destination')
         if destination:
@@ -58,9 +58,9 @@ def creation_validation(vca_client, **kwargs):
             if destination.capitalize() not in ADDRESS_LITERALS:
                 check_ip(source)
 
-        check_port(get_mandatory(rule, 'destination_port'))
+        check_port(rule.get('destination_port', 'any'))
 
-        check_protocol(rule.get('protocol', "any"))
+        check_protocol(rule.get('protocol', 'any'))
 
         action = get_mandatory(rule, "action")
         if (not isinstance(action, basestring)
@@ -90,8 +90,8 @@ def _rule_operation(operation, vca_client):
             check_ip(dest_ip)
         elif dest_ip == ADDRESS_LITERALS[-1]:
             dest_ip = get_vm_ip(vca_client, ctx, gateway)
-        dest_port = str(rule.get('destination_port', "any")).capitalize()
-        protocol = rule.get('protocol', "any").capitalize()
+        dest_port = str(rule.get('destination_port', 'any')).capitalize()
+        protocol = rule.get('protocol', 'any').capitalize()
         action = rule.get("action", "allow")
         log = rule.get('log_traffic', False)
 
