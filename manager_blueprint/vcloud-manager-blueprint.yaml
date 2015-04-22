@@ -77,7 +77,7 @@ inputs:
 
     management_port_ip_allocation_mode:
         type: string
-        default: dhcp
+        default: pool
 
     management_port_ip_address:
         type: string
@@ -98,7 +98,7 @@ inputs:
             For 'ondemand' service type, the value of edge_gateway
             is always 'gateway'
 
-    floating_ip_public_ip:
+    managment_server_public_ip:
         type: string
         default: ''
         description: >
@@ -150,7 +150,6 @@ node_templates:
                 edge_gateway: { get_input: edge_gateway }
             rules:
                 - source: external
-                  source_port: any
                   destination: internal
                   destination_port: 22
                   action: allow
@@ -158,7 +157,6 @@ node_templates:
                         ssh to managment node
                   protocol: TCP
                 - source: external
-                  source_port: any
                   destination: internal
                   destination_port: 80
                   action: allow
@@ -166,13 +164,17 @@ node_templates:
                         http to managment node
                   protocol: TCP
                 - source: host
-                  source_port: any
                   destination: any
-                  destination_port: any
                   action: allow
                   description: >
                          backward network connection for host updates
                   protocol: any
+                - source: external
+                  destination: internal
+                  action: allow
+                  description: >
+                         Allow ping
+                  protocol: ICMP
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
     manager_server:
@@ -196,8 +198,8 @@ node_templates:
         relationships:
             - target: management_port
               type: cloudify.vcloud.server_connected_to_port
-            - target: manager_floating_ip
-              type: cloudify.vcloud.server_connected_to_floating_ip
+            - target: management_server_internet_access
+              type: cloudify.vcloud.server_connected_to_public_nat
             - target: node_security_group
               type: cloudify.vcloud.server_connected_to_security_group
 
@@ -246,12 +248,26 @@ node_templates:
                 - type: SNAT
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
-    manager_floating_ip:
-        type: cloudify.vcloud.nodes.FloatingIP
+    management_server_internet_access:
+        type: cloudify.vcloud.nodes.PublicNAT
         properties:
-            floatingip:
+            use_external_resource: { get_input: management_network_public_nat_use_existing }
+            nat:
                 edge_gateway: { get_input: edge_gateway }
-                public_ip: { get_input: floating_ip_public_ip }
+                public_ip: { get_input: managment_server_public_ip }
+            rules:
+             - type: DNAT
+               protocol: tcp
+               original_port: 80
+               translated_port: 80
+             - type:  DNAT
+               protocol: tcp
+               original_port: 443
+               translated_port: 443
+             - type: DNAT
+               protocol: tcp
+               original_port: 22
+               translated_port: 22
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
     vcloud_configuration:
@@ -330,7 +346,7 @@ node_templates:
                         fabric_env:
                             user: { get_input: manager_server_user }
                             key_filename: { get_input: manager_private_key_path }
-                            host_string: { get_attribute: [manager_floating_ip, public_ip] }
+                            host_string: { get_attribute: [management_server_internet_access, public_ip] }
                 configure:
                     implementation: fabric.fabric_plugin.tasks.run_module_task
                     inputs:
@@ -342,7 +358,7 @@ node_templates:
                         fabric_env:
                             user: { get_input: manager_server_user }
                             key_filename: { get_input: manager_private_key_path }
-                            host_string: { get_attribute: [manager_floating_ip, public_ip] }
+                            host_string: { get_attribute: [management_server_internet_access, public_ip] }
                 start:
                     implementation: fabric.fabric_plugin.tasks.run_task
                     inputs:
@@ -353,7 +369,7 @@ node_templates:
                         fabric_env:
                             user: { get_input: manager_server_user }
                             key_filename: { get_input: manager_private_key_path }
-                            host_string: { get_attribute: [manager_floating_ip, public_ip] }
+                            host_string: { get_attribute: [management_server_internet_access, public_ip] }
                 stop:
                     implementation: fabric.fabric_plugin.tasks.run_module_task
                     inputs:
@@ -361,7 +377,7 @@ node_templates:
                         fabric_env:
                             user: { get_input: manager_server_user }
                             key_filename: { get_property: [manager_keypair, private_key_path] }
-                            host_string: { get_attribute: [manager_floating_ip, floating_ip_address] }
+                            host_string: { get_attribute: [management_server_internet_access, public_ip] }
                 delete:
                     implementation: fabric.fabric_plugin.tasks.run_module_task
                     inputs:
@@ -369,7 +385,7 @@ node_templates:
                         fabric_env:
                             user: { get_input: manager_server_user }
                             key_filename: { get_property: [manager_keypair, private_key_path] }
-                            host_string: { get_attribute: [manager_floating_ip, floating_ip_address] }
+                            host_string: { get_attribute: [management_server_internet_access, public_ip] }
             cloudify.interfaces.validation:
                 creation:
                     implementation: cli.cloudify_cli.bootstrap.tasks.creation_validation
@@ -385,4 +401,4 @@ plugins:
 
 outputs:
     manager_ip:
-        value: { get_attribute: [manager_floating_ip, public_ip] }
+        value: { get_attribute: [management_server_internet_access, public_ip] }
