@@ -98,7 +98,7 @@ inputs:
             For 'ondemand' service type, the value of edge_gateway
             is always 'gateway'
 
-    management_server_public_ip:
+    manager_server_public_ip:
         type: string
         default: ''
         description: >
@@ -254,7 +254,7 @@ node_templates:
             use_external_resource: { get_input: management_network_public_nat_use_existing }
             nat:
                 edge_gateway: { get_input: edge_gateway }
-                public_ip: { get_input: management_server_public_ip }
+                public_ip: { get_input: manager_server_public_ip }
             rules:
              - type: DNAT
                protocol: tcp
