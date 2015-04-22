@@ -126,7 +126,7 @@ def create(vca_client, **kwargs):
             ip_address = connection.get('ip_address')
             mac_address = connection.get('mac_address')
             ip_allocation_mode = connection.get('ip_allocation_mode',
-                                                'DHCP').upper()
+                                                'POOL').upper()
             connection_args = {
                 'network_name': network_name,
                 'connection_index': index,
@@ -356,18 +356,18 @@ def _create_connections_list(vca_client):
                                port_properties.get('ip_address'),
                                port_properties.get('mac_address'),
                                port_properties.get('ip_allocation_mode',
-                                                   'DHCP').upper(),
+                                                   'POOL').upper(),
                                port_properties.get('primary_interface', False))
         )
     for net in networks:
         connections.append(
             _create_connection(get_network_name(net.node.properties),
-                               None, None, 'DHCP'))
+                               None, None, 'POOL'))
 
     if not any([conn['network'] == management_network_name
                 for conn in connections]):
         connections.append(_create_connection(management_network_name,
-                                              None, None, 'DHCP'))
+                                              None, None, ''))
 
     primary_iface_set = len(filter(lambda conn: conn.get('primary_interface',
                                                          False),
