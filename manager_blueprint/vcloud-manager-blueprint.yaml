@@ -141,6 +141,40 @@ node_types:
             vcloud_config: {}
 
 node_templates:
+
+    node_security_group:
+        type: cloudify.vcloud.nodes.SecurityGroup
+        properties:
+            security_group:
+                name: nodevcloud_security_group
+                edge_gateway: { get_input: edge_gateway }
+            rules:
+                - source: external
+                  source_port: any
+                  destination: internal
+                  destination_port: 22
+                  action: allow
+                  description: >
+                        ssh to managment node
+                  protocol: TCP
+                - source: external
+                  source_port: any
+                  destination: internal
+                  destination_port: 80
+                  action: allow
+                  description: >
+                        http to managment node
+                  protocol: TCP
+                - source: host
+                  source_port: any
+                  destination: any
+                  destination_port: any
+                  action: allow
+                  description: >
+                         backward network connection for host updates
+                  protocol: any
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+
     manager_server:
         type: cloudify.vcloud.nodes.Server
         properties:
@@ -164,6 +198,8 @@ node_templates:
               type: cloudify.vcloud.server_connected_to_port
             - target: manager_floating_ip
               type: cloudify.vcloud.server_connected_to_floating_ip
+            - target: node_security_group
+              type: cloudify.vcloud.server_connected_to_security_group
 
     management_port:
         type: cloudify.vcloud.nodes.Port
