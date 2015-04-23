@@ -181,7 +181,7 @@ def start(vca_client, **kwargs):
         ctx.logger.info("Power-on VApp {0}".format(vapp_name))
         task = vapp.poweron()
         if not task:
-            raise cfy_exc.NonRecoverableError("Could not create vApp")
+            raise cfy_exc.NonRecoverableError("Could not power-on vApp")
         wait_for_task(vca_client, task)
 
     if not _get_state(vca_client):
