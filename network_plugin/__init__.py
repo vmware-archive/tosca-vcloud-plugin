@@ -221,7 +221,7 @@ def get_gateway(vca_client, gateway_name):
 
 
 def check_protocol(protocol):
-    valid_protocols = ["Tcp", "Udp", "Icmp", "Any"]
+    valid_protocols = ["Tcp", "Udp", "Tcpudp", "Icmp", "Any"]
     protocol = protocol.capitalize()
     if protocol not in valid_protocols:
         raise cfy_exc.NonRecoverableError(

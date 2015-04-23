@@ -4,7 +4,7 @@ from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, get_vcloud_config,
                                   get_mandatory, is_subscription, is_ondemand)
 from network_plugin import (check_ip, save_gateway_configuration,
-                            get_vm_ip, CheckAssignedExternalIp, get_public_ip,
+                            get_vm_ip, get_public_ip,
                             get_gateway, getFreeIP, CREATE, DELETE, PUBLIC_IP,
                             check_protocol, del_ondemand_public_ip)
 from network_plugin.network import VCLOUD_NETWORK_NAME
@@ -50,7 +50,6 @@ def creation_validation(vca_client, **kwargs):
     public_ip = nat.get(PUBLIC_IP)
     if public_ip:
         check_ip(public_ip)
-        CheckAssignedExternalIp(public_ip, gateway)
     else:
         if is_subscription(service_type):
             getFreeIP(gateway)
@@ -72,8 +71,6 @@ def prepare_network_operation(vca_client, operation):
         gateway = get_gateway(vca_client, ctx.target.node.properties['nat']['edge_gateway'])
         public_ip = _get_public_ip(vca_client, ctx, gateway, operation)
         private_ip = _create_ip_range(vca_client, gateway)
-        if operation == CREATE:
-            CheckAssignedExternalIp(public_ip, gateway)
         for rule in ctx.target.node.properties['rules']:
             rule_type = rule['type']
             nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
@@ -88,8 +85,6 @@ def prepare_server_operation(vca_client, operation):
         gateway = get_gateway(vca_client, ctx.target.node.properties['nat']['edge_gateway'])
         public_ip = _get_public_ip(vca_client, ctx, gateway, operation)
         private_ip = get_vm_ip(vca_client, ctx, gateway)
-        if operation == CREATE:
-            CheckAssignedExternalIp(public_ip, gateway)
         for rule in ctx.target.node.properties['rules']:
             rule_type = rule['type']
             protocol = rule.get('protocol', "any")
@@ -106,31 +101,40 @@ def prepare_server_operation(vca_client, operation):
 def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
                           private_ip, original_port, translated_port,
                           protocol):
-    ctx.logger.info("Public IP {0}".format(public_ip))
     function = None
     message = None
     if operation == CREATE:
+        if _is_nat_rule_exists(gateway, rule_type, public_ip, original_port,
+                               private_ip, translated_port, protocol):
+            raise cfy_exc.NonRecoverableError(
+                "The same NAT rule already exsists: original_ip '{0}',translated_ip '{1}', "
+                "rule type '{2}', protocol '{3}', original_port '{4}, "
+                "translated_port {5}'".format(private_ip, public_ip, rule_type, protocol,
+                                              original_port, translated_port))
         function = gateway.add_nat_rule
-        message = "Create"
+        message = "Add"
     elif operation == DELETE:
         function = gateway.del_nat_rule
-        message = "Delete"
+        message = "Remove"
     else:
         raise cfy_exc.NonRecoverableError(
             "Unknown operation: {0}".format(operation))
 
-    ctx.logger.info(
-        "{6} NAT rule: original_ip '{0}',translated_ip '{1}', "
-        "rule type '{2}, protocol {3}, original_port {4}, "
-        "translated_port {5}'".format(private_ip, public_ip, rule_type, protocol,
-                                      original_port, translated_port,
-                                      message))
+    info_message = """{6} NAT rule: rule type '{2}', original_ip '{0}', translated_ip '{1}', \
+protocol '{3}', original_port '{4}', translated_port '{5}'"""
     if rule_type == "SNAT":
-        # for SNAT type ports and protocol must by "any", because they
-        # are not configurable
+        # for SNAT type ports and protocol must by "any", because they are not configurable
+        ctx.logger.info(
+            info_message.format(private_ip, public_ip, rule_type, protocol,
+                                original_port, translated_port,
+                                message))
         function(
             rule_type, private_ip, "any", public_ip, "any", "any")
     if rule_type == "DNAT":
+        ctx.logger.info(
+            info_message.format(public_ip, private_ip, rule_type, protocol,
+                                original_port, translated_port,
+                                message))
         function(rule_type, public_ip, str(original_port), private_ip,
                  str(translated_port), protocol)
 
@@ -139,7 +143,7 @@ def _save_configuration(gateway, vca_client, operation, public_ip):
     if not save_gateway_configuration(gateway, vca_client):
         return ctx.operation.retry(message='Waiting for gateway.',
                                    retry_after=10)
-
+    ctx.logger.info("NAT configuration has been saved")
     if operation == CREATE:
         ctx.target.instance.runtime_properties[PUBLIC_IP] = public_ip
     else:
@@ -194,9 +198,7 @@ def _get_public_ip(vca_client, ctx, gateway, operation):
     public_ip = None
     if operation == CREATE:
         public_ip = ctx.target.node.properties['nat'].get(PUBLIC_IP)
-        if public_ip:
-            CheckAssignedExternalIp(public_ip, gateway)
-        else:
+        if not public_ip:
             service_type = get_vcloud_config().get('service_type')
             public_ip = get_public_ip(vca_client, gateway, service_type, ctx)
     elif operation == DELETE:
@@ -205,3 +207,19 @@ def _get_public_ip(vca_client, ctx, gateway, operation):
     if not public_ip:
         raise cfy_exc.NonRecoverableError("Can't get public IP")
     return public_ip
+
+
+def _is_nat_rule_exists(gateway, rule_type, original_ip, original_port, translated_ip, translated_port, protocol):
+    cicmp = lambda s1, s2: s1.lower() == s2.lower()
+    for natRule in gateway.get_nat_rules():
+        gatewayNatRule = natRule.get_GatewayNatRule()
+        if (cicmp(rule_type, natRule.get_RuleType()) and
+            cicmp(original_ip, gatewayNatRule.get_OriginalIp()) and
+            cicmp(str(original_port), gatewayNatRule.get_OriginalPort()) and
+            cicmp(translated_ip, gatewayNatRule.get_TranslatedIp()) and
+            cicmp(str(translated_port), gatewayNatRule.get_TranslatedPort()) and
+            cicmp(protocol, gatewayNatRule.get_Protocol())):
+            break
+    else:
+        return False
+    return True
