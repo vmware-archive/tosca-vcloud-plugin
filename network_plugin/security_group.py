@@ -102,8 +102,8 @@ def _rule_operation(operation, vca_client):
             ctx.logger.info(
                 "Firewall rule has been created: {0}".format(description))
         elif operation == DELETE_RULE:
-            gateway.delete_fw_rule(protocol, dest_port, dest_ip,
-                                   source_port, source_ip)
+            gateway.delete_fw_rule(protocol, dest_port, dest_ip.lower(),
+                                   source_port, source_ip.lower())
             ctx.logger.info(
                 "Firewall rule has been deleted: {0}".format(description))
 
