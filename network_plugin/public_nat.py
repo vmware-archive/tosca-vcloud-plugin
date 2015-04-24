@@ -210,15 +210,16 @@ def _get_public_ip(vca_client, ctx, gateway, operation):
 
 
 def _is_nat_rule_exists(gateway, rule_type, original_ip, original_port, translated_ip, translated_port, protocol):
-    cicmp = lambda s1, s2: s1.lower() == s2.lower()
+    # gatewayNatRule properties may be None or string
+    cicmp = lambda t: t[1] and (t[0].lower() == t[1].lower())
     for natRule in gateway.get_nat_rules():
         gatewayNatRule = natRule.get_GatewayNatRule()
-        if (cicmp(rule_type, natRule.get_RuleType()) and
-            cicmp(original_ip, gatewayNatRule.get_OriginalIp()) and
-            cicmp(str(original_port), gatewayNatRule.get_OriginalPort()) and
-            cicmp(translated_ip, gatewayNatRule.get_TranslatedIp()) and
-            cicmp(str(translated_port), gatewayNatRule.get_TranslatedPort()) and
-            cicmp(protocol, gatewayNatRule.get_Protocol())):
+        if (all(map(cicmp, [(rule_type, natRule.get_RuleType()),
+                            (original_ip, gatewayNatRule.get_OriginalIp()),
+                            (str(original_port), gatewayNatRule.get_OriginalPort()),
+                            (translated_ip, gatewayNatRule.get_TranslatedIp()),
+                            (str(translated_port), gatewayNatRule.get_TranslatedPort()),
+                            (protocol, gatewayNatRule.get_Protocol())]))):
             break
     else:
         return False
