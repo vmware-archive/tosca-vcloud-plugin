@@ -223,7 +223,7 @@ def _get_management_network_from_node():
     management_network_name = ctx.node.properties.get('management_network')
     if not management_network_name:
         resources = ctx.provider_context.get('resources')
-        if 'int_network' in resources:
+        if resources and 'int_network' in resources:
             management_network_name = resources['int_network'].get('name')
     if not management_network_name:
         raise cfy_exc.NonRecoverableError(
