@@ -14,7 +14,7 @@ manager_server_public_ip:
 management_network_use_existing: true
 management_network_public_nat_use_existing: true
 management_network_name: some-net
-management_server_public_ip:
+management_network_public_ip:
 manager_private_key_path: ~/.ssh/manager.pem
 agent_private_key_path: ~/.ssh/manager.pem
 manager_public_key: some_key
