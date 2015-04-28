@@ -367,7 +367,7 @@ def _create_connections_list(vca_client):
     if not any([conn['network'] == management_network_name
                 for conn in connections]):
         connections.append(_create_connection(management_network_name,
-                                              None, None, ''))
+                                              None, None, 'POOL'))
 
     primary_iface_set = len(filter(lambda conn: conn.get('primary_interface',
                                                          False),
