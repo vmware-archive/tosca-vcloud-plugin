@@ -259,6 +259,10 @@ node_templates:
                protocol: tcp
                original_port: 80
                translated_port: 80
+             - type: DNAT
+               protocol: tcp
+               original_port: 8086
+               translated_port: 8086
              - type:  DNAT
                protocol: tcp
                original_port: 443
