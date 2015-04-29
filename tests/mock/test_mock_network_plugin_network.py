@@ -7,7 +7,7 @@ from network_plugin import network
 from vcloud_plugin_common import TASK_STATUS_SUCCESS, TASK_STATUS_ERROR
 
 
-class NetworkMockTestCase(test_mock_base.TestBase):
+class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
 
     def test_delete(self):
         fake_client = self.generate_client()

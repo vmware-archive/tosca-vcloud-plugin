@@ -7,7 +7,7 @@ from server_plugin import server
 import test_mock_base
 
 
-class ServerSubRoutesMockTestCase(test_mock_base.TestBase):
+class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
 
     def test_check_hardware_empty(self):
         ''' nosing is set '''

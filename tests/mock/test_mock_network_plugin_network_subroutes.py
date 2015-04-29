@@ -6,7 +6,7 @@ import test_mock_base
 from network_plugin import network, BUSY_MESSAGE
 
 
-class NetworkSubroutesMockTestCase(test_mock_base.TestBase):
+class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
 
     def test__get_network_list(self):
         # check list with one network

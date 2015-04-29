@@ -7,7 +7,7 @@ from vcloud_plugin_common import STATUS_POWERED_ON, STATUS_POWERED_OFF, TASK_STA
 import test_mock_base
 
 
-class ServerMockTestCase(test_mock_base.TestBase):
+class ServerPluginServerMockTestCase(test_mock_base.TestBase):
 
     def test_delete(self):
         fake_ctx = self.generate_context()
