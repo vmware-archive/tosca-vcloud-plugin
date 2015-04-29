@@ -297,7 +297,7 @@ class ServerSubRoutesMockTestCase(test_mock_base.TestBase):
                             'primary_interface': False
                         }, {
                             'ip_address': None,
-                            'ip_allocation_mode': '',
+                            'ip_allocation_mode': 'POOL',
                             'mac_address': None,
                             'network': '_management_network',
                             'primary_interface': False
@@ -365,7 +365,7 @@ class ServerSubRoutesMockTestCase(test_mock_base.TestBase):
                 self.assertEqual(
                     [{
                         'ip_address': None,
-                        'ip_allocation_mode': '',
+                        'ip_allocation_mode': 'POOL',
                         'mac_address': None,
                         'network': '_management_network',
                         'primary_interface': True
@@ -387,65 +387,60 @@ class ServerSubRoutesMockTestCase(test_mock_base.TestBase):
     def test_get_vm_network_connections(self):
         # one connection from port, one from network and
         # one managment_network
-        fake_ctx = self.generate_context()
-        with mock.patch('server_plugin.server.ctx', fake_ctx):
-            with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
-                # empty connection
-                fake_vapp = self.generate_vapp([])
-                connections = server._get_vm_network_connections(
-                    fake_vapp
-                )
-                self.assertEqual([], connections)
-                # not connected
-                fake_vapp = self.generate_vapp([{
-                    'is_connected': False,
-                    'network_name': 'network_name'
-                }])
-                connections = server._get_vm_network_connections(
-                    fake_vapp
-                )
-                self.assertEqual([], connections)
-                # connection
-                fake_vapp = self.generate_vapp([{
-                    'is_connected': True,
-                    'network_name': 'network_name'
-                }])
-                connections = server._get_vm_network_connections(
-                    fake_vapp
-                )
-                self.assertEqual([
-                    {
-                        'is_connected': True,
-                        'network_name': 'network_name'
-                    }],
-                    connections
-                )
 
-    def test_get_vm_network_connection(self):
-        # one connection from port, one from network and
-        # one managment_network
-        fake_ctx = self.generate_context()
+        # empty connection
+        fake_vapp = self.generate_vapp([])
+        connections = server._get_vm_network_connections(
+            fake_vapp
+        )
+        self.assertEqual([], connections)
+        # not connected
+        fake_vapp = self.generate_vapp([{
+            'is_connected': False,
+            'network_name': 'network_name'
+        }])
+        connections = server._get_vm_network_connections(
+            fake_vapp
+        )
+        self.assertEqual([], connections)
+        # connection
         fake_vapp = self.generate_vapp([{
             'is_connected': True,
             'network_name': 'network_name'
         }])
-        with mock.patch('server_plugin.server.ctx', fake_ctx):
-            with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
-                # exist network
-                connection = server._get_vm_network_connection(
-                    fake_vapp, 'network_name'
-                )
-                self.assertEqual(
-                    {
-                        'is_connected': True,
-                        'network_name': 'network_name'
-                    }, connection
-                )
-                # not exist network
-                connection = server._get_vm_network_connection(
-                    fake_vapp, 'other'
-                )
-                self.assertEqual(None, connection)
+        connections = server._get_vm_network_connections(
+            fake_vapp
+        )
+        self.assertEqual([
+            {
+                'is_connected': True,
+                'network_name': 'network_name'
+            }],
+            connections
+        )
+
+    def test_get_vm_network_connection(self):
+        # one connection from port, one from network and
+        # one managment_network
+        fake_vapp = self.generate_vapp([{
+            'is_connected': True,
+            'network_name': 'network_name'
+        }])
+        # exist network
+        connection = server._get_vm_network_connection(
+            fake_vapp, 'network_name'
+        )
+        self.assertEqual(
+            {
+                'is_connected': True,
+                'network_name': 'network_name'
+            }, connection
+        )
+        # not exist network
+        connection = server._get_vm_network_connection(
+            fake_vapp, 'other'
+        )
+        self.assertEqual(None, connection)
 
     def test_get_state(self):
         fake_ctx = self.generate_context()

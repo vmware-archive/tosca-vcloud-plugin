@@ -136,9 +136,6 @@ def creation_validation(vca_client, **kwargs):
     dhcp = net_prop.get("dhcp")
     if dhcp:
         dhcp_range = get_mandatory(net_prop["dhcp"], "dhcp_range")
-        if not dhcp_range:
-            raise cfy_exc.NonRecoverableError(
-                "Parameter 'dhcp_range' not defined")
         dhcp_ip = _split_adresses(dhcp_range)
         if not is_separate_ranges(static_ip, dhcp_ip):
             raise cfy_exc.NonRecoverableError(
@@ -146,7 +143,7 @@ def creation_validation(vca_client, **kwargs):
         ips.extend([dhcp_ip.start, dhcp_ip.end])
     if not is_ips_in_same_subnet(ips, netmask):
             raise cfy_exc.NonRecoverableError(
-                "IP addresses in divverent subnets.")
+                "IP addresses in different subnets.")
 
 
 def _dhcp_operation(vca_client, network_name, operation):
@@ -194,9 +191,6 @@ def _split_adresses(address_range):
     except IndexError:
         raise cfy_exc.NonRecoverableError("Can't parse IP range:{0}".
                                           format(address_range))
-    except ValueError:
-        raise cfy_exc.NonRecoverableError(
-            "Incorrect Ip addresses: {0}".format(address_range))
 
 
 def _get_network_list(vca_client, vdc_name):
