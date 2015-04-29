@@ -124,7 +124,7 @@ def getFreeIP(gateway):
     available_ips = public_ips - allocated_ips
     if not available_ips:
         raise cfy_exc.NonRecoverableError(
-            "Can't get external IP address")
+            "Can't get public IP address")
     return list(available_ips)[0]
 
 

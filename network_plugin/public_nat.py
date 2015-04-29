@@ -204,8 +204,11 @@ def _get_public_ip(vca_client, ctx, gateway, operation):
     elif operation == DELETE:
         if PUBLIC_IP in ctx.target.instance.runtime_properties:
             public_ip = ctx.target.instance.runtime_properties[PUBLIC_IP]
-    if not public_ip:
-        raise cfy_exc.NonRecoverableError("Can't get public IP")
+        else:
+            raise cfy_exc.NonRecoverableError("Can't obtain public IP from runtime properties")
+    else:
+        raise cfy_exc.NonRecoverableError("Unknown operation")
+
     return public_ip
 
 
