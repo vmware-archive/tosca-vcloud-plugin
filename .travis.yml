@@ -1,0 +1,9 @@
+language: python
+python:
+  - "2.7"
+# command to install dependencies
+install:
+  - pip install -r dev-requirements.txt
+  - pip install -r test-requirements.txt
+# command to run tests
+script: nosetests tests/mock --with-coverage --cover-package=vcloud_plugin_common --cover-package=network_plugin --cover-package=server_plugin

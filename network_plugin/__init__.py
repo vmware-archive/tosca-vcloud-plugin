@@ -90,8 +90,7 @@ def get_vm_ip(vca_client, ctx, gateway):
                     raise cfy_exc.NonRecoverableError(
                         "Primary network {0} not routed"
                         .format(connection['network_name']))
-        raise cfy_exc.NonRecoverableError("Primary network {0} not connected"
-                                          .format(connection['network_name']))
+        raise cfy_exc.NonRecoverableError("No connected primary network")
     except IndexError:
         raise cfy_exc.NonRecoverableError("Could not get vm IP address")
 
