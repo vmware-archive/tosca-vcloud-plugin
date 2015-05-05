@@ -15,18 +15,21 @@ class TestBase(unittest.TestCase):
         task.get_status = mock.MagicMock(return_value=status)
         return task
 
+    def gen_network(self, fenceMode):
+        network_config = mock.Mock()
+        network_config.get_FenceMode = mock.MagicMock(
+            return_value=fenceMode
+        )
+        network = mock.Mock()
+        network.get_Configuration = mock.MagicMock(
+            return_value=network_config
+        )
+        return network
+
     def generate_client(self, vms_networks=None, vdc_networks=None):
 
         def _gen_network(vdc_name, network_name):
-            network_config = mock.Mock()
-            network_config.get_FenceMode = mock.MagicMock(
-                return_value=network_name
-            )
-            network = mock.Mock()
-            network.get_Configuration = mock.MagicMock(
-                return_value=network_config
-            )
-            return network
+            return self.gen_network(network_name)
 
         def _get_admin_network_href(vdc_name, network_name):
             return "_href" + network_name
@@ -53,6 +56,20 @@ class TestBase(unittest.TestCase):
                         name="error"
                         message="''' + self.ERROR_PLACE + '''"
                     />''').replace("\n", " ").strip()
+            interfaces = []
+            if vms_networks:
+                for network in vms_networks:
+                    interface = mock.Mock()
+                    interface.get_Name = mock.MagicMock(
+                        return_value=network.get(
+                            'network_name', 'unknowNet'
+                        )
+                    )
+                    interfaces.append(interface)
+            gate.get_interfaces = mock.MagicMock(
+                return_value=interfaces
+            )
+            gate.is_fw_enabled = mock.MagicMock(return_value=True)
             return gate
 
         def _get_gateways(vdc_name):

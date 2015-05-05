@@ -34,6 +34,20 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
 
     def test__dhcp_operation(self):
         fake_client = self.generate_client()
+        # no dhcp
+        fake_ctx = self.generate_context(properties={
+            'network': {
+                'edge_gateway': 'gateway'
+            },
+            'vcloud_config': {
+                'vdc': 'vdc_name'
+            }
+        })
+        with mock.patch('network_plugin.network.ctx', fake_ctx):
+            with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+                network._dhcp_operation(
+                    fake_client, '_management_network', network.ADD_POOL
+                )
         # wrong dhcp_range
         fake_ctx = self.generate_context(properties={
             'network': {

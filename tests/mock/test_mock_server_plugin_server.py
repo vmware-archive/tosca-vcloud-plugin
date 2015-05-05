@@ -3,7 +3,7 @@ import unittest
 
 from cloudify import exceptions as cfy_exc
 from server_plugin import server
-from vcloud_plugin_common import STATUS_POWERED_ON, STATUS_POWERED_OFF, TASK_STATUS_SUCCESS, TASK_STATUS_ERROR
+import vcloud_plugin_common
 import test_mock_base
 
 
@@ -26,7 +26,9 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             self.check_get_vapp(fake_client, 'vapp_name')
 
             # error
-            fake_task = self.generate_task(TASK_STATUS_ERROR)
+            fake_task = self.generate_task(
+                vcloud_plugin_common.TASK_STATUS_ERROR
+            )
             fake_client._vapp.delete = mock.MagicMock(
                 return_value=fake_task
             )
@@ -34,7 +36,9 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
                 server.delete(ctx=fake_ctx)
 
             # success
-            fake_task = self.generate_task(TASK_STATUS_SUCCESS)
+            fake_task = self.generate_task(
+                vcloud_plugin_common.TASK_STATUS_SUCCESS
+            )
             fake_client._vapp.delete = mock.MagicMock(
                 return_value=fake_task
             )
@@ -59,7 +63,9 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             self.check_get_vapp(fake_client, 'vapp_name')
 
             # error
-            fake_task = self.generate_task(TASK_STATUS_ERROR)
+            fake_task = self.generate_task(
+                vcloud_plugin_common.TASK_STATUS_ERROR
+            )
             fake_client._vapp.undeploy = mock.MagicMock(
                 return_value=fake_task
             )
@@ -67,7 +73,9 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
                 server.stop(ctx=fake_ctx)
 
             # success
-            fake_task = self.generate_task(TASK_STATUS_SUCCESS)
+            fake_task = self.generate_task(
+                vcloud_plugin_common.TASK_STATUS_SUCCESS
+            )
             fake_client._vapp.undeploy = mock.MagicMock(
                 return_value=fake_task
             )
@@ -95,7 +103,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         ):
             # poweroff with error equal to None
             fake_client._vapp.me.get_status = mock.MagicMock(
-                return_value=STATUS_POWERED_OFF
+                return_value=vcloud_plugin_common.STATUS_POWERED_OFF
             )
             fake_client._vapp.poweron = mock.MagicMock(
                 return_value=None
@@ -107,9 +115,11 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
 
             # poweroff with error in task
             fake_client._vapp.me.get_status = mock.MagicMock(
-                return_value=STATUS_POWERED_OFF
+                return_value=vcloud_plugin_common.STATUS_POWERED_OFF
             )
-            fake_task = self.generate_task(TASK_STATUS_ERROR)
+            fake_task = self.generate_task(
+                vcloud_plugin_common.TASK_STATUS_ERROR
+            )
             fake_client._vapp.poweron = mock.MagicMock(
                 return_value=fake_task
             )
@@ -118,9 +128,11 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
 
             # poweroff with success in task but not connected
             fake_client._vapp.me.get_status = mock.MagicMock(
-                return_value=STATUS_POWERED_OFF
+                return_value=vcloud_plugin_common.STATUS_POWERED_OFF
             )
-            fake_task = self.generate_task(TASK_STATUS_SUCCESS)
+            fake_task = self.generate_task(
+                vcloud_plugin_common.TASK_STATUS_SUCCESS
+            )
             fake_client._vapp.poweron = mock.MagicMock(
                 return_value=fake_task
             )
@@ -129,7 +141,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
 
             # poweron with success in task but not connected
             fake_client._vapp.me.get_status = mock.MagicMock(
-                return_value=STATUS_POWERED_OFF
+                return_value=vcloud_plugin_common.STATUS_POWERED_OFF
             )
             with self.assertRaises(cfy_exc.OperationRetry):
                 server.start(ctx=fake_ctx)
@@ -145,7 +157,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         ):
             # poweron with success in task and connected
             fake_client._vapp.me.get_status = mock.MagicMock(
-                return_value=STATUS_POWERED_ON
+                return_value=vcloud_plugin_common.STATUS_POWERED_ON
             )
             with self.assertRaises(cfy_exc.OperationRetry):
                 server.start(ctx=fake_ctx)
@@ -203,7 +215,8 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             self.run_with_statuses(
-                fake_client, fake_ctx, TASK_STATUS_ERROR
+                fake_client, fake_ctx,
+                vcloud_plugin_common.TASK_STATUS_ERROR
             )
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 server.create(ctx=fake_ctx)
@@ -302,8 +315,9 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_context_for_create()
         fake_client = self.generate_client()
         self.run_with_statuses(
-            fake_client, fake_ctx, TASK_STATUS_SUCCESS,
-            TASK_STATUS_ERROR
+            fake_client, fake_ctx,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_ERROR
         )
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
@@ -321,7 +335,8 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_context_for_create()
         fake_client = self.generate_client()
         self.run_with_statuses(
-            fake_client, fake_ctx, TASK_STATUS_SUCCESS
+            fake_client, fake_ctx,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
@@ -341,8 +356,9 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             return_value=None
         )
         self.run_with_statuses(
-            fake_client, fake_ctx, TASK_STATUS_SUCCESS,
-            TASK_STATUS_SUCCESS
+            fake_client, fake_ctx,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
@@ -359,8 +375,9 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_context_for_create()
         fake_client = self.generate_client()
         self.run_with_statuses(
-            fake_client, fake_ctx, TASK_STATUS_SUCCESS,
-            TASK_STATUS_SUCCESS
+            fake_client, fake_ctx,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
@@ -378,8 +395,10 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_context_for_create()
         fake_client = self.generate_client()
         self.run_with_statuses(
-            fake_client, fake_ctx, TASK_STATUS_SUCCESS,
-            TASK_STATUS_SUCCESS, TASK_STATUS_ERROR
+            fake_client, fake_ctx,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_ERROR
         )
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
@@ -396,8 +415,10 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_context_for_create()
         fake_client = self.generate_client()
         self.run_with_statuses(
-            fake_client, fake_ctx, TASK_STATUS_SUCCESS,
-            TASK_STATUS_SUCCESS, TASK_STATUS_SUCCESS
+            fake_client, fake_ctx,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
@@ -413,8 +434,10 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_context_for_customization()
         fake_client = self.generate_client()
         self.run_with_statuses(
-            fake_client, fake_ctx, TASK_STATUS_SUCCESS,
-            TASK_STATUS_SUCCESS, TASK_STATUS_SUCCESS
+            fake_client, fake_ctx,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
@@ -431,9 +454,11 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_context_for_customization()
         fake_client = self.generate_client()
         self.run_with_statuses(
-            fake_client, fake_ctx, TASK_STATUS_SUCCESS,
-            TASK_STATUS_SUCCESS, TASK_STATUS_SUCCESS,
-            TASK_STATUS_ERROR
+            fake_client, fake_ctx,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_ERROR
         )
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
@@ -450,9 +475,11 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_context_for_customization()
         fake_client = self.generate_client()
         self.run_with_statuses(
-            fake_client, fake_ctx, TASK_STATUS_SUCCESS,
-            TASK_STATUS_SUCCESS, TASK_STATUS_SUCCESS,
-            TASK_STATUS_SUCCESS
+            fake_client, fake_ctx,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
         fake_client._vapp.customize_on_next_poweron = mock.MagicMock(
             return_value=None
@@ -475,9 +502,11 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             return_value=True
         )
         self.run_with_statuses(
-            fake_client, fake_ctx, TASK_STATUS_SUCCESS,
-            TASK_STATUS_SUCCESS, TASK_STATUS_SUCCESS,
-            TASK_STATUS_SUCCESS
+            fake_client, fake_ctx,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
