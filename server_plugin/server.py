@@ -102,6 +102,7 @@ def create(vca_client, **kwargs):
     ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = vapp_name
     connections = _create_connections_list(vca_client)
 
+    # we allways have connection to management_network_name
     if connections:
         for index, connection in enumerate(connections):
             vdc = vca_client.get_vdc(config['vdc'])

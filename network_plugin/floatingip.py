@@ -66,8 +66,8 @@ def _floatingip_operation(operation, vca_client, ctx):
 
     external_ip = check_ip(public_ip)
 
-    nat_operation(gateway, vca_client, "SNAT", internal_ip, external_ip)
-    nat_operation(gateway, vca_client, "DNAT", external_ip, internal_ip)
+    nat_operation(gateway, "SNAT", internal_ip, external_ip)
+    nat_operation(gateway, "DNAT", external_ip, internal_ip)
     if not save_gateway_configuration(gateway, vca_client):
         return ctx.operation.retry(message='Waiting for gateway.',
                                    retry_after=10)
@@ -85,11 +85,8 @@ def _floatingip_operation(operation, vca_client, ctx):
         del ctx.target.instance.runtime_properties[PUBLIC_IP]
 
 
-def _add_nat_rule(gateway, vca_client, rule_type, original_ip, translated_ip):
-    any_type = None
-
-    if rule_type == "DNAT":
-        any_type = "Any"
+def _add_nat_rule(gateway, rule_type, original_ip, translated_ip):
+    any_type = "any"
 
     ctx.logger.info("Create floating ip NAT rule: original_ip '{0}',"
                     "translated_ip '{1}', rule type '{2}'"
@@ -99,11 +96,8 @@ def _add_nat_rule(gateway, vca_client, rule_type, original_ip, translated_ip):
         rule_type, original_ip, any_type, translated_ip, any_type, any_type)
 
 
-def _del_nat_rule(gateway, vca_client, rule_type, original_ip, translated_ip):
+def _del_nat_rule(gateway, rule_type, original_ip, translated_ip):
     any_type = 'any'
-
-    if rule_type == "DNAT":
-        any_type = "Any"
 
     ctx.logger.info("Delete floating ip NAT rule: original_ip '{0}',"
                     "translated_ip '{1}', rule type '{2}'"
