@@ -7,6 +7,10 @@ node_types:
     cloudify.vcloud.nodes.Server:
         derived_from: cloudify.nodes.Compute
         properties:
+            use_external_resource:
+                default: false
+            resource_id:
+                default: ''
             server:
                 default: {}
             management_network:
