@@ -30,6 +30,52 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 '11', 'UDP')
         )
 
+    def test_get_original_port_for_delete(self):
+        # no replacement
+        fake_ctx = self.generate_context(properties={})
+        fake_ctx._source = mock.Mock()
+        fake_ctx._target = mock.Mock()
+        fake_ctx._target.instance.runtime_properties = {}
+        with mock.patch(
+            'network_plugin.public_nat.ctx', fake_ctx
+        ):
+            self.assertEqual(
+                public_nat._get_original_port_for_delete("10.1.1.1", "11"),
+                "11"
+            )
+        # replacement for other
+        fake_ctx = self.generate_context(properties={})
+        fake_ctx._source = mock.Mock()
+        fake_ctx._target = mock.Mock()
+        fake_ctx._target.instance.runtime_properties = {
+            public_nat.PORT_REPLACEMENT: {
+                ("10.1.1.2", "11"): '12'
+            }
+        }
+        with mock.patch(
+            'network_plugin.public_nat.ctx', fake_ctx
+        ):
+            self.assertEqual(
+                public_nat._get_original_port_for_delete("10.1.1.1", "11"),
+                "11"
+            )
+        # replacement for other
+        fake_ctx = self.generate_context(properties={})
+        fake_ctx._source = mock.Mock()
+        fake_ctx._target = mock.Mock()
+        fake_ctx._target.instance.runtime_properties = {
+            public_nat.PORT_REPLACEMENT: {
+                ("10.1.1.2", "11"): '12'
+            }
+        }
+        with mock.patch(
+            'network_plugin.public_nat.ctx', fake_ctx
+        ):
+            self.assertEqual(
+                public_nat._get_original_port_for_delete("10.1.1.2", "11"),
+                "12"
+            )
+
 
 if __name__ == '__main__':
     unittest.main()
