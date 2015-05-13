@@ -8,23 +8,8 @@ from network_plugin import public_nat
 
 class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
 
-    def _generate_rule(
-        self, rule_type, original_ip, original_port, translated_ip,
-        translated_port, protocol
-    ):
-        rule = mock.Mock()
-        rule.get_OriginalIp = mock.MagicMock(return_value=original_ip)
-        rule.get_OriginalPort = mock.MagicMock(return_value=original_port)
-        rule.get_TranslatedIp = mock.MagicMock(return_value=translated_ip)
-        rule.get_TranslatedPort = mock.MagicMock(return_value=translated_port)
-        rule.get_Protocol = mock.MagicMock(return_value=protocol)
-        rule_inlist = mock.Mock()
-        rule_inlist.get_RuleType = mock.MagicMock(return_value=rule_type)
-        rule_inlist.get_GatewayNatRule = mock.MagicMock(return_value=rule)
-        return rule_inlist
-
     def test_is_rule_exists(self):
-        rule_inlist = self._generate_rule(
+        rule_inlist = self.generate_nat_rule(
             'SNAT', 'external', '22', 'internal', '11', 'TCP'
         )
         # exist
@@ -88,7 +73,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
 
     def test_get_original_port_for_create(self):
         gateway = mock.Mock()
-        rule_inlist = self._generate_rule(
+        rule_inlist = self.generate_nat_rule(
             'SNAT', 'external', 'any', 'internal', '11', 'TCP'
         )
         gateway.get_nat_rules = mock.MagicMock(return_value=[rule_inlist])
@@ -122,7 +107,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             public_nat.PORT_REPLACEMENT: {}
         }
         gateway = mock.Mock()
-        rule_inlist = self._generate_rule(
+        rule_inlist = self.generate_nat_rule(
             'SNAT', 'external', 10, 'internal', 11, 'TCP'
         )
         gateway.get_nat_rules = mock.MagicMock(return_value=[rule_inlist])
@@ -163,7 +148,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 }
             )
         # we dont have enought ports
-        rule_inlist = self._generate_rule(
+        rule_inlist = self.generate_nat_rule(
             'SNAT', 'external', public_nat.MAX_PORT_NUMBER,
             'internal', 11, 'TCP'
         )
@@ -178,6 +163,8 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                     public_nat.MAX_PORT_NUMBER, 'internal', '11', 'TCP'
                 )
 
+    def test_get_gateway_ip_range(self):
+        pass
 
 if __name__ == '__main__':
     unittest.main()

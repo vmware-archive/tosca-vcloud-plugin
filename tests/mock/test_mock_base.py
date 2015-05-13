@@ -26,6 +26,35 @@ class TestBase(unittest.TestCase):
         )
         return network
 
+    def generate_nat_rule(
+        self, rule_type, original_ip, original_port, translated_ip,
+        translated_port, protocol
+    ):
+        rule = mock.Mock()
+        rule.get_OriginalIp = mock.MagicMock(return_value=original_ip)
+        rule.get_OriginalPort = mock.MagicMock(return_value=original_port)
+        rule.get_TranslatedIp = mock.MagicMock(return_value=translated_ip)
+        rule.get_TranslatedPort = mock.MagicMock(return_value=translated_port)
+        rule.get_Protocol = mock.MagicMock(return_value=protocol)
+        rule_inlist = mock.Mock()
+        rule_inlist.get_RuleType = mock.MagicMock(return_value=rule_type)
+        rule_inlist.get_GatewayNatRule = mock.MagicMock(return_value=rule)
+        return rule_inlist
+
+    def genarate_pool(self, name, low_ip, high_ip):
+        pool = mock.Mock()
+        pool.Network = mock.Mock()
+        pool.Network.name = name
+        pool.get_LowIpAddress = mock.MagicMock(return_value=low_ip)
+        pool.get_HighIpAddress = mock.MagicMock(return_value=high_ip)
+        # network in pool
+        network = mock.Mock()
+        network.get_href = mock.MagicMock(
+            return_value="_href" + name
+        )
+        pool.get_Network = mock.MagicMock(return_value=network)
+        return pool
+
     def generate_client(self, vms_networks=None, vdc_networks=None):
 
         def _gen_network(vdc_name, network_name):
@@ -36,13 +65,11 @@ class TestBase(unittest.TestCase):
 
         def _get_gateway(vdc_name="vdc"):
             gate = mock.Mock()
-            pool = mock.Mock()
-            network = mock.Mock()
-            network.get_href = mock.MagicMock(
-                return_value="_href" + vdc_name
-            )
-            pool.get_Network = mock.MagicMock(return_value=network)
-            gate.get_dhcp_pools = mock.MagicMock(return_value=[pool])
+            gate.get_dhcp_pools = mock.MagicMock(return_value=[
+                self.genarate_pool(
+                    vdc_name, '127.0.0.1', '127.0.0.255'
+                )
+            ])
             gate.add_dhcp_pool = mock.MagicMock(return_value=None)
             gate.save_services_configuration = mock.MagicMock(
                 return_value=None
@@ -70,6 +97,7 @@ class TestBase(unittest.TestCase):
                 return_value=interfaces
             )
             gate.is_fw_enabled = mock.MagicMock(return_value=True)
+            gate.get_nat_rules = mock.MagicMock(return_value=[])
             return gate
 
         def _get_gateways(vdc_name):
