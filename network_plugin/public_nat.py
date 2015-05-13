@@ -160,6 +160,9 @@ def _create_ip_range(vca_client, gateway):
         org_name = get_vcloud_config()['org']
         net = _get_network_ip_range(vca_client, org_name, network_name)
         gate = _get_gateway_ip_range(gateway, network_name)
+        if not net:
+            raise cfy_exc.NonRecoverableError(
+                "Unknown network: {0}".format(network_name))
         if gate:
             return "{} - {}".format(min(net[0], gate[0]), max(net[1], gate[1]))
         else:
@@ -175,7 +178,10 @@ def _get_network_ip_range(vca_client, org_name, network_name):
         for ip in scope[0].IpRanges.IpRange:
             addresses.append(IP(ip.get_StartAddress()))
             addresses.append(IP(ip.get_EndAddress()))
-    return min(addresses), max(addresses)
+    if addresses:
+        return min(addresses), max(addresses)
+    else:
+        return None
 
 
 def _get_gateway_ip_range(gateway, network_name):
