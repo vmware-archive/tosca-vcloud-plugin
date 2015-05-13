@@ -10,7 +10,8 @@ from network_plugin import (check_ip, save_gateway_configuration,
 from network_plugin.network import VCLOUD_NETWORK_NAME
 from IPy import IP
 
-MAX_PORT_NUMBER = 65356
+# 2 ^ 16 - 1
+MAX_PORT_NUMBER = 65535
 PORT_REPLACEMENT = 'port_replacement'
 
 
@@ -220,7 +221,7 @@ def _obtain_public_ip(vca_client, ctx, gateway, operation):
 def _get_original_port_for_create(gateway, rule_type, original_ip, original_port, translated_ip, translated_port, protocol):
     nat_rules = gateway.get_nat_rules()
     if isinstance(original_port, basestring) and original_port.lower() == 'any':
-        if _is_rule_exsists(nat_rules, rule_type, original_ip,
+        if _is_rule_exists(nat_rules, rule_type, original_ip,
                             original_port, translated_ip,
                             translated_port, protocol):
             raise cfy_exc.NonRecoverableError(
@@ -231,8 +232,9 @@ def _get_original_port_for_create(gateway, rule_type, original_ip, original_port
         else:
             return original_port
 
-    for port in range(original_port, MAX_PORT_NUMBER):
-        if not _is_rule_exsists(nat_rules, rule_type, original_ip,
+    # origin port can be string
+    for port in xrange(int(original_port), MAX_PORT_NUMBER + 1):
+        if not _is_rule_exists(nat_rules, rule_type, original_ip,
                                 port, translated_ip,
                                 translated_port, protocol):
             if port == original_port:
@@ -254,9 +256,10 @@ def _get_original_port_for_delete(original_ip, original_port):
         return original_port
 
 
-def _is_rule_exsists(nat_rules, rule_type, original_ip, original_port, translated_ip, translated_port, protocol):
+def _is_rule_exists(nat_rules, rule_type, original_ip, original_port, translated_ip, translated_port, protocol):
     # gatewayNatRule properties may be None or string
-    cicmp = lambda t: t[1] and (t[0].lower() == t[1].lower())
+    # convert to str, bacause port can be int
+    cicmp = lambda t: t[1] and (str(t[0]).lower() == str(t[1]).lower())
     for natRule in nat_rules:
         gatewayNatRule = natRule.get_GatewayNatRule()
         if (all(map(cicmp, [(rule_type, natRule.get_RuleType()),

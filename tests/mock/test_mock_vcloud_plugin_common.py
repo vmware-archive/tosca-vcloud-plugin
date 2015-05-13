@@ -15,12 +15,12 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
                 {'a': 'b'}, 'c'
             )
 
-        #empty key
+        # empty key
         with self.assertRaises(cfy_exc.NonRecoverableError):
             vcloud_plugin_common.get_mandatory(
                 {'a': None}, 'a'
             )
-        #everything fine
+        # everything fine
         self.assertEqual(
             vcloud_plugin_common.get_mandatory({
                 'a': 'b'

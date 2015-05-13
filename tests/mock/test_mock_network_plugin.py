@@ -21,7 +21,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         }
         fake_ctx._target = mock.Mock()
         fake_ctx._target.node = mock.Mock()
-        #empty connections/no connection name
+        # empty connections/no connection name
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 network_plugin.get_vm_ip(

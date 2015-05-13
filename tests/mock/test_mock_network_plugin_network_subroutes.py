@@ -96,7 +96,7 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
                         fake_client, '_management_network', network.DELETE_POOL
                     )
 
-                #returned busy, try next time
+                # returned busy, try next time
                 message = fake_client._vdc_gateway.response.content
                 message = message.replace(self.ERROR_PLACE, BUSY_MESSAGE)
                 fake_client._vdc_gateway.response.content = message
