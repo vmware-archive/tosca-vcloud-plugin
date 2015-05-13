@@ -1,7 +1,6 @@
 import mock
 import unittest
 
-from cloudify import exceptions as cfy_exc
 import test_mock_base
 from network_plugin import floatingip
 
