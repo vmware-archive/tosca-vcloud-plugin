@@ -28,12 +28,16 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 '11', 'UDP')
         )
 
-    def test_get_original_port_for_delete(self):
-        # no replacement
+    def generate_context_for_public_nat(self):
         fake_ctx = self.generate_context()
         fake_ctx._source = mock.Mock()
         fake_ctx._target = mock.Mock()
         fake_ctx._target.instance.runtime_properties = {}
+        return fake_ctx
+
+    def test_get_original_port_for_delete(self):
+        # no replacement
+        fake_ctx = self.generate_context_for_public_nat()
         with mock.patch(
             'network_plugin.public_nat.ctx', fake_ctx
         ):
@@ -42,9 +46,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 "11"
             )
         # replacement for other
-        fake_ctx = self.generate_context()
-        fake_ctx._source = mock.Mock()
-        fake_ctx._target = mock.Mock()
+        fake_ctx = self.generate_context_for_public_nat()
         fake_ctx._target.instance.runtime_properties = {
             public_nat.PORT_REPLACEMENT: {
                 ("10.1.1.2", "11"): '12'
@@ -58,9 +60,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 "11"
             )
         # replacement for other
-        fake_ctx = self.generate_context()
-        fake_ctx._source = mock.Mock()
-        fake_ctx._target = mock.Mock()
+        fake_ctx = self.generate_context_for_public_nat()
         fake_ctx._target.instance.runtime_properties = {
             public_nat.PORT_REPLACEMENT: {
                 ("10.1.1.2", "11"): '12'
@@ -103,9 +103,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
 
     def test_get_original_port_for_create_with_ctx(self):
         # with replace, but without replace table - up port +1
-        fake_ctx = self.generate_context()
-        fake_ctx._source = mock.Mock()
-        fake_ctx._target = mock.Mock()
+        fake_ctx = self.generate_context_for_public_nat()
         fake_ctx._target.instance.runtime_properties = {
             public_nat.PORT_REPLACEMENT: {}
         }
@@ -191,9 +189,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         )
 
     def test_obtain_public_ip(self):
-        fake_ctx = self.generate_context()
-        fake_ctx._source = mock.Mock()
-        fake_ctx._target = mock.Mock()
+        fake_ctx = self.generate_context_for_public_nat()
         fake_ctx._target.instance.runtime_properties = {
             network_plugin.PUBLIC_IP: '192.168.1.1'
         }
@@ -295,8 +291,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
 
     def test_create_ip_range(self):
         # context
-        fake_ctx = self.generate_context()
-        fake_ctx._source = mock.Mock()
+        fake_ctx = self.generate_context_for_public_nat()
         fake_ctx._source.instance.runtime_properties = {
             network_plugin.network.VCLOUD_NETWORK_NAME: "some"
         }
@@ -305,7 +300,6 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 'org': 'some_org'
             }
         }
-        fake_ctx._target = mock.Mock()
         fake_ctx._target.instance.runtime_properties = {}
         # gateway
         gate = mock.Mock()
@@ -358,7 +352,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             return_value=None
         )
         self.set_gateway_busy(gateway)
-        fake_ctx = self.generate_context()
+        fake_ctx = self.generate_context_for_public_nat()
         with mock.patch(
             'network_plugin.public_nat.ctx', fake_ctx
         ):
@@ -367,6 +361,25 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 gateway, vca_client, "any", "any"
             )
             self.check_retry_realy_called(fake_ctx)
+        # operation create
+        fake_ctx = self.generate_context_for_public_nat()
+        with mock.patch(
+            'network_plugin.public_nat.ctx', fake_ctx
+        ):
+            gateway.save_services_configuration = mock.MagicMock(
+                return_value=self.generate_task(
+                    vcloud_plugin_common.TASK_STATUS_SUCCESS
+                )
+            )
+            public_nat._save_configuration(
+                gateway, vca_client, network_plugin.CREATE, "1.2.3.4"
+            )
+            self.assertEqual(
+                fake_ctx._target.instance.runtime_properties,
+                {
+                    network_plugin.PUBLIC_IP: "1.2.3.4"
+                }
+            )
 
 if __name__ == '__main__':
     unittest.main()
