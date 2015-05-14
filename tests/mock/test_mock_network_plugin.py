@@ -45,21 +45,27 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         self.assertEqual(
             network_plugin.collectAssignedIps(gateway),
-            set([network_plugin.AssignedIPs(
-                external='internal', internal='external'
-            )])
+            set(
+                [network_plugin.AssignedIPs(
+                    external='internal', internal='external'
+                )]
+            )
         )
         # dnat
         gateway = mock.Mock()
         rule_inlist = self.generate_nat_rule(
             'DNAT', 'external', 'any', 'internal', '11', 'TCP'
         )
-        gateway.get_nat_rules = mock.MagicMock(return_value=[rule_inlist])
+        gateway.get_nat_rules = mock.MagicMock(return_value=[
+            rule_inlist
+        ])
         self.assertEqual(
             network_plugin.collectAssignedIps(gateway),
-            set([network_plugin.AssignedIPs(
-                external='external', internal='internal'
-            )])
+            set(
+                [network_plugin.AssignedIPs(
+                    external='external', internal='internal'
+                )]
+            )
         )
 
     def test_getFreeIP(self):

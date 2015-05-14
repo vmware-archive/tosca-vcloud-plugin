@@ -263,6 +263,92 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                     '10.18.1.2'
                 )
 
+    def test_get_network_ip_range(self):
+        # dont have ip range for this network
+        vca_client = self.generate_client()
+        self.assertEqual(
+            public_nat._get_network_ip_range(
+                vca_client, "some_org", "some_network"
+            ),
+            None
+        )
+        vca_client.get_networks.assert_called_with("some_org")
+        # different network
+        network = self.gen_vca_client_network(
+            name="some", start_ip="127.1.1.1", end_ip="127.1.1.255"
+        )
+        vca_client.get_networks = mock.MagicMock(return_value=[network])
+        self.assertEqual(
+            public_nat._get_network_ip_range(
+                vca_client, "some_org", "some_network"
+            ),
+            None
+        )
+        # correct network name
+        vca_client.get_networks = mock.MagicMock(return_value=[network])
+        self.assertEqual(
+            public_nat._get_network_ip_range(
+                vca_client, "some_org", "some"
+            ),
+            (IP('127.1.1.1'), IP('127.1.1.255'))
+        )
+
+    def test_create_ip_range(self):
+        # context
+        fake_ctx = self.generate_context()
+        fake_ctx._source = mock.Mock()
+        fake_ctx._source.instance.runtime_properties = {
+            network_plugin.network.VCLOUD_NETWORK_NAME: "some"
+        }
+        fake_ctx._source.node.properties = {
+            'vcloud_config': {
+                'org': 'some_org'
+            }
+        }
+        fake_ctx._target = mock.Mock()
+        fake_ctx._target.instance.runtime_properties = {}
+        # gateway
+        gate = mock.Mock()
+        gate.get_dhcp_pools = mock.MagicMock(return_value=[])
+        # vca client
+        vca_client = self.generate_client()
+        network = self.gen_vca_client_network(
+            name="some", start_ip="127.1.1.100", end_ip="127.1.1.200"
+        )
+        vca_client.get_networks = mock.MagicMock(return_value=[network])
+        with mock.patch(
+            'network_plugin.public_nat.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+                # empty gateway dhcp pool
+                # vca pool: 127.1.1.100..127.1.1.200
+                self.assertEqual(
+                    public_nat._create_ip_range(vca_client, gate),
+                    '127.1.1.100 - 127.1.1.200'
+                )
+                vca_client.get_networks.assert_called_with("some_org")
+                # network from gate
+                gate.get_dhcp_pools = mock.MagicMock(return_value=[
+                    self.genarate_pool(
+                        "some", '127.1.1.1', '127.1.1.255'
+                    )
+                ])
+                self.assertEqual(
+                    public_nat._create_ip_range(vca_client, gate),
+                    '127.1.1.1 - 127.1.1.255'
+                )
+                # network not exist
+                network = self.gen_vca_client_network(
+                    name="other", start_ip="127.1.1.100",
+                    end_ip="127.1.1.200"
+                )
+                vca_client.get_networks = mock.MagicMock(
+                    return_value=[network]
+                )
+                with self.assertRaises(cfy_exc.NonRecoverableError):
+                    public_nat._create_ip_range(vca_client, gate)
 
 if __name__ == '__main__':
     unittest.main()

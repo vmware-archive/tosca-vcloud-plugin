@@ -15,14 +15,32 @@ class TestBase(unittest.TestCase):
         task.get_status = mock.MagicMock(return_value=status)
         return task
 
-    def gen_network(self, fenceMode):
-        network_config = mock.Mock()
-        network_config.get_FenceMode = mock.MagicMock(
+    def gen_vca_client_network(
+        self, fenceMode=None, name="some", start_ip="127.1.1.1",
+        end_ip="127.1.1.255"
+    ):
+        """
+            generate network for vca_client
+        """
+        network = mock.Mock()
+        # generate ip
+        network._ip = mock.Mock()
+        network._ip.get_StartAddress = mock.MagicMock(return_value=start_ip)
+        network._ip.get_EndAddress = mock.MagicMock(return_value=end_ip)
+        # generate ipRange
+        network._ip_range = mock.Mock()
+        network._ip_range.IpRanges.IpRange = [network._ip]
+        # network get_network_configuration
+        network._network_config = mock.Mock()
+        network._network_config.get_FenceMode = mock.MagicMock(
             return_value=fenceMode
         )
-        network = mock.Mock()
+        # network scope
+        network.Configuration.IpScopes.IpScope = [network._ip_range]
+        # network
+        network.get_name = mock.MagicMock(return_value=name)
         network.get_Configuration = mock.MagicMock(
-            return_value=network_config
+            return_value=network._network_config
         )
         return network
 
@@ -57,8 +75,8 @@ class TestBase(unittest.TestCase):
 
     def generate_client(self, vms_networks=None, vdc_networks=None):
 
-        def _gen_network(vdc_name, network_name):
-            return self.gen_network(network_name)
+        def _gen_vca_client_network(vdc_name, network_name):
+            return self.gen_vca_client_network(network_name)
 
         def _get_admin_network_href(vdc_name, network_name):
             return "_href" + network_name
@@ -127,7 +145,8 @@ class TestBase(unittest.TestCase):
         )
         client = mock.Mock()
         client.get_catalogs = mock.MagicMock(return_value=[catalog])
-        client.get_network = _gen_network
+        client.get_network = _gen_vca_client_network
+        client.get_networks = mock.MagicMock(return_value=[])
         client.get_admin_network_href = _get_admin_network_href
         client._vdc_gateway = _get_gateway()
         client.get_gateway = mock.MagicMock(

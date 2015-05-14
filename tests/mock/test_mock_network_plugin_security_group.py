@@ -67,7 +67,7 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         gateway.add_fw_rule = mock.MagicMock(return_value=None)
         gateway.delete_fw_rule = mock.MagicMock(return_value=None)
         # any networks will be routed
-        network = self.gen_network(NAT_ROUTED)
+        network = self.gen_vca_client_network(NAT_ROUTED)
         fake_client.get_network = mock.MagicMock(return_value=network)
         with mock.patch('network_plugin.security_group.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):

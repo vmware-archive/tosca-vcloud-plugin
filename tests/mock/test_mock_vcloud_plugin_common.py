@@ -99,7 +99,7 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
         # resource name is dict
         self.assertEqual(
             vcloud_plugin_common.transform_resource_name(
-                {'name':'test'}, fake_ctx
+                {'name': 'test'}, fake_ctx
             ),
             'test'
         )
