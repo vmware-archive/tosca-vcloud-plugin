@@ -79,13 +79,15 @@ def create(vca_client, **kwargs):
     server.update(ctx.node.properties['server'])
     transform_resource_name(server, ctx)
 
-    if ctx.node.properties['use_external_resource']:
+    if ctx.node.properties.get('use_external_resource'):
         res_id = ctx.node.properties['resource_id']
         ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = res_id
         ctx.logger.info(
             "External resource {0} has been used".format(res_id))
-        return
+    else:
+        _create(vca_client, config, server)
     
+def _create(vca_client, config, server):
     vapp_name = server['name']
     vapp_template = server['template']
     vapp_catalog = server['catalog']
@@ -185,7 +187,10 @@ def create(vca_client, **kwargs):
 @operation
 @with_vca_client
 def start(vca_client, **kwargs):
-    if not ctx.node.properties.get('use_external_resource'):
+    if ctx.node.properties.get('use_external_resource'):
+        ctx.logger.info('not starting server since an external server is '
+                        'being used')
+    else:
         vapp_name = get_vapp_name(ctx.instance.runtime_properties)
         config = get_vcloud_config()
         vdc = vca_client.get_vdc(config['vdc'])
@@ -195,7 +200,7 @@ def start(vca_client, **kwargs):
             task = vapp.poweron()
             if not task:
                 raise cfy_exc.NonRecoverableError("Could not power-on vApp")
-                wait_for_task(vca_client, task)
+            wait_for_task(vca_client, task)
 
     if not _get_state(vca_client):
         return ctx.operation.retry(
@@ -207,34 +212,37 @@ def start(vca_client, **kwargs):
 @with_vca_client
 def stop(vca_client, **kwargs):
     if ctx.node.properties.get('use_external_resource'):
-        return
-
-    vapp_name = get_vapp_name(ctx.instance.runtime_properties)
-    config = get_vcloud_config()
-    vdc = vca_client.get_vdc(config['vdc'])
-    vapp = vca_client.get_vapp(vdc, vapp_name)
-    ctx.logger.info("Power-off and undeploy VApp {0}".format(vapp_name))
-    task = vapp.undeploy()
-    if not task:
-        raise cfy_exc.NonRecoverableError("Could not undeploy vApp")
-    wait_for_task(vca_client, task)
+        ctx.logger.info('not stopping server since an external server is '
+                        'being used')
+    else:
+        vapp_name = get_vapp_name(ctx.instance.runtime_properties)
+        config = get_vcloud_config()
+        vdc = vca_client.get_vdc(config['vdc'])
+        vapp = vca_client.get_vapp(vdc, vapp_name)
+        ctx.logger.info("Power-off and undeploy VApp {0}".format(vapp_name))
+        task = vapp.undeploy()
+        if not task:
+            raise cfy_exc.NonRecoverableError("Could not undeploy vApp")
+        wait_for_task(vca_client, task)
 
 
 @operation
 @with_vca_client
 def delete(vca_client, **kwargs):
     if ctx.node.properties.get('use_external_resource'):
-        return
+        ctx.logger.info('not deleting server since an external server is '
+                        'being used')
+    else:
+        vapp_name = get_vapp_name(ctx.instance.runtime_properties)
+        config = get_vcloud_config()
+        vdc = vca_client.get_vdc(config['vdc'])
+        vapp = vca_client.get_vapp(vdc, vapp_name)
+        ctx.logger.info("Deleting VApp {0}".format(vapp_name))
+        task = vapp.delete()
+        if not task:
+            raise cfy_exc.NonRecoverableError("Could not delete vApp")
+        wait_for_task(vca_client, task)
 
-    vapp_name = get_vapp_name(ctx.instance.runtime_properties)
-    config = get_vcloud_config()
-    vdc = vca_client.get_vdc(config['vdc'])
-    vapp = vca_client.get_vapp(vdc, vapp_name)
-    ctx.logger.info("Deleting VApp {0}".format(vapp_name))
-    task = vapp.delete()
-    if not task:
-        raise cfy_exc.NonRecoverableError("Could not delete vApp")
-    wait_for_task(vca_client, task)
     del ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
 
 
@@ -272,7 +280,7 @@ def _get_state(vca_client):
         for connection in nw_connections}
 
     for connection in nw_connections:
-        if ctx.node.properties.get('use_external_resource') or connection['network_name'] == management_network_name:
+        if connection['network_name'] == management_network_name:
             ctx.logger.info("Management network ip address {0}"
                             .format(connection['ip']))
             ctx.instance.runtime_properties['ip'] = connection['ip']
