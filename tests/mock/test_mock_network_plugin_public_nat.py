@@ -4,6 +4,7 @@ import unittest
 from cloudify import exceptions as cfy_exc
 import test_mock_base
 from network_plugin import public_nat
+from IPy import IP
 
 
 class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
@@ -164,7 +165,28 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 )
 
     def test_get_gateway_ip_range(self):
-        pass
+        gate = mock.Mock()
+        # empty list of networks
+        gate.get_dhcp_pools = mock.MagicMock(return_value=[])
+        self.assertEqual(
+            public_nat._get_gateway_ip_range(gate, 'something'),
+            None
+        )
+        # exist other network
+        gate.get_dhcp_pools = mock.MagicMock(return_value=[
+            self.genarate_pool(
+                'test_network', '127.0.0.1', '127.0.0.255'
+            )
+        ])
+        self.assertEqual(
+            public_nat._get_gateway_ip_range(gate, 'something'),
+            None
+        )
+        # exist correct network
+        self.assertEqual(
+            public_nat._get_gateway_ip_range(gate, 'test_network'),
+            (IP('127.0.0.1'), IP('127.0.0.255'))
+        )
 
 if __name__ == '__main__':
     unittest.main()
