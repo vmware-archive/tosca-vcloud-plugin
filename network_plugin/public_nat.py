@@ -157,17 +157,17 @@ def _save_configuration(gateway, vca_client, operation, public_ip):
 
 
 def _create_ip_range(vca_client, gateway):
-        network_name = ctx.source.instance.runtime_properties[VCLOUD_NETWORK_NAME]
-        org_name = get_vcloud_config()['org']
-        net = _get_network_ip_range(vca_client, org_name, network_name)
-        gate = _get_gateway_ip_range(gateway, network_name)
-        if not net:
-            raise cfy_exc.NonRecoverableError(
-                "Unknown network: {0}".format(network_name))
-        if gate:
-            return "{} - {}".format(min(net[0], gate[0]), max(net[1], gate[1]))
-        else:
-            return "{} - {}".format(min(net), max(net))
+    network_name = ctx.source.instance.runtime_properties[VCLOUD_NETWORK_NAME]
+    org_name = get_vcloud_config()['org']
+    net = _get_network_ip_range(vca_client, org_name, network_name)
+    gate = _get_gateway_ip_range(gateway, network_name)
+    if not net:
+        raise cfy_exc.NonRecoverableError(
+            "Unknown network: {0}".format(network_name))
+    if gate:
+        return "{} - {}".format(min(net[0], gate[0]), max(net[1], gate[1]))
+    else:
+        return "{} - {}".format(min(net), max(net))
 
 
 def _get_network_ip_range(vca_client, org_name, network_name):

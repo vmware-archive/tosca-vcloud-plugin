@@ -3,7 +3,7 @@ import unittest
 
 from cloudify import exceptions as cfy_exc
 import test_mock_base
-from network_plugin import network, BUSY_MESSAGE
+from network_plugin import network
 
 
 class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
@@ -97,18 +97,14 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
                     )
 
                 # returned busy, try next time
-                message = fake_client._vdc_gateway.response.content
-                message = message.replace(self.ERROR_PLACE, BUSY_MESSAGE)
-                fake_client._vdc_gateway.response.content = message
-                fake_ctx.operation.retry = mock.MagicMock(return_value=None)
+                self.set_gateway_busy(fake_client._vdc_gateway)
+                self.prepare_retry(fake_ctx)
+
                 network._dhcp_operation(
                     fake_client, '_management_network',
                     network.DELETE_POOL
                 ), None
-                fake_ctx.operation.retry.assert_called_with(
-                    message='Waiting for gateway.',
-                    retry_after=10
-                )
+                self.check_retry_realy_called(fake_ctx)
 
                 # no such gateway
                 fake_client.get_gateway = mock.MagicMock(return_value=None)

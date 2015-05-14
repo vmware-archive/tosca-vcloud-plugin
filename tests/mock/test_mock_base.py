@@ -1,6 +1,7 @@
 import mock
 import unittest
 from cloudify import mocks as cfy_mocks
+from network_plugin import BUSY_MESSAGE
 
 
 class TestBase(unittest.TestCase):
@@ -14,6 +15,30 @@ class TestBase(unittest.TestCase):
         task.get_Error = mock.MagicMock(return_value=error)
         task.get_status = mock.MagicMock(return_value=status)
         return task
+
+    def set_gateway_busy(self, gateway):
+        message = gateway.response.content
+        message = message.replace(
+            self.ERROR_PLACE, BUSY_MESSAGE
+        )
+        gateway.response.content = message
+
+    def prepare_retry(self, ctx):
+        """
+            set fake retry operation
+        """
+        ctx.operation.retry = mock.MagicMock(
+            return_value=None
+        )
+
+    def check_retry_realy_called(self, ctx):
+        """
+            check that we really call retry
+        """
+        ctx.operation.retry.assert_called_with(
+            message='Waiting for gateway.',
+            retry_after=10
+        )
 
     def generate_gateway(
         self, vdc_name="vdc", vms_networks=None, vdc_networks=None

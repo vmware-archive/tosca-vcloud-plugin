@@ -350,5 +350,23 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 with self.assertRaises(cfy_exc.NonRecoverableError):
                     public_nat._create_ip_range(vca_client, gate)
 
+    def test_save_configuration(self):
+        gateway = self.generate_gateway()
+        vca_client = self.generate_client()
+        # cant save configuration: server busy
+        gateway.save_services_configuration = mock.MagicMock(
+            return_value=None
+        )
+        self.set_gateway_busy(gateway)
+        fake_ctx = self.generate_context()
+        with mock.patch(
+            'network_plugin.public_nat.ctx', fake_ctx
+        ):
+            self.prepare_retry(fake_ctx)
+            public_nat._save_configuration(
+                gateway, vca_client, "any", "any"
+            )
+            self.check_retry_realy_called(fake_ctx)
+
 if __name__ == '__main__':
     unittest.main()

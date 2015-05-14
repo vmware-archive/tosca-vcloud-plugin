@@ -3,7 +3,7 @@ import unittest
 
 from cloudify import exceptions as cfy_exc
 import test_mock_base
-from network_plugin import security_group, BUSY_MESSAGE, NAT_ROUTED
+from network_plugin import security_group, NAT_ROUTED
 from vcloud_plugin_common import TASK_STATUS_SUCCESS
 
 
@@ -84,14 +84,8 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         }
         # check busy
         gateway = fake_client._vdc_gateway
-        message = gateway.response.content
-        message = message.replace(
-            self.ERROR_PLACE, BUSY_MESSAGE
-        )
-        gateway.response.content = message
-        fake_ctx.operation.retry = mock.MagicMock(
-            return_value=None
-        )
+        self.set_gateway_busy(gateway)
+        self.prepare_retry(fake_ctx)
         gateway.save_services_configuration = mock.MagicMock(
             return_value=None
         )
@@ -102,10 +96,7 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
                     rule_type, fake_client
                 )
 
-        fake_ctx.operation.retry.assert_called_with(
-            message='Waiting for gateway.',
-            retry_after=10
-        )
+        self.check_retry_realy_called(fake_ctx)
 
     def test_rule_operation_empty_rule(self):
         for rule_type in [

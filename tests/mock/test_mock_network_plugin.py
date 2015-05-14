@@ -97,7 +97,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         gateway.deallocate_public_ip = mock.MagicMock(return_value=None)
         with self.assertRaises(cfy_exc.NonRecoverableError):
             network_plugin.del_ondemand_public_ip(
-                    vca_client, gateway, '127.0.0.1', fake_ctx
+                vca_client, gateway, '127.0.0.1', fake_ctx
             )
         gateway.deallocate_public_ip.assert_called_with('127.0.0.1')
         # successfully dropped public ip
@@ -107,7 +107,50 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             )
         )
         network_plugin.del_ondemand_public_ip(
-                vca_client, gateway, '127.0.0.1', fake_ctx
+            vca_client, gateway, '127.0.0.1', fake_ctx
+        )
+
+    def test_save_gateway_configuration(self):
+        gateway = self.generate_gateway()
+        vca_client = self.generate_client()
+        # cant save configuration - error in first call
+        gateway.save_services_configuration = mock.MagicMock(
+            return_value=None
+        )
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            network_plugin.save_gateway_configuration(
+                gateway, vca_client
+            )
+        # error in status
+        gateway.save_services_configuration = mock.MagicMock(
+            return_value=self.generate_task(
+                vcloud_plugin_common.TASK_STATUS_ERROR
+            )
+        )
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            network_plugin.save_gateway_configuration(
+                gateway, vca_client
+            )
+        # everything fine
+        gateway.save_services_configuration = mock.MagicMock(
+            return_value=self.generate_task(
+                vcloud_plugin_common.TASK_STATUS_SUCCESS
+            )
+        )
+        self.assertTrue(
+            network_plugin.save_gateway_configuration(
+                gateway, vca_client
+            )
+        )
+        # server busy
+        gateway.save_services_configuration = mock.MagicMock(
+            return_value=None
+        )
+        self.set_gateway_busy(gateway)
+        self.assertFalse(
+            network_plugin.save_gateway_configuration(
+                gateway, vca_client
+            )
         )
 
     def test_get_public_ip(self):
