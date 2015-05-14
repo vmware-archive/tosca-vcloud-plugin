@@ -38,7 +38,6 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
     def generate_context_for_security_group(self):
         fake_ctx = self.generate_context()
         fake_ctx._source = mock.Mock()
-        fake_ctx._source.node = mock.Mock()
         fake_ctx._source.node.properties = {
             'vcloud_config': {
                 'edge_gateway': 'some_edge_gateway',

@@ -153,6 +153,43 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             )
         )
 
+    def test_is_network_routed(self):
+        fake_client = self.generate_client(
+            vms_networks=[{
+                'is_connected': True,
+                'network_name': 'network_name',
+                'is_primary': True,
+                'ip': '1.1.1.1'
+            }]
+        )
+        fake_ctx = self.generate_context()
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            # not routed by nat
+            network = self.gen_vca_client_network("not_routed")
+            fake_client.get_network = mock.MagicMock(return_value=network)
+            self.assertFalse(
+                network_plugin.is_network_routed(
+                    fake_client, 'network_name',
+                    fake_client._vdc_gateway
+                )
+            )
+            # nat routed
+            network = self.gen_vca_client_network(network_plugin.NAT_ROUTED)
+            fake_client.get_network = mock.MagicMock(return_value=network)
+            self.assertTrue(
+                network_plugin.is_network_routed(
+                    fake_client, 'network_name',
+                    fake_client._vdc_gateway
+                )
+            )
+            # nat routed but for other network
+            self.assertFalse(
+                network_plugin.is_network_routed(
+                    fake_client, 'other_network_name',
+                    fake_client._vdc_gateway
+                )
+            )
+
     def test_get_public_ip(self):
         gateway = self.generate_gateway()
         gateway.get_public_ips = mock.MagicMock(return_value=[
