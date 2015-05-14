@@ -5,6 +5,7 @@ from cloudify import exceptions as cfy_exc
 import test_mock_base
 from network_plugin import public_nat
 import network_plugin
+import vcloud_plugin_common
 from IPy import IP
 
 
@@ -228,6 +229,39 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             ),
             '192.168.1.1'
         )
+        # no public ip yet
+        fake_ctx._target.node.properties = {
+            'nat': {}
+        }
+        fake_ctx._source = mock.Mock()
+        fake_ctx._source.node.properties = {
+            'vcloud_config': {
+                'vdc': 'vdc_name',
+                'service_type': vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
+            }
+        }
+        gateway.get_public_ips = mock.MagicMock(return_value=[
+            '10.18.1.1', '10.18.1.2'
+        ])
+        rule_inlist = self.generate_nat_rule(
+            'DNAT', '10.18.1.1', 'any', 'internal', '11', 'TCP'
+        )
+        gateway.get_nat_rules = mock.MagicMock(
+            return_value=[rule_inlist]
+        )
+        with mock.patch(
+            'network_plugin.public_nat.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+                self.assertEqual(
+                    public_nat._obtain_public_ip(
+                        vca_client, fake_ctx, gateway,
+                        network_plugin.CREATE
+                    ),
+                    '10.18.1.2'
+                )
 
 
 if __name__ == '__main__':
