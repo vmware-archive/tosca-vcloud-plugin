@@ -15,6 +15,52 @@ class TestBase(unittest.TestCase):
         task.get_status = mock.MagicMock(return_value=status)
         return task
 
+    def generate_gateway(
+        self, vdc_name="vdc", vms_networks=None, vdc_networks=None
+    ):
+        gate = mock.Mock()
+        gate.get_dhcp_pools = mock.MagicMock(return_value=[
+            self.genarate_pool(
+                vdc_name, '127.0.0.1', '127.0.0.255'
+            )
+        ])
+        gate.add_dhcp_pool = mock.MagicMock(return_value=None)
+        gate.save_services_configuration = mock.MagicMock(
+            return_value=None
+        )
+        gate.response = mock.Mock()
+        gate.response.content = ('''
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Error
+                    xmlns="http://www.vmware.com/vcloud/v1.5"
+                    status="stoped"
+                    name="error"
+                    message="''' + self.ERROR_PLACE + '''"
+                />''').replace("\n", " ").strip()
+        # list of interfaces
+        interfaces = []
+        if vms_networks:
+            for network in vms_networks:
+                interface = mock.Mock()
+                interface.get_Name = mock.MagicMock(
+                    return_value=network.get(
+                        'network_name', 'unknowNet'
+                    )
+                )
+                interfaces.append(interface)
+        gate.get_interfaces = mock.MagicMock(
+            return_value=interfaces
+        )
+        # firewall enabled
+        gate.is_fw_enabled = mock.MagicMock(return_value=True)
+        # dont have any nat rules
+        gate.get_nat_rules = mock.MagicMock(return_value=[])
+        # cant deallocate ip
+        gate.deallocate_public_ip = mock.MagicMock(return_value=None)
+        # public ips not exist
+        gate.get_public_ips = mock.MagicMock(return_value=[])
+        return gate
+
     def gen_vca_client_network(
         self, fenceMode=None, name="some", start_ip="127.1.1.1",
         end_ip="127.1.1.255"
@@ -82,41 +128,11 @@ class TestBase(unittest.TestCase):
             return "_href" + network_name
 
         def _get_gateway(vdc_name="vdc"):
-            gate = mock.Mock()
-            gate.get_dhcp_pools = mock.MagicMock(return_value=[
-                self.genarate_pool(
-                    vdc_name, '127.0.0.1', '127.0.0.255'
-                )
-            ])
-            gate.add_dhcp_pool = mock.MagicMock(return_value=None)
-            gate.save_services_configuration = mock.MagicMock(
-                return_value=None
+            return self.generate_gateway(
+                vdc_name,
+                vms_networks,
+                vdc_networks
             )
-            gate.response = mock.Mock()
-            gate.response.content = ('''
-                    <?xml version="1.0" encoding="UTF-8"?>
-                    <Error
-                        xmlns="http://www.vmware.com/vcloud/v1.5"
-                        status="stoped"
-                        name="error"
-                        message="''' + self.ERROR_PLACE + '''"
-                    />''').replace("\n", " ").strip()
-            interfaces = []
-            if vms_networks:
-                for network in vms_networks:
-                    interface = mock.Mock()
-                    interface.get_Name = mock.MagicMock(
-                        return_value=network.get(
-                            'network_name', 'unknowNet'
-                        )
-                    )
-                    interfaces.append(interface)
-            gate.get_interfaces = mock.MagicMock(
-                return_value=interfaces
-            )
-            gate.is_fw_enabled = mock.MagicMock(return_value=True)
-            gate.get_nat_rules = mock.MagicMock(return_value=[])
-            return gate
 
         def _get_gateways(vdc_name):
             return [_get_gateway(vdc_name)]

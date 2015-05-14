@@ -36,7 +36,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             set([])
         )
         # snat
-        gateway = mock.Mock()
+        gateway = self.generate_gateway()
         rule_inlist = self.generate_nat_rule(
             'SNAT', 'external', 'any', 'internal', '11', 'TCP'
         )
@@ -52,7 +52,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             )
         )
         # dnat
-        gateway = mock.Mock()
+        gateway = self.generate_gateway()
         rule_inlist = self.generate_nat_rule(
             'DNAT', 'external', 'any', 'internal', '11', 'TCP'
         )
@@ -70,7 +70,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
 
     def test_getFreeIP(self):
         # exist free ip
-        gateway = mock.Mock()
+        gateway = self.generate_gateway()
         gateway.get_public_ips = mock.MagicMock(return_value=[
             '10.18.1.1', '10.18.1.2'
         ])
@@ -89,8 +89,29 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         with self.assertRaises(cfy_exc.NonRecoverableError):
             network_plugin.getFreeIP(gateway)
 
+    def test_del_ondemand_public_ip(self):
+        vca_client = self.generate_client()
+        gateway = self.generate_gateway()
+        fake_ctx = self.generate_context()
+        # cant deallocate ip
+        gateway.deallocate_public_ip = mock.MagicMock(return_value=None)
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            network_plugin.del_ondemand_public_ip(
+                    vca_client, gateway, '127.0.0.1', fake_ctx
+            )
+        gateway.deallocate_public_ip.assert_called_with('127.0.0.1')
+        # successfully dropped public ip
+        gateway.deallocate_public_ip = mock.MagicMock(
+            return_value=self.generate_task(
+                vcloud_plugin_common.TASK_STATUS_SUCCESS
+            )
+        )
+        network_plugin.del_ondemand_public_ip(
+                vca_client, gateway, '127.0.0.1', fake_ctx
+        )
+
     def test_get_public_ip(self):
-        gateway = mock.Mock()
+        gateway = self.generate_gateway()
         gateway.get_public_ips = mock.MagicMock(return_value=[
             '10.18.1.1', '10.18.1.2'
         ])
