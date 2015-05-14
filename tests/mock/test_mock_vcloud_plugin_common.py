@@ -80,5 +80,45 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 vcloud_plugin_common.get_vcloud_config()
 
+    def test_transform_resource_name(self):
+        fake_ctx = self.generate_context()
+        fake_ctx._bootstrap_context = mock.Mock()
+        fake_ctx._bootstrap_context.resources_prefix = None
+        # wrong resource name type
+        with self.assertRaises(ValueError):
+            vcloud_plugin_common.transform_resource_name(None, fake_ctx)
+        with self.assertRaises(ValueError):
+            vcloud_plugin_common.transform_resource_name(11, fake_ctx)
+        # resource name string
+        self.assertEqual(
+            vcloud_plugin_common.transform_resource_name(
+                'test', fake_ctx
+            ),
+            'test'
+        )
+        # resource name is dict
+        self.assertEqual(
+            vcloud_plugin_common.transform_resource_name(
+                {'name':'test'}, fake_ctx
+            ),
+            'test'
+        )
+        # prefix not exist in name
+        fake_ctx._bootstrap_context.resources_prefix = 'prfx_'
+        self.assertEqual(
+            vcloud_plugin_common.transform_resource_name(
+                'test', fake_ctx
+            ),
+            'prfx_test'
+        )
+        # prefix exist in name
+        fake_ctx._bootstrap_context.resources_prefix = 'prfx_'
+        self.assertEqual(
+            vcloud_plugin_common.transform_resource_name(
+                'prfx_test', fake_ctx
+            ),
+            'prfx_prfx_test'
+        )
+
 if __name__ == '__main__':
     unittest.main()
