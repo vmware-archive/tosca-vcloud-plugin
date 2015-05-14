@@ -4,6 +4,7 @@ import unittest
 from cloudify import exceptions as cfy_exc
 import test_mock_base
 from network_plugin import public_nat
+import network_plugin
 from IPy import IP
 
 
@@ -28,7 +29,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
 
     def test_get_original_port_for_delete(self):
         # no replacement
-        fake_ctx = self.generate_context(properties={})
+        fake_ctx = self.generate_context()
         fake_ctx._source = mock.Mock()
         fake_ctx._target = mock.Mock()
         fake_ctx._target.instance.runtime_properties = {}
@@ -40,7 +41,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 "11"
             )
         # replacement for other
-        fake_ctx = self.generate_context(properties={})
+        fake_ctx = self.generate_context()
         fake_ctx._source = mock.Mock()
         fake_ctx._target = mock.Mock()
         fake_ctx._target.instance.runtime_properties = {
@@ -56,7 +57,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 "11"
             )
         # replacement for other
-        fake_ctx = self.generate_context(properties={})
+        fake_ctx = self.generate_context()
         fake_ctx._source = mock.Mock()
         fake_ctx._target = mock.Mock()
         fake_ctx._target.instance.runtime_properties = {
@@ -101,7 +102,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
 
     def test_get_original_port_for_create_with_ctx(self):
         # with replace, but without replace table - up port +1
-        fake_ctx = self.generate_context(properties={})
+        fake_ctx = self.generate_context()
         fake_ctx._source = mock.Mock()
         fake_ctx._target = mock.Mock()
         fake_ctx._target.instance.runtime_properties = {
@@ -187,6 +188,47 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             public_nat._get_gateway_ip_range(gate, 'test_network'),
             (IP('127.0.0.1'), IP('127.0.0.255'))
         )
+
+    def test_obtain_public_ip(self):
+        fake_ctx = self.generate_context()
+        fake_ctx._source = mock.Mock()
+        fake_ctx._target = mock.Mock()
+        fake_ctx._target.instance.runtime_properties = {
+            network_plugin.PUBLIC_IP: '192.168.1.1'
+        }
+        gateway = mock.Mock()
+        vca_client = mock.Mock()
+        # exist some ip for delete
+        self.assertEqual(
+            public_nat._obtain_public_ip(
+                vca_client, fake_ctx, gateway, network_plugin.DELETE
+            ),
+            '192.168.1.1'
+        )
+        # no ip for delete
+        fake_ctx._target.instance.runtime_properties = {}
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            public_nat._obtain_public_ip(
+                vca_client, fake_ctx, gateway, network_plugin.DELETE
+            )
+        # unknow operation
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            public_nat._obtain_public_ip(
+                vca_client, fake_ctx, gateway, 'unknow operation'
+            )
+        # exist some public ip
+        fake_ctx._target.node.properties = {
+            'nat': {
+                network_plugin.PUBLIC_IP: '192.168.1.1'
+            }
+        }
+        self.assertEqual(
+            public_nat._obtain_public_ip(
+                vca_client, fake_ctx, gateway, network_plugin.CREATE
+            ),
+            '192.168.1.1'
+        )
+
 
 if __name__ == '__main__':
     unittest.main()
