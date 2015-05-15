@@ -339,6 +339,9 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
     def test_save_configuration(self):
 
         def _context_for_delete(service_type):
+            """
+                create correct context for delete
+            """
             fake_ctx = self.generate_relation_context()
             self.set_services_conf_result(
                 gateway, vcloud_plugin_common.TASK_STATUS_SUCCESS
@@ -357,6 +360,9 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             return fake_ctx
 
         def _ip_exist_in_runtime(fake_ctx):
+            """
+                ip still exist in ctx
+            """
             runtime_properties = fake_ctx._target.instance.runtime_properties
             return network_plugin.PUBLIC_IP in runtime_properties
 
@@ -466,6 +472,51 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         gateway.deallocate_public_ip.assert_called_with("1.2.3.4")
         self.assertFalse(_ip_exist_in_runtime(fake_ctx))
 
+    def test_nat_network_operation(self):
+        gateway = self.generate_gateway()
+        vca_client = self.generate_client()
+        # used wrong operation
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            public_nat.nat_network_operation(
+                vca_client, gateway, "unknow", "DNAT", "1.2.3.4",
+                "2.3.4.5", "11", "11", "TCP"
+            )
+        # run correct operation/rule
+        fake_ctx = self.generate_relation_context()
+        for operation in [network_plugin.DELETE, network_plugin.CREATE]:
+            for rule_type in ["SNAT", "DNAT"]:
+                with mock.patch(
+                    'network_plugin.public_nat.ctx', fake_ctx
+                ):
+                    with mock.patch(
+                        'vcloud_plugin_common.ctx', fake_ctx
+                    ):
+                        public_nat.nat_network_operation(
+                            vca_client, gateway, operation, rule_type,
+                            "1.2.3.4", "2.3.4.5", "11", "11", "TCP"
+                        )
+                if rule_type == "DNAT":
+                    if operation == network_plugin.DELETE:
+                        gateway.del_nat_rule.assert_called_with(
+                            'DNAT', '1.2.3.4', '11', '2.3.4.5', '11',
+                            'TCP'
+                        )
+                    else:
+                        gateway.add_nat_rule.assert_called_with(
+                            'DNAT', '1.2.3.4', '11', '2.3.4.5', '11',
+                            'TCP'
+                        )
+                else:
+                    if operation == network_plugin.DELETE:
+                        gateway.del_nat_rule.assert_called_with(
+                            'SNAT', '2.3.4.5', 'any', '1.2.3.4', 'any',
+                            'any'
+                        )
+                    else:
+                        gateway.add_nat_rule.assert_called_with(
+                            'SNAT', '2.3.4.5', 'any', '1.2.3.4', 'any',
+                            'any'
+                        )
 
 if __name__ == '__main__':
     unittest.main()

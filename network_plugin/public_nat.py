@@ -130,7 +130,7 @@ protocol '{3}', original_port '{4}', translated_port '{5}'"""
                                 message))
         function(
             rule_type, private_ip, "any", public_ip, "any", "any")
-    if rule_type == "DNAT":
+    elif rule_type == "DNAT":
         ctx.logger.info(
             info_message.format(public_ip, private_ip, rule_type, protocol,
                                 new_original_port, translated_port,
