@@ -442,6 +442,30 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 )
 
         self.assertFalse(_ip_exist_in_runtime(fake_ctx))
+        # delete - ondemand - not nat
+        gateway.deallocate_public_ip = mock.MagicMock(
+            return_value=self.generate_task(
+                vcloud_plugin_common.TASK_STATUS_SUCCESS
+            )
+        )
+        fake_ctx = _context_for_delete(
+            vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
+        )
+        fake_ctx._target.node.properties = {
+            'nat': {}
+        }
+        with mock.patch(
+            'network_plugin.public_nat.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+                public_nat._save_configuration(
+                    gateway, vca_client, network_plugin.DELETE, "1.2.3.4"
+                )
+        gateway.deallocate_public_ip.assert_called_with("1.2.3.4")
+        self.assertFalse(_ip_exist_in_runtime(fake_ctx))
+
 
 if __name__ == '__main__':
     unittest.main()
