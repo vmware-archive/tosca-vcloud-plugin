@@ -293,11 +293,11 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             }
         }
         fake_ctx._target.instance.runtime_properties = {}
-        # gateway
-        gate = mock.Mock()
-        gate.get_dhcp_pools = mock.MagicMock(return_value=[])
         # vca client
         vca_client = self.generate_client()
+        # gateway
+        gate = vca_client._vdc_gateway
+        gate.get_dhcp_pools = mock.MagicMock(return_value=[])
         network = self.gen_vca_client_network(
             name="some", start_ip="127.1.1.100", end_ip="127.1.1.200"
         )
@@ -366,8 +366,8 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             runtime_properties = fake_ctx._target.instance.runtime_properties
             return network_plugin.PUBLIC_IP in runtime_properties
 
-        gateway = self.generate_gateway()
         vca_client = self.generate_client()
+        gateway = vca_client._vdc_gateway
         # cant save configuration: server busy
         self.set_services_conf_result(
             gateway, None
@@ -473,8 +473,8 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         self.assertFalse(_ip_exist_in_runtime(fake_ctx))
 
     def test_nat_network_operation(self):
-        gateway = self.generate_gateway()
         vca_client = self.generate_client()
+        gateway = vca_client._vdc_gateway
         # used wrong operation
         with self.assertRaises(cfy_exc.NonRecoverableError):
             public_nat.nat_network_operation(
@@ -517,6 +517,40 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                             'SNAT', '2.3.4.5', 'any', '1.2.3.4', 'any',
                             'any'
                         )
+    def test_prepare_server_operation(self):
+        vca_client = self.generate_client(vms_networks=[{
+            'is_connected': True,
+            'network_name': 'network_name',
+            'is_primary': True,
+            'ip': '1.1.1.1'
+        }])
+        self.set_network_routed_in_client(vca_client)
+        fake_ctx = self.generate_relation_context()
+        fake_ctx._target.node.properties = {
+            'nat': {
+                'edge_gateway': 'gateway'
+            }
+        }
+        fake_ctx._source.node.properties = {
+            'vcloud_config': {
+                'vdc': 'vdc_name',
+                'service_type': vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
+            }
+        }
+        fake_ctx._target.instance.runtime_properties = {
+            network_plugin.PUBLIC_IP: '192.168.1.1'
+        }
+        # no rules for update
+        with mock.patch(
+            'network_plugin.public_nat.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+                with self.assertRaises(cfy_exc.NonRecoverableError):
+                    public_nat.prepare_server_operation(
+                        vca_client, network_plugin.DELETE
+                    )
 
 if __name__ == '__main__':
     unittest.main()
