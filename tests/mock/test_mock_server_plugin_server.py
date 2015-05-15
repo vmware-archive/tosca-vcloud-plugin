@@ -9,6 +9,23 @@ import test_mock_base
 
 class ServerPluginServerMockTestCase(test_mock_base.TestBase):
 
+    def test_delete_external_resource(self):
+        fake_ctx = self.generate_context(
+            properties={
+                'use_external_resource': True
+            }
+        )
+        fake_client = self.generate_client()
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            server.delete(ctx=fake_ctx)
+
+        self.assertFalse(
+            server.VCLOUD_VAPP_NAME in fake_ctx.instance.runtime_properties
+        )
+
     def test_delete(self):
         fake_ctx = self.generate_context()
         fake_client = self.generate_client()
@@ -46,6 +63,23 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             self.assertFalse(
                 server.VCLOUD_VAPP_NAME in fake_ctx.instance.runtime_properties
             )
+
+    def test_stop_external_resource(self):
+        fake_ctx = self.generate_context(
+            properties={
+                'use_external_resource': True
+            }
+        )
+        fake_client = self.generate_client()
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            server.stop(ctx=fake_ctx)
+
+        self.assertTrue(
+            server.VCLOUD_VAPP_NAME in fake_ctx.instance.runtime_properties
+        )
 
     def test_stop(self):
         fake_ctx = self.generate_context()
@@ -159,6 +193,31 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             fake_client._vapp.me.get_status = mock.MagicMock(
                 return_value=vcloud_plugin_common.STATUS_POWERED_ON
             )
+            with self.assertRaises(cfy_exc.OperationRetry):
+                server.start(ctx=fake_ctx)
+
+    def test_start_external_resource(self):
+        """
+            start with external resource, as success status used retry
+        """
+        fake_ctx = self.generate_context(
+            properties={
+                'use_external_resource': True,
+                'vcloud_config': {
+                    'vdc': 'vdc_name'
+                },
+                'management_network': '_management_network'
+            }
+        )
+        fake_client = self.generate_client([{
+            'is_connected': True,
+            'network_name': 'network_name',
+            'ip': '1.1.1.1'
+        }])
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
             with self.assertRaises(cfy_exc.OperationRetry):
                 server.start(ctx=fake_ctx)
 
@@ -307,6 +366,31 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
                 "not_test": "not_test"
             }
         )
+
+    def test_create_external_resource(self):
+        """
+            must run without any errors
+        """
+        fake_ctx = self.generate_context(
+            properties={
+                'use_external_resource': True,
+                'resource_id': 'ServerName'
+            }
+        )
+
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient',
+            self.generate_vca()
+        ):
+            server.create(ctx=fake_ctx)
+        self.assertTrue(
+            server.VCLOUD_VAPP_NAME in fake_ctx.instance.runtime_properties
+        )
+        self.assertTrue(
+            fake_ctx.instance.runtime_properties[server.VCLOUD_VAPP_NAME],
+            'ServerName'
+        )
+
 
     def test_create_connection_error(self):
         """

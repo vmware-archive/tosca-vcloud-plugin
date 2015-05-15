@@ -47,7 +47,10 @@ def creation_validation(vca_client, **kwargs):
                 return template
 
     if ctx.node.properties.get('use_external_resource'):
-        # TODO: check: vApp must exists
+        if not ctx.node.properties.get('resource_id'):
+            raise cfy_exc.NonRecoverableError(
+                "resource_id server properties must be specified"
+            )
         return
 
     server_dict = ctx.node.properties['server']
@@ -76,7 +79,7 @@ def create(vca_client, **kwargs):
     server = {
         'name': ctx.instance.id,
     }
-    server.update(ctx.node.properties['server'])
+    server.update(ctx.node.properties.get('server', {}))
     transform_resource_name(server, ctx)
 
     if ctx.node.properties.get('use_external_resource'):
@@ -86,7 +89,7 @@ def create(vca_client, **kwargs):
             "External resource {0} has been used".format(res_id))
     else:
         _create(vca_client, config, server)
-    
+
 def _create(vca_client, config, server):
     vapp_name = server['name']
     vapp_template = server['template']

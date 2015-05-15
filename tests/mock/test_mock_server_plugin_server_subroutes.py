@@ -153,6 +153,44 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 server.creation_validation(ctx=fake_ctx)
 
+    def test_creation_validation_external_resource(self):
+        """
+            must run without any errors and check with empty
+            server description
+        """
+        # unknow resource_id
+        fake_ctx = cfy_mocks.MockCloudifyContext(
+            node_id='test',
+            node_name='test',
+            properties={
+                'use_external_resource': True
+            },
+            provider_context={}
+        )
+
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient',
+            self.generate_vca()
+        ):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                server.creation_validation(ctx=fake_ctx)
+        # with resource_id
+        fake_ctx = cfy_mocks.MockCloudifyContext(
+            node_id='test',
+            node_name='test',
+            properties={
+                'use_external_resource': True,
+                'resource_id': 'ServerName'
+            },
+            provider_context={}
+        )
+
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient',
+            self.generate_vca()
+        ):
+            server.creation_validation(ctx=fake_ctx)
+
     def test_creation_validation_settings_wrong_catalog(self):
         fake_ctx = cfy_mocks.MockCloudifyContext(
             node_id='test',
