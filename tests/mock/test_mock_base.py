@@ -220,15 +220,17 @@ class TestBase(unittest.TestCase):
         return vapp
 
     def generate_relation_context(self):
-        fake_ctx = self.generate_context()
-        fake_ctx._source = mock.Mock()
-        fake_ctx._source.node = mock.Mock()
-        fake_ctx._target = mock.Mock()
-        fake_ctx._target.node = mock.Mock()
-        fake_ctx._target.instance.runtime_properties = {}
+        source = mock.Mock()
+        source.node = mock.Mock()
+        target = mock.Mock()
+        target.node = mock.Mock()
+        target.instance.runtime_properties = {}
+        fake_ctx = cfy_mocks.MockCloudifyContext(
+            source=source, target=target
+        )
         return fake_ctx
 
-    def generate_context(
+    def generate_node_context(
         self, relation_node_properties=None, properties=None,
         runtime_properties=None
     ):
@@ -264,10 +266,8 @@ class TestBase(unittest.TestCase):
             fake_ctx.instance._id, fake_ctx.instance._runtime_properties
         )
 
-        relationship = mock.Mock()
-        relationship.target = mock.Mock()
-        relationship.target.node = mock.Mock()
-        relationship.target.node.properties = relation_node_properties
+        relationship = self.generate_relation_context()
+        relationship._target.node.properties = relation_node_properties
         fake_ctx.instance._relationships = [relationship]
 
         return fake_ctx

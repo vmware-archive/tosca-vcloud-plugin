@@ -15,7 +15,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            fake_ctx = self.generate_context(
+            fake_ctx = self.generate_node_context(
                 properties={
                     'network': {
                         'dhcp': {
@@ -39,7 +39,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
                 fake_ctx.instance.runtime_properties
             )
 
-            fake_ctx = self.generate_context(
+            fake_ctx = self.generate_node_context(
                 properties={
                     'network': {
                         'dhcp': {
@@ -104,7 +104,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            fake_ctx = self.generate_context(
+            fake_ctx = self.generate_node_context(
                 properties={
                     'network': {
                         'dhcp': {
@@ -160,7 +160,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 network.create(ctx=fake_ctx)
             # use external
-            fake_ctx = self.generate_context(
+            fake_ctx = self.generate_node_context(
                 properties={
                     'network': {
                         'dhcp': {
@@ -185,7 +185,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             )
             network.create(ctx=fake_ctx)
             # not extist network
-            fake_ctx = self.generate_context(
+            fake_ctx = self.generate_node_context(
                 properties={
                     'network': {
                         'dhcp': {
@@ -221,7 +221,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             # exist same network
-            fake_ctx = self.generate_context(
+            fake_ctx = self.generate_node_context(
                 properties={
                     'network': {
                         'dhcp': {
@@ -257,7 +257,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             # network not exist in node properties
-            fake_ctx = self.generate_context(
+            fake_ctx = self.generate_node_context(
                 properties={
                     'use_external_resource': False,
                     'resource_id': 'secret_network'
@@ -269,7 +269,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 network.creation_validation(ctx=fake_ctx)
             # network already exist
-            fake_ctx = self.generate_context(
+            fake_ctx = self.generate_node_context(
                 properties={
                     'use_external_resource': False,
                     'resource_id': 'secret_network',
@@ -299,7 +299,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
                 'vdc_name', 'secret_network'
             )
             # use external
-            fake_ctx = self.generate_context(
+            fake_ctx = self.generate_node_context(
                 properties={
                     'use_external_resource': True,
                     'resource_id': 'secret_network',
@@ -332,7 +332,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            fake_ctx = self.generate_context(
+            fake_ctx = self.generate_node_context(
                 properties={
                     'use_external_resource': False,
                     'network': {
@@ -374,7 +374,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            fake_ctx = self.generate_context(
+            fake_ctx = self.generate_node_context(
                 properties={
                     'use_external_resource': False,
                     'network': {
@@ -409,7 +409,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            fake_ctx = self.generate_context(
+            fake_ctx = self.generate_node_context(
                 properties={
                     'use_external_resource': False,
                     'network': {

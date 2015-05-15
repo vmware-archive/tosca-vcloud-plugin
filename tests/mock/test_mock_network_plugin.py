@@ -88,7 +88,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
     def test_del_ondemand_public_ip(self):
         vca_client = self.generate_client()
         gateway = self.generate_gateway()
-        fake_ctx = self.generate_context()
+        fake_ctx = self.generate_node_context()
         # cant deallocate ip
         gateway.deallocate_public_ip = mock.MagicMock(return_value=None)
         with self.assertRaises(cfy_exc.NonRecoverableError):
@@ -158,7 +158,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
                 'ip': '1.1.1.1'
             }]
         )
-        fake_ctx = self.generate_context()
+        fake_ctx = self.generate_node_context()
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             # not routed by nat
             network = self.gen_vca_client_network("not_routed")
@@ -197,7 +197,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         gateway.get_nat_rules = mock.MagicMock(
             return_value=[rule_inlist]
         )
-        fake_ctx = self.generate_context()
+        fake_ctx = self.generate_node_context()
         # for subscription we dont use client
         self.assertEqual(
             network_plugin.get_public_ip(

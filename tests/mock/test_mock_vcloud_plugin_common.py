@@ -30,7 +30,7 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
 
     def test_get_vcloud_config(self):
         # context.NODE_INSTANCE
-        fake_ctx = self.generate_context(
+        fake_ctx = self.generate_node_context(
             properties={
                 'vcloud_config': {
                     'vdc': 'vdc_name'
@@ -64,7 +64,7 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
                 }
             )
         # context.DEPLOYMENT
-        fake_ctx = self.generate_context(
+        fake_ctx = self.generate_node_context(
             properties={
                 'vcloud_config': {
                     'vdc': 'vdc_name'
@@ -80,7 +80,7 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
                 vcloud_plugin_common.get_vcloud_config()
 
     def test_transform_resource_name(self):
-        fake_ctx = self.generate_context()
+        fake_ctx = self.generate_node_context()
         fake_ctx._bootstrap_context = mock.Mock()
         fake_ctx._bootstrap_context.resources_prefix = None
         # wrong resource name type

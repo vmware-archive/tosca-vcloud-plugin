@@ -35,7 +35,7 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
     def test__dhcp_operation(self):
         fake_client = self.generate_client()
         # no dhcp
-        fake_ctx = self.generate_context(properties={
+        fake_ctx = self.generate_node_context(properties={
             'network': {
                 'edge_gateway': 'gateway'
             },
@@ -49,7 +49,7 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
                     fake_client, '_management_network', network.ADD_POOL
                 )
         # wrong dhcp_range
-        fake_ctx = self.generate_context(properties={
+        fake_ctx = self.generate_node_context(properties={
             'network': {
                 'dhcp': {
                     'dhcp_range': ""
@@ -67,7 +67,7 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
                         fake_client, '_management_network', network.ADD_POOL
                     )
 
-        fake_ctx = self.generate_context(properties={
+        fake_ctx = self.generate_node_context(properties={
             'network': {
                 'dhcp': {
                     'dhcp_range': "10.1.1.1-10.1.1.255"

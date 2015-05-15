@@ -8,7 +8,7 @@ from network_plugin import floatingip
 class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
 
     def test_add_nat_rule_snat(self):
-        fake_ctx = self.generate_context()
+        fake_ctx = self.generate_node_context()
         with mock.patch('network_plugin.floatingip.ctx', fake_ctx):
             gateway = mock.Mock()
             gateway._add_nat_rule = mock.MagicMock(return_value=None)
@@ -20,7 +20,7 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             )
 
     def test_add_nat_rule_dnat(self):
-        fake_ctx = self.generate_context()
+        fake_ctx = self.generate_node_context()
         with mock.patch('network_plugin.floatingip.ctx', fake_ctx):
             gateway = mock.Mock()
             gateway._add_nat_rule = mock.MagicMock(return_value=None)
@@ -32,7 +32,7 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             )
 
     def test_del_nat_rule_snat(self):
-        fake_ctx = self.generate_context()
+        fake_ctx = self.generate_node_context()
         with mock.patch('network_plugin.floatingip.ctx', fake_ctx):
             gateway = mock.Mock()
             gateway.del_nat_rule = mock.MagicMock(return_value=None)
@@ -44,7 +44,7 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             )
 
     def test_del_nat_rule_dnat(self):
-        fake_ctx = self.generate_context()
+        fake_ctx = self.generate_node_context()
         with mock.patch('network_plugin.floatingip.ctx', fake_ctx):
             gateway = mock.Mock()
             gateway.del_nat_rule = mock.MagicMock(return_value=None)
