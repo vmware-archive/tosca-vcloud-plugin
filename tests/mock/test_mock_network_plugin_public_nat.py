@@ -337,6 +337,33 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                     public_nat._create_ip_range(vca_client, gate)
 
     def test_save_configuration(self):
+
+        def _set_success_save(gateway):
+            """
+                success save configuration
+            """
+            gateway.save_services_configuration = mock.MagicMock(
+                return_value=self.generate_task(
+                    vcloud_plugin_common.TASK_STATUS_SUCCESS
+                )
+            )
+
+        def _context_for_delete(service_type):
+            fake_ctx = self.generate_relation_context()
+            _set_success_save(gateway)
+            fake_ctx._target.instance.runtime_properties = {
+                network_plugin.PUBLIC_IP: "1.2.3.4"
+            }
+            properties = {
+                'vcloud_config': {
+                    'org': 'some_org',
+                }
+            }
+            if service_type:
+                properties['vcloud_config']['service_type'] = service_type
+            fake_ctx._source.node.properties = properties
+            return fake_ctx
+
         gateway = self.generate_gateway()
         vca_client = self.generate_client()
         # cant save configuration: server busy
@@ -358,11 +385,8 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         with mock.patch(
             'network_plugin.public_nat.ctx', fake_ctx
         ):
-            gateway.save_services_configuration = mock.MagicMock(
-                return_value=self.generate_task(
-                    vcloud_plugin_common.TASK_STATUS_SUCCESS
-                )
-            )
+            # success save configuration
+            _set_success_save(gateway)
             public_nat._save_configuration(
                 gateway, vca_client, network_plugin.CREATE, "1.2.3.4"
             )
@@ -372,6 +396,60 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                     network_plugin.PUBLIC_IP: "1.2.3.4"
                 }
             )
+        # delete - subscription service
+        fake_ctx = _context_for_delete(
+            vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
+        )
+        with mock.patch(
+            'network_plugin.public_nat.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+                public_nat._save_configuration(
+                    gateway, vca_client, network_plugin.DELETE, "1.2.3.4"
+                )
+
+        self.assertFalse(
+            network_plugin.PUBLIC_IP in fake_ctx._target.instance.runtime_properties,
+        )
+        # delete - without service
+        fake_ctx = _context_for_delete(None)
+        with mock.patch(
+            'network_plugin.public_nat.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+                public_nat._save_configuration(
+                    gateway, vca_client, network_plugin.DELETE, "1.2.3.4"
+                )
+
+        self.assertFalse(
+            network_plugin.PUBLIC_IP in fake_ctx._target.instance.runtime_properties,
+        )
+        # delete - ondemand service - nat
+        fake_ctx = _context_for_delete(
+            vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
+        )
+        fake_ctx._target.node.properties = {
+            'nat': {
+                network_plugin.PUBLIC_IP: "1.2.3.4"
+            }
+        }
+        with mock.patch(
+            'network_plugin.public_nat.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+                public_nat._save_configuration(
+                    gateway, vca_client, network_plugin.DELETE, "1.2.3.4"
+                )
+
+        self.assertFalse(
+            network_plugin.PUBLIC_IP in fake_ctx._target.instance.runtime_properties,
+        )
 
 if __name__ == '__main__':
     unittest.main()
