@@ -48,8 +48,7 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
                 }
             )
         # context.RELATIONSHIP_INSTANCE
-        fake_ctx = self.generate_context()
-        fake_ctx._source = mock.Mock()
+        fake_ctx = self.generate_relation_context()
         fake_ctx._source.node.properties = {
             'vcloud_config': {
                 'vdc': 'vdc_name'

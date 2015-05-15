@@ -219,6 +219,15 @@ class TestBase(unittest.TestCase):
         vapp.get_vms_network_info = _get_vms_network_info
         return vapp
 
+    def generate_relation_context(self):
+        fake_ctx = self.generate_context()
+        fake_ctx._source = mock.Mock()
+        fake_ctx._source.node = mock.Mock()
+        fake_ctx._target = mock.Mock()
+        fake_ctx._target.node = mock.Mock()
+        fake_ctx._target.instance.runtime_properties = {}
+        return fake_ctx
+
     def generate_context(
         self, relation_node_properties=None, properties=None,
         runtime_properties=None
