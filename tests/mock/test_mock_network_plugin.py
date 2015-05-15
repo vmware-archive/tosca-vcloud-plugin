@@ -166,8 +166,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
                 )
             )
             # nat routed
-            network = self.gen_vca_client_network(network_plugin.NAT_ROUTED)
-            fake_client.get_network = mock.MagicMock(return_value=network)
+            self.set_network_routed_in_client(fake_client)
             self.assertTrue(
                 network_plugin.is_network_routed(
                     fake_client, 'network_name',
@@ -181,6 +180,56 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
                     fake_client._vdc_gateway
                 )
             )
+
+    def test_get_vapp_name(self):
+        """
+            check get vapp name
+        """
+        self.assertEqual(
+            network_plugin.get_vapp_name({
+                network_plugin.VCLOUD_VAPP_NAME: "name"
+            }),
+            "name"
+        )
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            network_plugin.get_vapp_name({
+                "aa": "aaa"
+            })
+
+    def test_get_vm_ip(self):
+        """
+            check get vm ip from conected networks
+        """
+        vms_networks = [{
+            'is_connected': True,
+            'network_name': 'network_name',
+            'is_primary': True,
+            'ip': '1.1.1.1'
+        }]
+        fake_client = self.generate_client(vms_networks=vms_networks)
+        fake_ctx = self.generate_relation_context()
+        fake_ctx._source.node.properties = {
+            'vcloud_config': {
+                'edge_gateway': 'some_edge_gateway',
+                'vdc': 'vdc_name'
+            }
+        }
+        # not routed
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                network_plugin.get_vm_ip(
+                    fake_client, fake_ctx, fake_client._vdc_gateway
+                )
+        # routed
+        self.set_network_routed_in_client(fake_client)
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            self.assertEqual(
+                network_plugin.get_vm_ip(
+                    fake_client, fake_ctx, fake_client._vdc_gateway
+                ),
+                '1.1.1.1'
+            )
+        # TODO add negative tests
 
     def test_get_public_ip(self):
         gateway = self.generate_gateway()

@@ -1,7 +1,7 @@
 import mock
 import unittest
 from cloudify import mocks as cfy_mocks
-from network_plugin import BUSY_MESSAGE
+from network_plugin import BUSY_MESSAGE, NAT_ROUTED
 
 
 class TestBase(unittest.TestCase):
@@ -152,6 +152,13 @@ class TestBase(unittest.TestCase):
         )
         pool.get_Network = mock.MagicMock(return_value=network)
         return pool
+
+    def set_network_routed_in_client(self, fake_client):
+        """
+            set any network as routed
+        """
+        network = self.gen_vca_client_network(NAT_ROUTED)
+        fake_client.get_network = mock.MagicMock(return_value=network)
 
     def generate_client(self, vms_networks=None, vdc_networks=None):
 
