@@ -338,19 +338,11 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
 
     def test_save_configuration(self):
 
-        def _set_success_save(gateway):
-            """
-                success save configuration
-            """
-            gateway.save_services_configuration = mock.MagicMock(
-                return_value=self.generate_task(
-                    vcloud_plugin_common.TASK_STATUS_SUCCESS
-                )
-            )
-
         def _context_for_delete(service_type):
             fake_ctx = self.generate_relation_context()
-            _set_success_save(gateway)
+            self.set_services_conf_result(
+                gateway, vcloud_plugin_common.TASK_STATUS_SUCCESS
+            )
             fake_ctx._target.instance.runtime_properties = {
                 network_plugin.PUBLIC_IP: "1.2.3.4"
             }
@@ -364,11 +356,15 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             fake_ctx._source.node.properties = properties
             return fake_ctx
 
+        def _ip_exist_in_runtime(fake_ctx):
+            runtime_properties = fake_ctx._target.instance.runtime_properties
+            return network_plugin.PUBLIC_IP in runtime_properties
+
         gateway = self.generate_gateway()
         vca_client = self.generate_client()
         # cant save configuration: server busy
-        gateway.save_services_configuration = mock.MagicMock(
-            return_value=None
+        self.set_services_conf_result(
+            gateway, None
         )
         self.set_gateway_busy(gateway)
         fake_ctx = self.generate_relation_context()
@@ -382,11 +378,13 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             self.check_retry_realy_called(fake_ctx)
         # operation create
         fake_ctx = self.generate_relation_context()
+        self.set_services_conf_result(
+            gateway, vcloud_plugin_common.TASK_STATUS_SUCCESS
+        )
         with mock.patch(
             'network_plugin.public_nat.ctx', fake_ctx
         ):
             # success save configuration
-            _set_success_save(gateway)
             public_nat._save_configuration(
                 gateway, vca_client, network_plugin.CREATE, "1.2.3.4"
             )
@@ -410,9 +408,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                     gateway, vca_client, network_plugin.DELETE, "1.2.3.4"
                 )
 
-        self.assertFalse(
-            network_plugin.PUBLIC_IP in fake_ctx._target.instance.runtime_properties,
-        )
+        self.assertFalse(_ip_exist_in_runtime(fake_ctx))
         # delete - without service
         fake_ctx = _context_for_delete(None)
         with mock.patch(
@@ -425,9 +421,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                     gateway, vca_client, network_plugin.DELETE, "1.2.3.4"
                 )
 
-        self.assertFalse(
-            network_plugin.PUBLIC_IP in fake_ctx._target.instance.runtime_properties,
-        )
+        self.assertFalse(_ip_exist_in_runtime(fake_ctx))
         # delete - ondemand service - nat
         fake_ctx = _context_for_delete(
             vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
@@ -447,9 +441,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                     gateway, vca_client, network_plugin.DELETE, "1.2.3.4"
                 )
 
-        self.assertFalse(
-            network_plugin.PUBLIC_IP in fake_ctx._target.instance.runtime_properties,
-        )
+        self.assertFalse(_ip_exist_in_runtime(fake_ctx))
 
 if __name__ == '__main__':
     unittest.main()

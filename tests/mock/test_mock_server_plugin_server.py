@@ -391,7 +391,6 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             'ServerName'
         )
 
-
     def test_create_connection_error(self):
         """
             test server create with default value and success in request

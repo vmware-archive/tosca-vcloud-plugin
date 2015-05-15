@@ -16,6 +16,17 @@ class TestBase(unittest.TestCase):
         task.get_status = mock.MagicMock(return_value=status)
         return task
 
+    def set_services_conf_result(self, gateway, result):
+        """
+            set result for save configuration
+        """
+        task = None
+        if result:
+            task = self.generate_task(result)
+        gateway.save_services_configuration = mock.MagicMock(
+            return_value=task
+        )
+
     def set_gateway_busy(self, gateway):
         message = gateway.response.content
         message = message.replace(
@@ -50,9 +61,7 @@ class TestBase(unittest.TestCase):
             )
         ])
         gate.add_dhcp_pool = mock.MagicMock(return_value=None)
-        gate.save_services_configuration = mock.MagicMock(
-            return_value=None
-        )
+        self.set_services_conf_result(gate, None)
         gate.response = mock.Mock()
         gate.response.content = ('''
                 <?xml version="1.0" encoding="UTF-8"?>

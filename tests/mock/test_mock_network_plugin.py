@@ -110,28 +110,24 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         gateway = self.generate_gateway()
         vca_client = self.generate_client()
         # cant save configuration - error in first call
-        gateway.save_services_configuration = mock.MagicMock(
-            return_value=None
+        self.set_services_conf_result(
+            gateway, None
         )
         with self.assertRaises(cfy_exc.NonRecoverableError):
             network_plugin.save_gateway_configuration(
                 gateway, vca_client
             )
         # error in status
-        gateway.save_services_configuration = mock.MagicMock(
-            return_value=self.generate_task(
-                vcloud_plugin_common.TASK_STATUS_ERROR
-            )
+        self.set_services_conf_result(
+            gateway, vcloud_plugin_common.TASK_STATUS_ERROR
         )
         with self.assertRaises(cfy_exc.NonRecoverableError):
             network_plugin.save_gateway_configuration(
                 gateway, vca_client
             )
         # everything fine
-        gateway.save_services_configuration = mock.MagicMock(
-            return_value=self.generate_task(
-                vcloud_plugin_common.TASK_STATUS_SUCCESS
-            )
+        self.set_services_conf_result(
+            gateway, vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
         self.assertTrue(
             network_plugin.save_gateway_configuration(
@@ -139,8 +135,8 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             )
         )
         # server busy
-        gateway.save_services_configuration = mock.MagicMock(
-            return_value=None
+        self.set_services_conf_result(
+            gateway, None
         )
         self.set_gateway_busy(gateway)
         self.assertFalse(

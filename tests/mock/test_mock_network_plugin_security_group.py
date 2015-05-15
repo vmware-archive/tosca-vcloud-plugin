@@ -4,7 +4,7 @@ import unittest
 from cloudify import exceptions as cfy_exc
 import test_mock_base
 from network_plugin import security_group, NAT_ROUTED
-from vcloud_plugin_common import TASK_STATUS_SUCCESS
+import vcloud_plugin_common
 
 
 class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
@@ -55,9 +55,8 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         }
         # any calls for save configuration will be success
         gateway = fake_client._vdc_gateway
-        task = self.generate_task(TASK_STATUS_SUCCESS)
-        gateway.save_services_configuration = mock.MagicMock(
-            return_value=task
+        self.set_services_conf_result(
+            gateway, vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
         # for check calls for add/delete rule
         gateway.add_fw_rule = mock.MagicMock(return_value=None)
@@ -82,10 +81,9 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         gateway = fake_client._vdc_gateway
         self.set_gateway_busy(gateway)
         self.prepare_retry(fake_ctx)
-        gateway.save_services_configuration = mock.MagicMock(
-            return_value=None
+        self.set_services_conf_result(
+            fake_client._vdc_gateway, None
         )
-
         with mock.patch('network_plugin.security_group.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 security_group._rule_operation(
@@ -329,11 +327,9 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         fake_ctx._target.node.properties = {
             'rules': []
         }
-        task = self.generate_task(TASK_STATUS_SUCCESS)
-        fake_client._vdc_gateway.save_services_configuration = \
-            mock.MagicMock(
-                return_value=task
-            )
+        self.set_services_conf_result(
+            fake_client._vdc_gateway, vcloud_plugin_common.TASK_STATUS_SUCCESS
+        )
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -347,11 +343,9 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         fake_ctx._target.node.properties = {
             'rules': []
         }
-        task = self.generate_task(TASK_STATUS_SUCCESS)
-        fake_client._vdc_gateway.save_services_configuration = \
-            mock.MagicMock(
-                return_value=task
-            )
+        self.set_services_conf_result(
+            fake_client._vdc_gateway, vcloud_plugin_common.TASK_STATUS_SUCCESS
+        )
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
