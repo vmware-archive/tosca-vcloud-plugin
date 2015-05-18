@@ -222,6 +222,21 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
                 "aa": "aaa"
             })
 
+    def test_check_port(self):
+        """
+            check port
+        """
+        # port int
+        network_plugin.check_port(10)
+        # port int to big
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            network_plugin.check_port(65536)
+        # port any
+        network_plugin.check_port('any')
+        # port not any and not int
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            network_plugin.check_port('some')
+
     def test_get_public_ip(self):
         gateway = self.generate_gateway()
         gateway.get_public_ips = mock.MagicMock(return_value=[

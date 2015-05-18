@@ -689,5 +689,192 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             'any', 'any'
         )
 
+    def test_creation_validation(self):
+        fake_client = self.generate_client()
+        # no nat
+        fake_ctx = self.generate_node_context(
+            properties={
+                'vcloud_config': {
+                    'vdc': 'vdc_name'
+                }
+            }
+        )
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                public_nat.creation_validation(ctx=fake_ctx)
+        # no gateway
+        fake_ctx = self.generate_node_context(
+            properties={
+                'vcloud_config': {
+                    'vdc': 'vdc_name'
+                },
+                'nat': {
+                    'some_field': 'something'
+                }
+            }
+        )
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                public_nat.creation_validation(ctx=fake_ctx)
+        # wrong ip
+        fake_ctx = self.generate_node_context(
+            properties={
+                'vcloud_config': {
+                    'vdc': 'vdc_name',
+                    'service_type': vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
+                },
+                'nat': {
+                    'edge_gateway': 'gateway',
+                    network_plugin.PUBLIC_IP: 'any'
+                }
+            }
+        )
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                public_nat.creation_validation(ctx=fake_ctx)
+        # no free ip
+        fake_ctx = self.generate_node_context(
+            properties={
+                'vcloud_config': {
+                    'vdc': 'vdc_name',
+                    'service_type': vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
+                },
+                'nat': {
+                    'edge_gateway': 'gateway'
+                }
+            }
+        )
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                public_nat.creation_validation(ctx=fake_ctx)
+        # no rules
+        fake_ctx = self.generate_node_context(
+            properties={
+                'vcloud_config': {
+                    'vdc': 'vdc_name',
+                    'service_type': vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
+                },
+                'nat': {
+                    'edge_gateway': 'gateway',
+                    network_plugin.PUBLIC_IP: '10.12.2.1'
+                }
+            }
+        )
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                public_nat.creation_validation(ctx=fake_ctx)
+        # wrong protocol
+        fake_ctx = self.generate_node_context(
+            properties={
+                'vcloud_config': {
+                    'vdc': 'vdc_name',
+                    'service_type': vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
+                },
+                'nat': {
+                    'edge_gateway': 'gateway',
+                    network_plugin.PUBLIC_IP: '10.12.2.1'
+                },
+                'rules': [{
+                    'type': 'DNAT',
+                    'protocol': "some"
+                }]
+            }
+        )
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                public_nat.creation_validation(ctx=fake_ctx)
+        # wrong original_port
+        fake_ctx = self.generate_node_context(
+            properties={
+                'vcloud_config': {
+                    'vdc': 'vdc_name',
+                    'service_type': vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
+                },
+                'nat': {
+                    'edge_gateway': 'gateway',
+                    network_plugin.PUBLIC_IP: '10.12.2.1'
+                },
+                'rules': [{
+                    'type': 'DNAT',
+                    'protocol': "TCP",
+                    'original_port': 'some'
+                }]
+            }
+        )
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                public_nat.creation_validation(ctx=fake_ctx)
+
+        # wrong original_port
+        fake_ctx = self.generate_node_context(
+            properties={
+                'vcloud_config': {
+                    'vdc': 'vdc_name',
+                    'service_type': vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
+                },
+                'nat': {
+                    'edge_gateway': 'gateway',
+                    network_plugin.PUBLIC_IP: '10.12.2.1'
+                },
+                'rules': [{
+                    'type': 'DNAT',
+                    'protocol': "TCP",
+                    'original_port': 11,
+                    'translated_port': 'some'
+                }]
+            }
+        )
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                public_nat.creation_validation(ctx=fake_ctx)
+        # fine
+        fake_ctx = self.generate_node_context(
+            properties={
+                'vcloud_config': {
+                    'vdc': 'vdc_name',
+                    'service_type': vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
+                },
+                'nat': {
+                    'edge_gateway': 'gateway',
+                    network_plugin.PUBLIC_IP: '10.12.2.1'
+                },
+                'rules': [{
+                    'type': 'DNAT',
+                    'protocol': "TCP",
+                    'original_port': 11,
+                    'translated_port': 12
+                }]
+            }
+        )
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            public_nat.creation_validation(ctx=fake_ctx)
+
 if __name__ == '__main__':
     unittest.main()
