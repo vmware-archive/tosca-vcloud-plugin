@@ -237,6 +237,48 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         with self.assertRaises(cfy_exc.NonRecoverableError):
             network_plugin.check_port('some')
 
+    def test_CheckAssignedExternalIp(self):
+        gateway = self.generate_gateway()
+        gateway.get_public_ips = mock.MagicMock(return_value=[
+            '10.1.1.1', '10.1.1.2'
+        ])
+        rule_inlist = self.generate_nat_rule(
+            'DNAT', '10.1.1.1', 'any', '123.1.1.1', '11', 'TCP'
+        )
+        gateway.get_nat_rules = mock.MagicMock(
+            return_value=[rule_inlist]
+        )
+        # free ip
+        network_plugin.CheckAssignedExternalIp(
+            '10.10.1.2', gateway
+        )
+        # assigned ip
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            network_plugin.CheckAssignedExternalIp(
+                '10.1.1.1', gateway
+            )
+
+    def test_CheckAssignedInternalIp(self):
+        gateway = self.generate_gateway()
+        gateway.get_public_ips = mock.MagicMock(return_value=[
+            '10.1.1.1', '10.1.1.2'
+        ])
+        rule_inlist = self.generate_nat_rule(
+            'DNAT', '10.1.1.1', 'any', '123.1.1.1', '11', 'TCP'
+        )
+        gateway.get_nat_rules = mock.MagicMock(
+            return_value=[rule_inlist]
+        )
+        # free ip
+        network_plugin.CheckAssignedInternalIp(
+            '123.1.1.2', gateway
+        )
+        # assigned ip
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            network_plugin.CheckAssignedInternalIp(
+                '123.1.1.1', gateway
+            )
+
     def test_get_public_ip(self):
         gateway = self.generate_gateway()
         gateway.get_public_ips = mock.MagicMock(return_value=[

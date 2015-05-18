@@ -129,7 +129,33 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             floatingip.creation_validation(ctx=fake_ctx)
-
+        # with some free ip
+        fake_ctx = self.generate_node_context(
+            properties={
+                'vcloud_config': {
+                    'vdc': 'vdc_name'
+                },
+                'floatingip': {
+                    'edge_gateway': 'gateway',
+                    network_plugin.PUBLIC_IP: '10.10.1.2',
+                    'service_type': vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
+                }
+            }
+        )
+        fake_client._vdc_gateway.get_public_ips = mock.MagicMock(return_value=[
+            '10.1.1.1', '10.1.1.2'
+        ])
+        rule_inlist = self.generate_nat_rule(
+            'DNAT', '10.1.1.1', 'any', '123.1.1.1', '11', 'TCP'
+        )
+        fake_client.get_nat_rules = mock.MagicMock(
+            return_value=[rule_inlist]
+        )
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            floatingip.creation_validation(ctx=fake_ctx)
 
 if __name__ == '__main__':
     unittest.main()
