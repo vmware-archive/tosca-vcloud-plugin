@@ -551,6 +551,62 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                     public_nat.prepare_server_operation(
                         vca_client, network_plugin.DELETE
                     )
+        # with some rules
+        fake_ctx._target.node.properties = {
+            'nat': {
+                'edge_gateway': 'gateway'
+            },
+            'rules': [{
+                'type': 'DNAT',
+                'protocol': 'TCP',
+                'original_port': "11",
+                'translated_port': "11"
+            }]
+        }
+        self.set_services_conf_result(
+            vca_client._vdc_gateway,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS
+        )
+        with mock.patch(
+            'network_plugin.public_nat.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+                public_nat.prepare_server_operation(
+                    vca_client, network_plugin.DELETE
+                )
+        vca_client._vdc_gateway.del_nat_rule.assert_called_with(
+            'DNAT', '192.168.1.1', '11', '1.1.1.1', '11', 'TCP'
+        )
+        # with default value
+        fake_ctx._target.instance.runtime_properties = {
+            network_plugin.PUBLIC_IP: '192.168.1.1'
+        }
+        fake_ctx._target.node.properties = {
+            'nat': {
+                'edge_gateway': 'gateway'
+            },
+            'rules': [{
+                'type': 'DNAT'
+            }]
+        }
+        self.set_services_conf_result(
+            vca_client._vdc_gateway,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS
+        )
+        with mock.patch(
+            'network_plugin.public_nat.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+                public_nat.prepare_server_operation(
+                    vca_client, network_plugin.DELETE
+                )
+        vca_client._vdc_gateway.del_nat_rule.assert_called_with(
+            'DNAT', '192.168.1.1', 'any', '1.1.1.1', 'any', 'any'
+        )
 
 if __name__ == '__main__':
     unittest.main()
