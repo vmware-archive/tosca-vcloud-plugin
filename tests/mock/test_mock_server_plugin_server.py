@@ -118,10 +118,10 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
                 server.VCLOUD_VAPP_NAME in fake_ctx.instance.runtime_properties
             )
 
-    def check_get_vapp(self, vca_client, vapp_name):
-        vca_client.get_vdc.assert_called_with('vdc_name')
-        vca_client.get_vapp.assert_called_with(
-            vca_client._app_vdc, vapp_name
+    def check_get_vapp(self, fake_client, vapp_name):
+        fake_client.get_vdc.assert_called_with('vdc_name')
+        fake_client.get_vapp.assert_called_with(
+            fake_client._app_vdc, vapp_name
         )
 
     def test_start(self):

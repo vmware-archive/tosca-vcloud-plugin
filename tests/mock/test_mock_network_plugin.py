@@ -112,14 +112,14 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             network_plugin.getFreeIP(gateway)
 
     def test_del_ondemand_public_ip(self):
-        vca_client = self.generate_client()
+        fake_client = self.generate_client()
         gateway = self.generate_gateway()
         fake_ctx = self.generate_node_context()
         # cant deallocate ip
         gateway.deallocate_public_ip = mock.MagicMock(return_value=None)
         with self.assertRaises(cfy_exc.NonRecoverableError):
             network_plugin.del_ondemand_public_ip(
-                vca_client, gateway, '127.0.0.1', fake_ctx
+                fake_client, gateway, '127.0.0.1', fake_ctx
             )
         gateway.deallocate_public_ip.assert_called_with('127.0.0.1')
         # successfully dropped public ip
@@ -129,19 +129,19 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             )
         )
         network_plugin.del_ondemand_public_ip(
-            vca_client, gateway, '127.0.0.1', fake_ctx
+            fake_client, gateway, '127.0.0.1', fake_ctx
         )
 
     def test_save_gateway_configuration(self):
         gateway = self.generate_gateway()
-        vca_client = self.generate_client()
+        fake_client = self.generate_client()
         # cant save configuration - error in first call
         self.set_services_conf_result(
             gateway, None
         )
         with self.assertRaises(cfy_exc.NonRecoverableError):
             network_plugin.save_gateway_configuration(
-                gateway, vca_client
+                gateway, fake_client
             )
         # error in status
         self.set_services_conf_result(
@@ -149,7 +149,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         with self.assertRaises(cfy_exc.NonRecoverableError):
             network_plugin.save_gateway_configuration(
-                gateway, vca_client
+                gateway, fake_client
             )
         # everything fine
         self.set_services_conf_result(
@@ -157,7 +157,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         self.assertTrue(
             network_plugin.save_gateway_configuration(
-                gateway, vca_client
+                gateway, fake_client
             )
         )
         # server busy
@@ -167,7 +167,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         self.set_gateway_busy(gateway)
         self.assertFalse(
             network_plugin.save_gateway_configuration(
-                gateway, vca_client
+                gateway, fake_client
             )
         )
 
@@ -183,7 +183,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_node_context()
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             # not routed by nat
-            network = self.gen_vca_client_network("not_routed")
+            network = self.generate_fake_client_network("not_routed")
             fake_client.get_network = mock.MagicMock(return_value=network)
             self.assertFalse(
                 network_plugin.is_network_routed(

@@ -413,10 +413,10 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
         # no networks
         fake_ctx.instance._relationships = []
 
-        def _gen_vca_client_network(vdc_name, network_name):
+        def _generate_fake_client_network(vdc_name, network_name):
             return None
 
-        fake_client.get_network = _gen_vca_client_network
+        fake_client.get_network = _generate_fake_client_network
         with mock.patch('server_plugin.server.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 with self.assertRaises(cfy_exc.NonRecoverableError):
