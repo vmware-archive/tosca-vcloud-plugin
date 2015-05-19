@@ -281,7 +281,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
 
     def test_get_connected(self):
 
-        fake_ctx = self.generate_context(relation_node_properties={
+        fake_ctx = self.generate_node_context(relation_node_properties={
             "not_test": "not_test"
         })
 
@@ -302,7 +302,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
     def test_create_connections_list(self):
         # one connection from port, one from network and
         # one managment_network
-        fake_ctx = self.generate_context(relation_node_properties={
+        fake_ctx = self.generate_node_context(relation_node_properties={
             "not_test": "not_test",
             'port': {
                 'network': 'private_network',
@@ -343,7 +343,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                     ], connection
                 )
         # one network same as managment + port
-        fake_ctx = self.generate_context(relation_node_properties={
+        fake_ctx = self.generate_node_context(relation_node_properties={
             "not_test": "not_test",
             'port': {
                 'network': '_management_network',
@@ -378,7 +378,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                     ], connection
                 )
         # check dhcp, with no dhcp server
-        fake_ctx = self.generate_context(relation_node_properties={
+        fake_ctx = self.generate_node_context(relation_node_properties={
             "not_test": "not_test",
             'port': {
                 'network': '_management_network',
@@ -413,10 +413,10 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
         # no networks
         fake_ctx.instance._relationships = []
 
-        def _gen_network(vdc_name, network_name):
+        def _gen_vca_client_network(vdc_name, network_name):
             return None
 
-        fake_client.get_network = _gen_network
+        fake_client.get_network = _gen_vca_client_network
         with mock.patch('server_plugin.server.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 with self.assertRaises(cfy_exc.NonRecoverableError):
@@ -481,7 +481,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
         self.assertEqual(None, connection)
 
     def test_get_state(self):
-        fake_ctx = self.generate_context()
+        fake_ctx = self.generate_node_context()
         with mock.patch('server_plugin.server.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 # connected network_name

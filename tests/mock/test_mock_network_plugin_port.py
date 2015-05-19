@@ -15,13 +15,13 @@ class NetworkPluginPortMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             # no port
-            fake_ctx = self.generate_context(
+            fake_ctx = self.generate_node_context(
                 properties={}
             )
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 port.creation_validation(ctx=fake_ctx)
             # port without allocation
-            fake_ctx = self.generate_context(
+            fake_ctx = self.generate_node_context(
                 properties={
                     'port': {
                         'some_field': 'some_value'
@@ -30,7 +30,7 @@ class NetworkPluginPortMockTestCase(test_mock_base.TestBase):
             )
             port.creation_validation(ctx=fake_ctx)
             # wrong allocation mode
-            fake_ctx = self.generate_context(
+            fake_ctx = self.generate_node_context(
                 properties={
                     'port': {
                         'ip_allocation_mode': 'realy wrong'
@@ -41,7 +41,7 @@ class NetworkPluginPortMockTestCase(test_mock_base.TestBase):
                 port.creation_validation(ctx=fake_ctx)
             # correct allocation
             for mode in ['manual', 'dhcp', 'pool']:
-                fake_ctx = self.generate_context(
+                fake_ctx = self.generate_node_context(
                     properties={
                         'port': {
                             'ip_allocation_mode': mode
@@ -50,7 +50,7 @@ class NetworkPluginPortMockTestCase(test_mock_base.TestBase):
                 )
                 port.creation_validation(ctx=fake_ctx)
             # wrong manual ip
-            fake_ctx = self.generate_context(
+            fake_ctx = self.generate_node_context(
                 properties={
                     'port': {
                         'ip_allocation_mode': 'manual',
@@ -61,7 +61,7 @@ class NetworkPluginPortMockTestCase(test_mock_base.TestBase):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 port.creation_validation(ctx=fake_ctx)
             # correct manual ip
-            fake_ctx = self.generate_context(
+            fake_ctx = self.generate_node_context(
                 properties={
                     'port': {
                         'ip_allocation_mode': 'manual',

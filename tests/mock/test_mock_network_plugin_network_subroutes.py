@@ -3,7 +3,7 @@ import unittest
 
 from cloudify import exceptions as cfy_exc
 import test_mock_base
-from network_plugin import network, BUSY_MESSAGE
+from network_plugin import network
 
 
 class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
@@ -35,7 +35,7 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
     def test__dhcp_operation(self):
         fake_client = self.generate_client()
         # no dhcp
-        fake_ctx = self.generate_context(properties={
+        fake_ctx = self.generate_node_context(properties={
             'network': {
                 'edge_gateway': 'gateway'
             },
@@ -49,7 +49,7 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
                     fake_client, '_management_network', network.ADD_POOL
                 )
         # wrong dhcp_range
-        fake_ctx = self.generate_context(properties={
+        fake_ctx = self.generate_node_context(properties={
             'network': {
                 'dhcp': {
                     'dhcp_range': ""
@@ -67,7 +67,7 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
                         fake_client, '_management_network', network.ADD_POOL
                     )
 
-        fake_ctx = self.generate_context(properties={
+        fake_ctx = self.generate_node_context(properties={
             'network': {
                 'dhcp': {
                     'dhcp_range': "10.1.1.1-10.1.1.255"
@@ -96,19 +96,15 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
                         fake_client, '_management_network', network.DELETE_POOL
                     )
 
-                #returned busy, try next time
-                message = fake_client._vdc_gateway.response.content
-                message = message.replace(self.ERROR_PLACE, BUSY_MESSAGE)
-                fake_client._vdc_gateway.response.content = message
-                fake_ctx.operation.retry = mock.MagicMock(return_value=None)
+                # returned busy, try next time
+                self.set_gateway_busy(fake_client._vdc_gateway)
+                self.prepare_retry(fake_ctx)
+
                 network._dhcp_operation(
                     fake_client, '_management_network',
                     network.DELETE_POOL
                 ), None
-                fake_ctx.operation.retry.assert_called_with(
-                    message='Waiting for gateway.',
-                    retry_after=10
-                )
+                self.check_retry_realy_called(fake_ctx)
 
                 # no such gateway
                 fake_client.get_gateway = mock.MagicMock(return_value=None)

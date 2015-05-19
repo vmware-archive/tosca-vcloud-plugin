@@ -80,9 +80,9 @@ def transform_resource_name(res, ctx):
     pfx = ctx.bootstrap_context.resources_prefix
 
     if not pfx:
-        return res['name']
+        return get_mandatory(res, 'name')
 
-    name = res['name']
+    name = get_mandatory(res, 'name')
     res['name'] = pfx + name
 
     if name.startswith(pfx):
