@@ -62,7 +62,8 @@ def _floatingip_operation(operation, vca_client, ctx):
         nat_operation = _del_nat_rule
     else:
         raise cfy_exc.NonRecoverableError(
-            "Unknown operation {0}").format(operation)
+            "Unknown operation {0}".format(operation)
+        )
 
     external_ip = check_ip(public_ip)
 

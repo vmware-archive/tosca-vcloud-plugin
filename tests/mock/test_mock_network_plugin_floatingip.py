@@ -157,5 +157,151 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
         ):
             floatingip.creation_validation(ctx=fake_ctx)
 
+    def generate_client_and_context_floating_ip(self):
+        # client
+        vms_networks = [{
+            'is_connected': True,
+            'network_name': 'network_name',
+            'is_primary': True,
+            'ip': '1.1.1.1'
+        }]
+        fake_client = self.generate_client(vms_networks=vms_networks)
+        self.set_network_routed_in_client(fake_client)
+        self.set_services_conf_result(
+            fake_client._vdc_gateway,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS
+        )
+        # ctx
+        fake_ctx = self.generate_relation_context()
+        fake_ctx._source.node.properties = {
+            'vcloud_config': {
+                'service_type': vcloud_plugin_common.ONDEMAND_SERVICE_TYPE,
+                'org': 'some_org',
+                'vdc': 'some_vdc',
+            }
+        }
+        fake_ctx._target.node.properties = {
+            'floatingip': {
+                'edge_gateway': 'gateway'
+            }
+        }
+        fake_ctx._target.instance.runtime_properties = {}
+        return fake_client, fake_ctx
+
+    def test_floatingip_operation_delete(self):
+        """
+            check for floating_ip operations
+        """
+        # no public_ip delete
+        fake_client, fake_ctx = self.generate_client_and_context_floating_ip()
+        fake_ctx._target.node.properties = {
+            'floatingip': {
+                'edge_gateway': 'gateway'
+            }
+        }
+        with mock.patch(
+            'vcloud_plugin_common.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'network_plugin.floatingip.ctx', fake_ctx
+            ):
+                floatingip._floatingip_operation(
+                    network_plugin.DELETE, fake_client, fake_ctx
+                )
+        # busy in save with ip in node_properties
+        fake_client, fake_ctx = self.generate_client_and_context_floating_ip()
+        self.set_services_conf_result(
+            fake_client._vdc_gateway, None
+        )
+        self.set_gateway_busy(fake_client._vdc_gateway)
+        self.prepare_retry(fake_ctx)
+        fake_ctx._target.node.properties = {
+            'floatingip': {
+                'edge_gateway': 'gateway',
+                network_plugin.PUBLIC_IP: '10.10.1.2'
+            }
+        }
+        with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+            with mock.patch(
+                'network_plugin.floatingip.ctx', fake_ctx
+            ):
+                floatingip._floatingip_operation(
+                    network_plugin.DELETE, fake_client, fake_ctx
+                )
+        self.check_retry_realy_called(fake_ctx)
+        # busy in save with ip in runtime_properties
+        fake_client, fake_ctx = self.generate_client_and_context_floating_ip()
+        self.set_services_conf_result(
+            fake_client._vdc_gateway, None
+        )
+        self.set_gateway_busy(fake_client._vdc_gateway)
+        self.prepare_retry(fake_ctx)
+        fake_ctx._target.node.properties = {
+            'floatingip': {
+                'edge_gateway': 'gateway'
+            }
+        }
+        fake_ctx._target.instance.runtime_properties = {
+            network_plugin.PUBLIC_IP: '10.10.1.2'
+        }
+        with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+            with mock.patch(
+                'network_plugin.floatingip.ctx', fake_ctx
+            ):
+                floatingip._floatingip_operation(
+                    network_plugin.DELETE, fake_client, fake_ctx
+                )
+        self.check_retry_realy_called(fake_ctx)
+        # unknow operation
+        fake_client, fake_ctx = self.generate_client_and_context_floating_ip()
+        fake_ctx._target.node.properties = {
+            'floatingip': {
+                'edge_gateway': 'gateway',
+                network_plugin.PUBLIC_IP: '10.10.1.2'
+            }
+        }
+        with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+            with mock.patch(
+                'network_plugin.floatingip.ctx', fake_ctx
+            ):
+                with self.assertRaises(cfy_exc.NonRecoverableError):
+                    floatingip._floatingip_operation(
+                        "unknow", fake_client, fake_ctx
+                    )
+        # delete to end
+        fake_client, fake_ctx = self.generate_client_and_context_floating_ip()
+        fake_ctx._target.node.properties = {
+            'floatingip': {
+                'edge_gateway': 'gateway'
+            }
+        }
+        fake_ctx._target.instance.runtime_properties = {
+            network_plugin.PUBLIC_IP: '10.10.1.2'
+        }
+        fake_client._vdc_gateway.deallocate_public_ip = mock.MagicMock(
+            return_value=self.generate_task(
+                vcloud_plugin_common.TASK_STATUS_SUCCESS
+            )
+        )
+        with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+            with mock.patch(
+                'network_plugin.floatingip.ctx', fake_ctx
+            ):
+                floatingip._floatingip_operation(
+                    network_plugin.DELETE, fake_client, fake_ctx
+                )
+        self.assertFalse(
+            network_plugin.PUBLIC_IP in fake_ctx._target.instance.runtime_properties
+        )
+
+
 if __name__ == '__main__':
     unittest.main()
