@@ -21,6 +21,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
                 'vdc': 'vdc_name'
             }
         }
+        fake_ctx._source.instance.runtime_properties = {
+            network_plugin.VCLOUD_VAPP_NAME: "name"
+        }
         # empty connections/no connection name
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             with self.assertRaises(cfy_exc.NonRecoverableError):
@@ -49,7 +52,22 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
                 ),
                 '1.1.1.1'
             )
-        # TODO add negative tests
+        # no networks
+        fake_client._vapp.get_vms_network_info = mock.MagicMock(
+            return_value=[]
+        )
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                network_plugin.get_vm_ip(
+                    fake_client, fake_ctx, fake_client._vdc_gateway
+                )
+        # no vapp
+        fake_client.get_vapp = mock.MagicMock(return_value=None)
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                network_plugin.get_vm_ip(
+                    fake_client, fake_ctx, fake_client._vdc_gateway
+                )
 
     def test_collectAssignedIps(self):
         # empty gateway
@@ -278,6 +296,102 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             network_plugin.CheckAssignedInternalIp(
                 '123.1.1.1', gateway
             )
+
+    def test_get_gateway(self):
+        # good case
+        fake_client = self.generate_client()
+        fake_ctx = self.generate_node_context()
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            self.assertEqual(
+                network_plugin.get_gateway(
+                    fake_client, 'test name'
+                ),
+                fake_client._vdc_gateway
+            )
+        fake_client.get_gateway.assert_called_with(
+            'vdc_name', 'test name'
+        )
+        # bad case
+        fake_client = self.generate_client()
+        fake_ctx = self.generate_node_context()
+        fake_client.get_gateway = mock.MagicMock(return_value=None)
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                network_plugin.get_gateway(
+                    fake_client, 'test name'
+                )
+
+    def test_get_network(self):
+        # good case
+        fake_client = self.generate_client()
+        fake_ctx = self.generate_node_context()
+        fake_network = self.generate_fake_client_network(
+            'test name'
+        )
+        fake_client.get_network = mock.MagicMock(
+            return_value=fake_network
+        )
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            self.assertEqual(
+                network_plugin.get_network(
+                    fake_client, 'test name'
+                ),
+                fake_network
+            )
+        fake_client.get_network.assert_called_with(
+            'vdc_name', 'test name'
+        )
+        # bad case network not exist
+        fake_client = self.generate_client()
+        fake_ctx = self.generate_node_context()
+        fake_client.get_network = mock.MagicMock(return_value=None)
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                network_plugin.get_network(
+                    fake_client, 'test name'
+                )
+        # worse case = nework == None
+        fake_client = self.generate_client()
+        fake_ctx = self.generate_node_context()
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                network_plugin.get_network(
+                    fake_client, None
+                )
+
+    def test_get_network_name(self):
+        # external without resource_id
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            network_plugin.get_network_name({
+                'use_external_resource': True
+            })
+        # exteranal with resource_id
+        self.assertEqual(
+            network_plugin.get_network_name({
+                'use_external_resource': True,
+                'resource_id': 'some_text'
+            }),
+            'some_text'
+        )
+        # internal, without network
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            network_plugin.get_network_name({})
+        # network without name
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            network_plugin.get_network_name({
+                'network': {
+                    'name': None
+                }
+            })
+        # good case
+        self.assertEqual(
+            network_plugin.get_network_name({
+                'network': {
+                    'name': 'good_text'
+                }
+            }),
+            'good_text'
+        )
 
     def test_get_public_ip(self):
         gateway = self.generate_gateway()
