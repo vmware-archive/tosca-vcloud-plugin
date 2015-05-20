@@ -119,5 +119,45 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
             'prfx_prfx_test'
         )
 
+    def test_is_subscription(self):
+        # subscription
+        self.assertTrue(
+            vcloud_plugin_common.is_subscription(
+                vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
+            )
+        )
+        # ondemand
+        self.assertFalse(
+            vcloud_plugin_common.is_subscription(
+                vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
+            )
+        )
+        # None, by default used subscription service, so True
+        self.assertTrue(
+            vcloud_plugin_common.is_subscription(
+                None
+            )
+        )
+
+    def test_is_ondemand(self):
+        # subscription
+        self.assertFalse(
+            vcloud_plugin_common.is_ondemand(
+                vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
+            )
+        )
+        # ondemand
+        self.assertTrue(
+            vcloud_plugin_common.is_ondemand(
+                vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
+            )
+        )
+        # None, by default used subscription service, so False
+        self.assertFalse(
+            vcloud_plugin_common.is_ondemand(
+                None
+            )
+        )
+
 if __name__ == '__main__':
     unittest.main()
