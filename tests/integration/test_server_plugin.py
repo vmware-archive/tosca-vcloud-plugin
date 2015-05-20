@@ -8,7 +8,10 @@ from cloudify import exceptions as cfy_exc
 from cloudify import mocks as cfy_mocks
 
 from server_plugin import server
+from server_plugin import volume
 from tests.integration import TestCase
+from cloudify.mocks import MockCloudifyContext
+from server_plugin.server import VCLOUD_VAPP_NAME
 
 RANDOM_PREFIX_LENGTH = 5
 
@@ -180,20 +183,20 @@ class ServerWithNetworkTestCase(TestCase):
         self.network_relationship = mock.Mock()
         self.network_relationship.target = mock.Mock()
         self.network_relationship.target.node = network_node_context
-
+        self.properties = {
+            'server':
+            {
+                'name': name,
+                'catalog': server_test_dict['catalog'],
+                'template': server_test_dict['template']
+            },
+            'management_network': self.network_name,
+            'vcloud_config': self.vcloud_config
+        }
         self.ctx = cfy_mocks.MockCloudifyContext(
             node_id=name,
             node_name=name,
-            properties={
-                'server':
-                {
-                    'name': name,
-                    'catalog': server_test_dict['catalog'],
-                    'template': server_test_dict['template']
-                },
-                'management_network': self.network_name,
-                'vcloud_config': self.vcloud_config
-            }
+            properties=self.properties
         )
         self.ctx.instance.relationships = []
         ctx_patch1 = mock.patch('server_plugin.server.ctx', self.ctx)
@@ -266,3 +269,66 @@ class ServerWithNetworkTestCase(TestCase):
                 break
             time.sleep(2)
         self.assertTrue(verified)
+
+
+class VolumeTestCase(TestCase):
+    def setUp(self):
+        super(VolumeTestCase, self).setUp()
+        self.volume_test_dict = self.test_config['volume']
+        name = 'volume'
+        self.properties = {
+            'volume':
+            {
+                'name': self.volume_test_dict['name'],
+                'size': self.volume_test_dict['size']
+            },
+            'use_external_resource': False,
+            'vcloud_config': self.vcloud_config
+        }
+        self.target = MockCloudifyContext(node_id="target",
+                                          properties=self.properties)
+        self.source = MockCloudifyContext(
+            node_id="source",
+            properties={'vcloud_config': self.vcloud_config},
+            runtime_properties={
+                VCLOUD_VAPP_NAME: self.test_config['test_vm']}
+        )
+        self.nodectx = cfy_mocks.MockCloudifyContext(
+            node_id=name,
+            node_name=name,
+            properties=self.properties
+        )
+        self.relationctx = cfy_mocks.MockCloudifyContext(
+            node_id=name,
+            node_name=name,
+            target=self.target,
+            source=self.source
+        )
+        self.ctx = self.nodectx
+        ctx_patch1 = mock.patch('server_plugin.volume.ctx', self.nodectx)
+        ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.nodectx)
+        ctx_patch1.start()
+        ctx_patch2.start()
+        self.addCleanup(ctx_patch1.stop)
+        self.addCleanup(ctx_patch2.stop)
+
+    def test_volume(self):
+        disks_count = lambda: len(self.vca_client.get_disks(self.vcloud_config['vdc']))
+        volume.creation_validation()
+        disks_before = disks_count()
+        volume.create_volume()
+        self.assertEqual(disks_before + 1, disks_count())
+        self._attach_detach()
+        volume.delete_volume()
+        self.assertEqual(disks_before, disks_count())
+
+    def _attach_detach(self):
+        links_count = lambda: [len(d[1]) for d in
+                               self.vca_client.get_disks(self.vcloud_config['vdc'])
+                               if d[0].name == self.relationctx.target.node.properties['volume']['name']][0]
+        with mock.patch('server_plugin.volume.ctx', self.relationctx):
+            links_before = links_count()
+            volume.attach_volume()
+            self.assertEqual(links_before + 1, links_count())
+            volume.detach_volume()
+            self.assertEqual(links_before, links_count())

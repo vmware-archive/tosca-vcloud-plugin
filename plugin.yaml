@@ -126,6 +126,30 @@ node_types:
                 creation:
                     implementation: vcloud.network_plugin.keypair.creation_validation
 
+
+    cloudify.vcloud.nodes.Volume:
+        derived_from: cloudify.nodes.Volume
+        properties:
+            volume:
+                default: {}
+            use_external_resource:
+                default: false
+            resource_id:
+                default: ''
+            vcloud_config:
+                default: {}
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                create:
+                    implementation: vcloud.server_plugin.volume.create_volume
+                    inputs: {}
+                delete:
+                    implementation: vcloud.server_plugin.volume.delete_volume
+                    inputs: {}
+            cloudify.interfaces.validation:
+                creation:
+                    implementation: vcloud.server_plugin.volume.creation_validation
+
 relationships:
     cloudify.vcloud.server_connected_to_floating_ip:
         derived_from: cloudify.relationships.connected_to
@@ -172,4 +196,15 @@ relationships:
                     inputs: {}
                 unlink:
                     implementation: vcloud.network_plugin.public_nat.server_disconnect_from_nat
+                    inputs: {}
+
+    cloudify.vcloud.volume_attached_to_server:
+        derived_from: cloudify.relationships.connected_to
+        target_interfaces:
+            cloudify.interfaces.relationship_lifecycle:
+                establish:
+                    implementation: vcloud.server_plugin.volume.attach_volume
+                    inputs: {}
+                unlink:
+                    implementation: vcloud.server_plugin.volume.detach_volume
                     inputs: {}
