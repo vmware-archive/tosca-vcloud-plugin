@@ -140,10 +140,9 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             # success in create_vdc_network
             fake_client.create_vdc_network = mock.MagicMock(
                 return_value=(
-                    True,
-                    self.generate_task(
+                    True, self.generate_task(
                         vcloud_plugin_common.TASK_STATUS_SUCCESS
-                   )
+                    )
                 )
             )
             self.set_services_conf_result(

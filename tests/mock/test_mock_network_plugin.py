@@ -1,5 +1,6 @@
 import mock
 import unittest
+import collections
 
 from cloudify import exceptions as cfy_exc
 import test_mock_base
@@ -393,7 +394,59 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             'good_text'
         )
 
-    def test_get_public_ip(self):
+    def test_check_protocol(self):
+        """
+            check default protocols
+        """
+        for protocol in ["Tcp", "Udp", "Tcpudp", "Icmp", "Any"]:
+            self.assertEqual(
+                protocol.capitalize(),
+                network_plugin.check_protocol(protocol).capitalize()
+            )
+        # something unknow
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            network_plugin.check_protocol("Unknow").capitalize()
+
+    def test_get_ondemand_public_ip(self):
+        fake_ctx = self.generate_node_context()
+        fake_client = self.generate_client()
+        # empty result from server
+        fake_client._vdc_gateway.allocate_public_ip = mock.MagicMock(
+            return_value=None
+        )
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                network_plugin.get_ondemand_public_ip(
+                    fake_client, fake_client._vdc_gateway, fake_ctx
+                )
+        # success allocate ips, but empty list of ips
+        fake_client._vdc_gateway.allocate_public_ip = mock.MagicMock(
+            return_value=self.generate_task(
+                vcloud_plugin_common.TASK_STATUS_SUCCESS
+            )
+        )
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                network_plugin.get_ondemand_public_ip(
+                    fake_client, fake_client._vdc_gateway, fake_ctx
+                )
+        # exist some new ip
+        new_gateway = self.generate_gateway()
+        new_gateway.get_public_ips = mock.MagicMock(
+            return_value=['1.1.1.1']
+        )
+        fake_client.get_gateways = mock.MagicMock(
+            return_value=[new_gateway]
+        )
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            self.assertEqual(
+                network_plugin.get_ondemand_public_ip(
+                    fake_client, fake_client._vdc_gateway, fake_ctx
+                ),
+                '1.1.1.1'
+            )
+
+    def test_get_public_ip_subscription(self):
         gateway = self.generate_gateway()
         gateway.get_public_ips = mock.MagicMock(return_value=[
             '10.18.1.1', '10.18.1.2'
@@ -413,7 +466,112 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             ),
             '10.18.1.2'
         )
-        #TODO add ondemand test
+
+    def test_get_public_ip_ondemand(self):
+        # ondemand
+        fake_ctx = self.generate_node_context()
+        fake_client = self.generate_client()
+        fake_client._vdc_gateway.get_public_ips = mock.MagicMock(
+            return_value=[]
+        )
+        fake_client._vdc_gateway.allocate_public_ip = mock.MagicMock(
+            return_value=self.generate_task(
+                vcloud_plugin_common.TASK_STATUS_SUCCESS
+            )
+        )
+        new_gateway = self.generate_gateway()
+        new_gateway.get_public_ips = mock.MagicMock(
+            return_value=['10.18.1.21']
+        )
+        fake_client.get_gateways = mock.MagicMock(
+            return_value=[new_gateway]
+        )
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            self.assertEqual(
+                network_plugin.get_public_ip(
+                    fake_client, fake_client._vdc_gateway,
+                    vcloud_plugin_common.ONDEMAND_SERVICE_TYPE, fake_ctx
+                ),
+                '10.18.1.21'
+            )
+
+    def test_check_ip(self):
+        # wrong type
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            network_plugin.check_ip({'wrong': None})
+        # wrong value
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            network_plugin.check_ip("1.1.1.400")
+        # good case
+        self.assertEqual(
+            network_plugin.check_ip("1.1.1.40"),
+            "1.1.1.40"
+        )
+
+    def test_is_valid_ip_range(self):
+        # wrong range
+        self.assertFalse(
+            network_plugin.is_valid_ip_range("1.1.1.50", "1.1.1.40")
+        )
+        # good case
+        self.assertTrue(
+            network_plugin.is_valid_ip_range("1.1.1.40", "1.1.1.50")
+        )
+
+    def test_is_network_exists(self):
+        # network exist
+        fake_ctx = self.generate_node_context()
+        fake_client = self.generate_client()
+        fake_client.get_network = mock.MagicMock(
+            return_value=self.generate_fake_client_network('test')
+        )
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            self.assertTrue(
+                network_plugin.is_network_exists(fake_client, 'test')
+            )
+        fake_client.get_network.assert_called_with('vdc_name', 'test')
+        # network not exist
+        fake_ctx = self.generate_node_context()
+        fake_client = self.generate_client()
+        fake_client.get_network = mock.MagicMock(
+            return_value=None
+        )
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            self.assertFalse(
+                network_plugin.is_network_exists(fake_client, 'test')
+            )
+
+    def test_is_ips_in_same_subnet(self):
+        # ips from several networks
+        self.assertFalse(
+            network_plugin.is_ips_in_same_subnet(
+                ['123.11.1.1', '123.11.3.1'], 24
+            )
+        )
+        # ips from same network
+        self.assertTrue(
+            network_plugin.is_ips_in_same_subnet(
+                ['123.11.1.1', '123.11.1.1'], 24
+            )
+        )
+
+    def test_is_separate_ranges(self):
+        IPRange = collections.namedtuple('IPRange', 'start end')
+        # positive case
+        self.assertTrue(
+            network_plugin.is_separate_ranges(
+                IPRange(start='1.1.1.1', end='1.1.1.11'),
+                IPRange(start='1.1.1.12', end='1.1.1.23')
+            )
+        )
+        # negative case
+        self.assertFalse(
+            network_plugin.is_separate_ranges(
+                IPRange(start='1.1.1.1', end='1.1.1.15'),
+                IPRange(start='1.1.1.9', end='1.1.1.23')
+            )
+        )
+
 
 if __name__ == '__main__':
     unittest.main()
