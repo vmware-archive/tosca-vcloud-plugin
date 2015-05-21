@@ -159,5 +159,43 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
             )
         )
 
+    def test_wait_for_task(self):
+        fake_client = self.generate_client()
+        # error in task
+        fake_task = self.generate_task(
+            vcloud_plugin_common.TASK_STATUS_ERROR
+        )
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            vcloud_plugin_common.wait_for_task(fake_client, fake_task)
+        # success in task
+        fake_task = self.generate_task(
+            vcloud_plugin_common.TASK_STATUS_SUCCESS
+        )
+        vcloud_plugin_common.wait_for_task(fake_client, fake_task)
+        # success after wait
+        fake_task = self.generate_task(
+            None
+        )
+        fake_task_after_wait = self.generate_task(
+            vcloud_plugin_common.TASK_STATUS_SUCCESS
+        )
+        sleep = mock.MagicMock(return_value=None)
+        response = mock.Mock()
+        response.content = 'Success'
+        with mock.patch(
+            'pyvcloud.schema.vcd.v1_5.schemas.vcloud.taskType.parseString',
+            mock.MagicMock(return_value=fake_task_after_wait)
+        ):
+            with mock.patch(
+                'requests.get', mock.MagicMock(return_value=response)
+            ):
+               with mock.patch(
+                    'time.sleep',
+                    sleep
+                ):
+                    vcloud_plugin_common.wait_for_task(
+                        fake_client, fake_task
+                    )
+
 if __name__ == '__main__':
     unittest.main()
