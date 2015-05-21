@@ -15,12 +15,12 @@ def create_volume(vca_client, **kwargs):
     name = ctx.node.properties['volume']['name']
     size = ctx.node.properties['volume']['size']
     size_in_Mb = size * 1024 * 1024
-    disk = vca_client.add_disk(vdc_name, name, size_in_Mb)
-    if disk[1]:
-        wait_for_task(vca_client, disk[1].get_Tasks()[0])
+    success, disk = vca_client.add_disk(vdc_name, name, size_in_Mb)
+    if success:
+        wait_for_task(vca_client, disk.get_Tasks()[0])
         ctx.logger.info("Volume node {} has been created".format(name))
     else:
-        raise cfy_exc.NonRecoverableError("Disk creation error: {0}".format(disk[1]))
+        raise cfy_exc.NonRecoverableError("Disk creation error: {0}".format(disk))
 
 
 @operation
@@ -31,12 +31,12 @@ def delete_volume(vca_client, **kwargs):
         return
     vdc_name = get_vcloud_config()['vdc']
     name = ctx.node.properties['volume']['name']
-    status = vca_client.delete_disk(vdc_name, name)
-    if status[1]:
-        wait_for_task(vca_client, status[1])
+    success, task = vca_client.delete_disk(vdc_name, name)
+    if success:
+        wait_for_task(vca_client, task)
         ctx.logger.info("Volume node {} has been deleted".format(name))
     else:
-        raise cfy_exc.NonRecoverableError("Disk deletion error: {0}".format(status[1]))
+        raise cfy_exc.NonRecoverableError("Disk deletion error: {0}".format(task))
 
 
 @operation
