@@ -164,9 +164,14 @@ class TestBase(unittest.TestCase):
         """
             generate fake disk for fake client
         """
-        disk = [mock.Mock()]
-        disk[0].name = name
+        disk = mock.Mock()
+        disk.name = name
         return disk
+
+    def generate_fake_vms_disk(self, name="some_disk"):
+        vms = mock.Mock()
+        vms._disk = name
+        return vms
 
     def generate_client(self, vms_networks=None, vdc_networks=None):
 
@@ -222,11 +227,21 @@ class TestBase(unittest.TestCase):
         client.get_vapp = mock.MagicMock(return_value=client._vapp)
         client._app_vdc = _get_vdc(vdc_networks)
         client.get_vdc = mock.MagicMock(return_value=client._app_vdc)
-        client.get_disks = mock.MagicMock(return_value=[])
         client.delete_vdc_network = mock.MagicMock(
             return_value=(False, None)
         )
         client.create_vdc_network = mock.MagicMock(
+            return_value=(False, None)
+        )
+        # disks
+        client.add_disk = mock.MagicMock(
+            return_value=(False, None)
+        )
+        client.get_disks = mock.MagicMock(return_value=[])
+        client.add_disk = mock.MagicMock(
+            return_value=(False, None)
+        )
+        client.delete_disk = mock.MagicMock(
             return_value=(False, None)
         )
         return client

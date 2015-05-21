@@ -43,7 +43,9 @@ def delete_volume(vca_client, **kwargs):
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
     vdc_name = get_vcloud_config()['vdc']
-    disks_names = [d[0].name for d in vca_client.get_disks(vdc_name)]
+    disks_names = [
+        disk.name for [disk, _vms] in vca_client.get_disks(vdc_name)
+    ]
     if ctx.node.properties['use_external_resource']:
         resource_id = get_mandatory(ctx.node.properties, 'resource_id')
         if resource_id not in disks_names:
