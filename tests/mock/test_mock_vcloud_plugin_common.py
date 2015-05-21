@@ -246,5 +246,29 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
                 with self.assertRaises(cfy_exc.NonRecoverableError):
                     _some_function(ctx=fake_ctx),
 
+    def test_config(self):
+        # good case
+        fake_file = mock.mock_open(read_data="test: test")
+        with mock.patch(
+            '__builtin__.open', fake_file
+        ):
+            config = vcloud_plugin_common.Config()
+            self.assertEqual(
+                config.get(),
+                {'test': 'test'}
+            )
+        #bad case
+        mock_for_raise = mock.MagicMock(side_effect=IOError('no file'))
+        fake_file = mock.mock_open(mock_for_raise)
+        with mock.patch(
+            '__builtin__.open', fake_file
+        ):
+            config = vcloud_plugin_common.Config()
+            self.assertEqual(
+                config.get(),
+                {}
+            )
+
+
 if __name__ == '__main__':
     unittest.main()
