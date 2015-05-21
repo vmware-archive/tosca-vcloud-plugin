@@ -189,13 +189,62 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
             with mock.patch(
                 'requests.get', mock.MagicMock(return_value=response)
             ):
-               with mock.patch(
+                with mock.patch(
                     'time.sleep',
                     sleep
                 ):
                     vcloud_plugin_common.wait_for_task(
                         fake_client, fake_task
                     )
+
+    def test_with_vca_client(self):
+        # context.NODE_INSTANCE
+        fake_ctx = self.generate_node_context(
+            properties={
+                'vcloud_config': {
+                    'vdc': 'vdc_name'
+                }
+            }
+        )
+        fake_client = self.generate_client()
+        with mock.patch(
+            'vcloud_plugin_common.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'vcloud_plugin_common.VcloudAirClient.get',
+                mock.MagicMock(return_value=fake_client)
+            ):
+                @vcloud_plugin_common.with_vca_client
+                def _some_function(vca_client, **kwargs):
+                    return vca_client
+
+                self.assertEqual(
+                    _some_function(ctx=fake_ctx),
+                    fake_client
+                )
+        # context.DEPLOYMENT
+        fake_ctx = self.generate_node_context(
+            properties={
+                'vcloud_config': {
+                    'vdc': 'vdc_name'
+                }
+            }
+        )
+        fake_ctx._source = None
+        fake_ctx._instance = None
+        with mock.patch(
+            'vcloud_plugin_common.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'vcloud_plugin_common.VcloudAirClient.get',
+                mock.MagicMock(return_value=fake_client)
+            ):
+                @vcloud_plugin_common.with_vca_client
+                def _some_function(vca_client, **kwargs):
+                    return vca_client
+
+                with self.assertRaises(cfy_exc.NonRecoverableError):
+                    _some_function(ctx=fake_ctx),
 
 if __name__ == '__main__':
     unittest.main()
