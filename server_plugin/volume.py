@@ -52,7 +52,7 @@ def creation_validation(vca_client, **kwargs):
         volume = get_mandatory(ctx.node.properties, 'volume')
         name = get_mandatory(volume, 'name')
         if name in disks_names:
-            raise cfy_exc.NonRecoverableError("Disk {} already exists".format(resource_id))
+            raise cfy_exc.NonRecoverableError("Disk {} already exists".format(name))
         get_mandatory(volume, 'size')
 
 
