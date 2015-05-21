@@ -95,12 +95,12 @@ class TestBase(unittest.TestCase):
         gate.get_public_ips = mock.MagicMock(return_value=[])
         return gate
 
-    def gen_vca_client_network(
+    def generate_fake_client_network(
         self, fenceMode=None, name="some", start_ip="127.1.1.1",
         end_ip="127.1.1.255"
     ):
         """
-            generate network for vca_client
+            generate network for vca client
         """
         network = mock.Mock()
         # generate ip
@@ -157,13 +157,13 @@ class TestBase(unittest.TestCase):
         """
             set any network as routed
         """
-        network = self.gen_vca_client_network(NAT_ROUTED)
+        network = self.generate_fake_client_network(NAT_ROUTED)
         fake_client.get_network = mock.MagicMock(return_value=network)
 
     def generate_client(self, vms_networks=None, vdc_networks=None):
 
-        def _gen_vca_client_network(vdc_name, network_name):
-            return self.gen_vca_client_network(network_name)
+        def _generate_fake_client_network(vdc_name, network_name):
+            return self.generate_fake_client_network(network_name)
 
         def _get_admin_network_href(vdc_name, network_name):
             return "_href" + network_name
@@ -202,7 +202,7 @@ class TestBase(unittest.TestCase):
         )
         client = mock.Mock()
         client.get_catalogs = mock.MagicMock(return_value=[catalog])
-        client.get_network = _gen_vca_client_network
+        client.get_network = _generate_fake_client_network
         client.get_networks = mock.MagicMock(return_value=[])
         client.get_admin_network_href = _get_admin_network_href
         client._vdc_gateway = _get_gateway()
