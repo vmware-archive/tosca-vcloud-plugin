@@ -273,6 +273,12 @@ class TestBase(unittest.TestCase):
         client.logout = mock.MagicMock(
             return_value=False
         )
+        client.get_instances = mock.MagicMock(
+            return_value=[]
+        )
+        client.login_to_instance = mock.MagicMock(
+            return_value=False
+        )
         return client
 
     def generate_vca(self):

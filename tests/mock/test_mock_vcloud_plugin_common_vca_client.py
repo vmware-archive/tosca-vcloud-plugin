@@ -18,6 +18,116 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
         vca = mock.MagicMock(return_value=fake_client)
         return vca
 
+    def test_ondemand_login(self):
+        client = vcloud_plugin_common.VcloudAirClient()
+        fake_client = self.generate_client()
+        fake_vca_client = self.generate_vca(fake_client)
+        fake_ctx = self.generate_node_context()
+
+        def _run(
+            fake_vca_client, fake_ctx, url, username, password, token,
+            instance_id
+        ):
+            with mock.patch(
+                'time.sleep',
+                mock.MagicMock(return_value=None)
+            ):
+                with mock.patch(
+                    'pyvcloud.vcloudair.VCA',
+                    fake_vca_client
+                ):
+                    with mock.patch(
+                        'vcloud_plugin_common.ctx', fake_ctx
+                    ):
+                        return client._ondemand_login(
+                            url, username, password, token, instance_id
+                        )
+
+        # bad case without instance
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            _run(
+                fake_vca_client, fake_ctx, 'url', 'username',
+                'password', 'token', None
+            )
+        # bad case cant't login with token and no instance
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            _run(
+                fake_vca_client, fake_ctx, 'url', 'username',
+                None, 'token', 'some_instance'
+            )
+        # bad case cant't login with password and no instance
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            _run(
+                fake_vca_client, fake_ctx, 'url', 'username',
+                'secret-password', None, 'some_instance'
+            )
+        # bad case login with token, but without instance
+        fake_client.login = mock.MagicMock(return_value=True)
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            _run(
+                fake_vca_client, fake_ctx, 'url', 'username',
+                None, 'token', 'some_instance'
+            )
+        # bad case login with paasword, but without instance
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            _run(
+                fake_vca_client, fake_ctx, 'url', 'username',
+                'secret-password', None, 'some_instance'
+            )
+        # bad case, login with token and we have instance
+        # relogin next time
+        fake_client.get_instances = mock.MagicMock(
+            return_value=[{'id':'some_instance'}]
+        )
+        with self.assertRaises(cfy_exc.RecoverableError):
+            _run(
+                fake_vca_client, fake_ctx, 'url', 'username',
+                None, 'token', 'some_instance'
+            )
+        # bad case, login with password and we have instance
+        # relogin next time
+        with self.assertRaises(cfy_exc.RecoverableError):
+            _run(
+                fake_vca_client, fake_ctx, 'url', 'username',
+                'secret-password', None, 'some_instance'
+            )
+        # positive case, login with token
+        fake_client.login_to_instance = mock.MagicMock(
+            return_value=True
+        )
+        _run(
+            fake_vca_client, fake_ctx, 'url', 'username',
+            None, 'token', 'some_instance'
+        )
+        # positive case, can login_instance with password
+        fake_client.login_to_instance = mock.MagicMock(
+            return_value=True
+        )
+        _run(
+            fake_vca_client, fake_ctx, 'url', 'username',
+            'secret-password', None, 'some_instance'
+        )
+        # negative case, can login to instance but not to system
+        # login with token
+        fake_client.login = mock.MagicMock(return_value=False)
+        fake_client.login_to_instance = mock.MagicMock(
+            return_value=True
+        )
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            _run(
+                fake_vca_client, fake_ctx, 'url', 'username',
+                None, 'token', 'some_instance'
+            )
+        # login with password
+        fake_client.login_to_instance = mock.MagicMock(
+            return_value=True
+        )
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            _run(
+                fake_vca_client, fake_ctx, 'url', 'username',
+                'secret-password', None, 'some_instance'
+            )
+
     def test_private_login(self):
         client = vcloud_plugin_common.VcloudAirClient()
         fake_client = self.generate_client()
@@ -44,7 +154,7 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                             org_name, org_url, api_version
                         )
 
-        # bad case token
+        # bad case without token
         with self.assertRaises(cfy_exc.NonRecoverableError):
             _run(
                 fake_vca_client, fake_ctx, 'some_url', 'root', None,
@@ -139,6 +249,23 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                     }),
                     fake_client
                 )
+            # ondemand
+            fake_client.get_instances = mock.MagicMock(
+                return_value=[{'id':'some_instance'}]
+            )
+            fake_client.login_to_instance = mock.MagicMock(
+                return_value=True
+            )
+            self.assertEqual(
+                client.connect({
+                    'url':'url',
+                    'username':'username',
+                    'service_type': vcloud_plugin_common.ONDEMAND_SERVICE_TYPE,
+                    'password': 'password',
+                    'instance': 'some_instance'
+                }),
+                fake_client
+            )
 
         # empty url + login + pasword/url + login + token
         with self.assertRaises(cfy_exc.NonRecoverableError):
