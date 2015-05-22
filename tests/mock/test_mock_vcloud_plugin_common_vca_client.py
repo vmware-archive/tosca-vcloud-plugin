@@ -92,5 +92,75 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
             fake_client
         )
 
+    def test_connect(self):
+        client = vcloud_plugin_common.VcloudAirClient()
+        fake_client = self.generate_client()
+        fake_vca_client = self.generate_vca(fake_client)
+        fake_ctx = self.generate_node_context()
+        fake_client.login = mock.MagicMock(return_value=True)
+
+        def loginc_check(fake_client):
+            # wrong service type
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                client.connect({
+                    'url':'url',
+                    'username':'username',
+                    'service_type': 'unknow',
+                    'token': 'token'
+                })
+            # not enough fields for subscription
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                client.connect({
+                    'url':'url',
+                    'username':'username',
+                    'service_type': vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE,
+                    'token': 'token'
+                })
+            # correct PRIVATE_SERVICE_TYPE or 'private'
+            for service_type in [
+                vcloud_plugin_common.PRIVATE_SERVICE_TYPE,
+                'private'
+            ]:
+                self.assertEqual(
+                    client.connect({
+                        'url':'url',
+                        'username':'username',
+                        'service_type': service_type,
+                        'password': 'password'
+                    }),
+                    fake_client
+                )
+                self.assertEqual(
+                    client.connect({
+                        'url':'url',
+                        'username':'username',
+                        'service_type': service_type,
+                        'token': 'token'
+                    }),
+                    fake_client
+                )
+
+        # empty url + login + pasword/url + login + token
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            client.connect({})
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            client.connect({
+                'url':'url',
+                'username':'username'
+            })
+
+        with mock.patch(
+            'time.sleep',
+            mock.MagicMock(return_value=None)
+        ):
+            with mock.patch(
+                'pyvcloud.vcloudair.VCA',
+                fake_vca_client
+            ):
+                with mock.patch(
+                    'vcloud_plugin_common.ctx', fake_ctx
+                ):
+                    loginc_check(fake_client)
+
 if __name__ == '__main__':
     unittest.main()
