@@ -162,13 +162,27 @@ class TestBase(unittest.TestCase):
 
     def generate_fake_client_disk(self, name="some_disk"):
         """
-            generate fake disk for fake client
+            generate fake disk for fake client,
+            have used in client.get_disks
         """
         disk = mock.Mock()
         disk.name = name
         return disk
 
+    def generate_fake_client_disk_ref(self, name):
+        """
+            generate ref for disk,
+            have used for client.get_diskRefs
+        """
+        ref = mock.Mock()
+        ref.name = name
+        return ref
+
     def generate_fake_vms_disk(self, name="some_disk"):
+        """
+            generate attached vms for disk,
+            have used for client.get_disks
+        """
         vms = mock.Mock()
         vms._disk = name
         return vms
@@ -233,7 +247,7 @@ class TestBase(unittest.TestCase):
         client.create_vdc_network = mock.MagicMock(
             return_value=(False, None)
         )
-        # disks
+        # disks for client
         client.add_disk = mock.MagicMock(
             return_value=(False, None)
         )
@@ -244,6 +258,10 @@ class TestBase(unittest.TestCase):
         client.delete_disk = mock.MagicMock(
             return_value=(False, None)
         )
+        client.get_diskRefs = mock.MagicMock(return_value=[])
+        # disk for vapp
+        client._vapp.attach_disk_to_vm = mock.MagicMock(return_value=None)
+        client._vapp.detach_disk_from_vm = mock.MagicMock(return_value=None)
         return client
 
     def generate_vca(self):

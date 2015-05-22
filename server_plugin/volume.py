@@ -95,6 +95,6 @@ def _volume_operation(vca_client, operation):
                     wait_for_task(vca_client, task)
                     ctx.logger.info("Volume node {} has been detached".format(volumeName))
                 else:
-                    raise cfy_exc.NonRecoverableError("Can't attach disk: {0}".format(volumeName))
+                    raise cfy_exc.NonRecoverableError("Can't detach disk: {0}".format(volumeName))
             else:
                 raise cfy_exc.NonRecoverableError("Unknown operation {0}".format(operation))
