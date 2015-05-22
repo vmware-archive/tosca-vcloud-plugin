@@ -18,6 +18,77 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
         vca = mock.MagicMock(return_value=fake_client)
         return vca
 
+    def test_subscription_login(self):
+        client = vcloud_plugin_common.VcloudAirClient()
+        fake_client = self.generate_client()
+        fake_vca_client = self.generate_vca(fake_client)
+        fake_ctx = self.generate_node_context()
+
+        def _run(
+            fake_vca_client, fake_ctx, url, username, password, token,
+            service, org_name
+        ):
+            with mock.patch(
+                'time.sleep',
+                mock.MagicMock(return_value=None)
+            ):
+                with mock.patch(
+                    'pyvcloud.vcloudair.VCA',
+                    fake_vca_client
+                ):
+                    with mock.patch(
+                        'vcloud_plugin_common.ctx', fake_ctx
+                    ):
+                        return client._subscription_login(
+                            url, username, password, token, service,
+                            org_name
+                        )
+        # can't login with token
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            _run(
+                fake_vca_client, fake_ctx, 'url', 'username', None,
+                'token', 'service', 'org_name'
+            )
+        # can't login with password
+        with self.assertRaises(cfy_exc.NonRecoverableError):
+            _run(
+                fake_vca_client, fake_ctx, 'url', 'username',
+                'secret-password', 'token', 'service', 'org_name'
+            )
+        fake_client.login = mock.MagicMock(return_value=True)
+        # can't login to org with token
+        with self.assertRaises(cfy_exc.RecoverableError):
+            _run(
+                fake_vca_client, fake_ctx, 'url', 'username', None,
+                'token', 'service', 'org_name'
+            )
+        fake_client.login_to_org.assert_called_with(
+            'service', 'org_name'
+        )
+        # can't login to org with password
+        with self.assertRaises(cfy_exc.RecoverableError):
+            _run(
+                fake_vca_client, fake_ctx, 'url', 'username',
+                'secret-password', None, 'service', 'org_name'
+            )
+        # login to org with token
+        fake_client.login_to_org = mock.MagicMock(return_value=True)
+        self.assertEqual(
+            _run(
+                fake_vca_client, fake_ctx, 'url', 'username', None,
+                'token', 'service', 'org_name'
+            ),
+            fake_client
+        )
+        # login to org with password
+        self.assertEqual(
+            _run(
+                fake_vca_client, fake_ctx, 'url', 'username',
+                'secret-password', 'token', 'service', 'org_name'
+            ),
+            fake_client
+        )
+
     def test_ondemand_login(self):
         client = vcloud_plugin_common.VcloudAirClient()
         fake_client = self.generate_client()
@@ -77,7 +148,7 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
         # bad case, login with token and we have instance
         # relogin next time
         fake_client.get_instances = mock.MagicMock(
-            return_value=[{'id':'some_instance'}]
+            return_value=[{'id': 'some_instance'}]
         )
         with self.assertRaises(cfy_exc.RecoverableError):
             _run(
@@ -208,22 +279,25 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
         fake_vca_client = self.generate_vca(fake_client)
         fake_ctx = self.generate_node_context()
         fake_client.login = mock.MagicMock(return_value=True)
+        fake_client.login_to_instance = mock.MagicMock(return_value=True)
+        fake_client.login_to_org = mock.MagicMock(return_value=True)
 
         def loginc_check(fake_client):
             # wrong service type
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 client.connect({
-                    'url':'url',
-                    'username':'username',
+                    'url': 'url',
+                    'username': 'username',
                     'service_type': 'unknow',
                     'token': 'token'
                 })
             # not enough fields for subscription
+            service_type = vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 client.connect({
-                    'url':'url',
-                    'username':'username',
-                    'service_type': vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE,
+                    'url': 'url',
+                    'username': 'username',
+                    'service_type': service_type,
                     'token': 'token'
                 })
             # correct PRIVATE_SERVICE_TYPE or 'private'
@@ -233,8 +307,8 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
             ]:
                 self.assertEqual(
                     client.connect({
-                        'url':'url',
-                        'username':'username',
+                        'url': 'url',
+                        'username': 'username',
                         'service_type': service_type,
                         'password': 'password'
                     }),
@@ -242,8 +316,8 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                 )
                 self.assertEqual(
                     client.connect({
-                        'url':'url',
-                        'username':'username',
+                        'url': 'url',
+                        'username': 'username',
                         'service_type': service_type,
                         'token': 'token'
                     }),
@@ -251,18 +325,32 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                 )
             # ondemand
             fake_client.get_instances = mock.MagicMock(
-                return_value=[{'id':'some_instance'}]
+                return_value=[{'id': 'some_instance'}]
             )
-            fake_client.login_to_instance = mock.MagicMock(
-                return_value=True
-            )
+            service_type = vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
             self.assertEqual(
                 client.connect({
-                    'url':'url',
-                    'username':'username',
-                    'service_type': vcloud_plugin_common.ONDEMAND_SERVICE_TYPE,
+                    'url': 'url',
+                    'username': 'username',
+                    'service_type': service_type,
                     'password': 'password',
                     'instance': 'some_instance'
+                }),
+                fake_client
+            )
+            # subscription
+            fake_client.get_instances = mock.MagicMock(
+                return_value=[{'id': 'some_instance'}]
+            )
+            service_type = vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
+            self.assertEqual(
+                client.connect({
+                    'url': 'url',
+                    'username': 'username',
+                    'service_type': service_type,
+                    'password': 'password',
+                    'service': 'service',
+                    'org': 'org'
                 }),
                 fake_client
             )
@@ -272,8 +360,8 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
             client.connect({})
         with self.assertRaises(cfy_exc.NonRecoverableError):
             client.connect({
-                'url':'url',
-                'username':'username'
+                'url': 'url',
+                'username': 'username'
             })
 
         with mock.patch(
@@ -315,8 +403,8 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                     ):
                         self.assertEqual(
                             client.get(config={
-                                'url':'url',
-                                'username':'username',
+                                'url': 'url',
+                                'username': 'username',
                                 'service_type': 'private',
                                 'token': 'token'
                             }),

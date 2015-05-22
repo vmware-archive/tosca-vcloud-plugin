@@ -279,6 +279,9 @@ class TestBase(unittest.TestCase):
         client.login_to_instance = mock.MagicMock(
             return_value=False
         )
+        client.login_to_org = mock.MagicMock(
+            return_value=False
+        )
         return client
 
     def generate_vca(self):
