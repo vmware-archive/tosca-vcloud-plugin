@@ -264,9 +264,8 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         ):
             volume.create_volume(ctx=fake_ctx)
 
-    def test_volume_operation_attach(self):
-        fake_client = self.generate_client()
-        fake_ctx = self.generate_relation_context()
+    def test_volume_operation(self):
+        fake_ctx, fake_client = self._gen_volume_context_and_client()
 
         def _run_volume_operation(fake_ctx, fake_client, operation):
             with mock.patch(
@@ -278,18 +277,6 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
                     volume._volume_operation(fake_client, operation)
 
         # use external resource, no disks
-        fake_ctx._target.node.properties = {
-            'volume': {
-                'name': 'some'
-            },
-            'use_external_resource': True,
-            'resource_id': 'some'
-        }
-        fake_ctx._source.node.properties = {
-            'vcloud_config': {
-                'vdc': 'vdc_name',
-            }
-        }
         _run_volume_operation(fake_ctx, fake_client, 'ATTACH')
         fake_client.get_diskRefs.assert_called_with(
             fake_client._app_vdc
@@ -341,11 +328,45 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         fake_client._vapp.detach_disk_from_vm.assert_called_with(
             'some_other', disk_ref
         )
-#        with mock.patch(
-#            'vcloud_plugin_common.VcloudAirClient.get',
-#            mock.MagicMock(return_value=fake_client)
-#        ):
 
+    def _gen_volume_context_and_client(self):
+        fake_client = self.generate_client()
+        fake_ctx = self.generate_relation_context()
+        fake_ctx._target.node.properties = {
+            'volume': {
+                'name': 'some'
+            },
+            'use_external_resource': True,
+            'resource_id': 'some'
+        }
+        fake_ctx._source.node.properties = {
+            'vcloud_config': {
+                'vdc': 'vdc_name',
+            }
+        }
+        return fake_ctx, fake_client
+
+    def test_attach_volume(self):
+        """
+            use external resource, try to attach but no disks
+        """
+        fake_ctx, fake_client = self._gen_volume_context_and_client()
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            volume.attach_volume(ctx=fake_ctx)
+
+    def test_detach_volume(self):
+        """
+            use external resource, try to detach but no disks
+        """
+        fake_ctx, fake_client = self._gen_volume_context_and_client()
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            volume.detach_volume(ctx=fake_ctx)
 
 if __name__ == '__main__':
     unittest.main()
