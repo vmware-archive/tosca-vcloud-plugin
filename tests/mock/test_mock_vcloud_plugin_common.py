@@ -257,7 +257,7 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
                 config.get(),
                 {'test': 'test'}
             )
-        #bad case
+        # bad case
         mock_for_raise = mock.MagicMock(side_effect=IOError('no file'))
         fake_file = mock.mock_open(mock_for_raise)
         with mock.patch(
