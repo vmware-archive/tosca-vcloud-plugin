@@ -260,8 +260,19 @@ class TestBase(unittest.TestCase):
         )
         client.get_diskRefs = mock.MagicMock(return_value=[])
         # disk for vapp
-        client._vapp.attach_disk_to_vm = mock.MagicMock(return_value=None)
-        client._vapp.detach_disk_from_vm = mock.MagicMock(return_value=None)
+        client._vapp.attach_disk_to_vm = mock.MagicMock(
+            return_value=None
+        )
+        client._vapp.detach_disk_from_vm = mock.MagicMock(
+            return_value=None
+        )
+        # login authification
+        client.login = mock.MagicMock(
+            return_value=False
+        )
+        client.logout = mock.MagicMock(
+            return_value=False
+        )
         return client
 
     def generate_vca(self):

@@ -7,6 +7,9 @@ import vcloud_plugin_common
 
 
 class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
+    """
+        test for common vcloud logic
+    """
 
     def test_get_mandatory(self):
         # wrong key
@@ -268,7 +271,6 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
                 config.get(),
                 {}
             )
-
 
 if __name__ == '__main__':
     unittest.main()
