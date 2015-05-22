@@ -162,5 +162,39 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                 ):
                     loginc_check(fake_client)
 
+    def test_get(self):
+        client = vcloud_plugin_common.VcloudAirClient()
+        fake_ctx = self.generate_node_context()
+        # any login will be success
+        fake_client = self.generate_client()
+        fake_client.login = mock.MagicMock(return_value=True)
+        fake_vca_client = self.generate_vca(fake_client)
+        # block io
+        mock_for_raise = mock.MagicMock(side_effect=IOError('no file'))
+        fake_file = mock.mock_open(mock_for_raise)
+        with mock.patch(
+            'time.sleep',
+            mock.MagicMock(return_value=None)
+        ):
+            with mock.patch(
+                'pyvcloud.vcloudair.VCA',
+                fake_vca_client
+            ):
+                with mock.patch(
+                    'vcloud_plugin_common.ctx', fake_ctx
+                ):
+                    with mock.patch(
+                        '__builtin__.open', fake_file
+                    ):
+                        self.assertEqual(
+                            client.get(config={
+                                'url':'url',
+                                'username':'username',
+                                'service_type': 'private',
+                                'token': 'token'
+                            }),
+                            fake_client
+                        )
+
 if __name__ == '__main__':
     unittest.main()
