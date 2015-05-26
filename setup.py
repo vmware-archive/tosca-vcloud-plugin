@@ -30,6 +30,7 @@ setup(
         'cloudify-plugins-common>=3.2',
         'pyvcloud==12',
         'requests==2.4.3',
-        'IPy==0.81'
+        'IPy==0.81',
+        'PyYAML==3.10'
     ]
 )
