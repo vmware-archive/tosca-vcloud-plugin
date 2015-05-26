@@ -4,6 +4,7 @@ import unittest
 from cloudify import exceptions as cfy_exc
 import test_mock_base
 from network_plugin import public_nat
+from network_plugin import utils
 import network_plugin
 import vcloud_plugin_common
 from IPy import IP
@@ -143,7 +144,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             )
         # we dont have enought ports
         rule_inlist = self.generate_nat_rule(
-            'SNAT', 'external', public_nat.MAX_PORT_NUMBER,
+            'SNAT', 'external', utils.MAX_PORT_NUMBER,
             'internal', 11, 'TCP'
         )
         gateway.get_nat_rules = mock.MagicMock(return_value=[rule_inlist])
@@ -154,7 +155,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 public_nat._get_original_port_for_create(
                     gateway, 'SNAT', 'external',
-                    public_nat.MAX_PORT_NUMBER, 'internal', '11', 'TCP'
+                    utils.MAX_PORT_NUMBER, 'internal', '11', 'TCP'
                 )
 
     def test_get_gateway_ip_range(self):

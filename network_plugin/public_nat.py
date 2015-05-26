@@ -6,12 +6,10 @@ from vcloud_plugin_common import (with_vca_client, get_vcloud_config,
 from network_plugin import (check_ip, save_gateway_configuration,
                             get_vm_ip, get_public_ip,
                             get_gateway, getFreeIP, CREATE, DELETE, PUBLIC_IP,
-                            check_protocol, del_ondemand_public_ip)
+                            del_ondemand_public_ip, utils)
 from network_plugin.network import VCLOUD_NETWORK_NAME
 from IPy import IP
 
-# 2 ^ 16 - 1
-MAX_PORT_NUMBER = 65535
 PORT_REPLACEMENT = 'port_replacement'
 
 
@@ -59,7 +57,7 @@ def creation_validation(vca_client, **kwargs):
             getFreeIP(gateway)
     for rule in get_mandatory(ctx.node.properties, 'rules'):
         if rule['type'] == "DNAT":
-            check_protocol(rule.get('protocol', "any"))
+            utils.check_protocol(rule.get('protocol'))
             original_port = rule.get('original_port')
             if original_port and not isinstance(original_port, int):
                 raise cfy_exc.NonRecoverableError(
@@ -248,7 +246,7 @@ def _get_original_port_for_create(
             return original_port
 
     # origin port can be string
-    for port in xrange(int(original_port), MAX_PORT_NUMBER + 1):
+    for port in xrange(int(original_port), utils.MAX_PORT_NUMBER + 1):
         if not _is_rule_exists(nat_rules, rule_type, original_ip,
                                 port, translated_ip,
                                 translated_port, protocol):

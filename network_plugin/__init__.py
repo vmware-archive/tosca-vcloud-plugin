@@ -281,33 +281,3 @@ def get_gateway(vca_client, gateway_name):
         raise cfy_exc.NonRecoverableError(
             "Gateway {0}  not found".format(gateway_name))
     return gateway
-
-
-def check_protocol(protocol):
-    """
-        check protocol in list valid protocols
-    """
-    valid_protocols = ["Tcp", "Udp", "Tcpudp", "Icmp", "Any"]
-    protocol = protocol.capitalize()
-    if protocol not in valid_protocols:
-        raise cfy_exc.NonRecoverableError(
-            "Unknown protocol: {0}. Valid protocols are: {1}"
-            .format(protocol, valid_protocols))
-    return protocol
-
-
-def check_port(port):
-    """
-        check port, 1..65535 or 'any'
-    """
-    if isinstance(port, int):
-        if port > 0 and port < 65536:
-            return port
-        else:
-            raise cfy_exc.NonRecoverableError(
-                "Invalid 'port' value. Port value must be between 1 and 65535")
-    elif isinstance(port, basestring):
-        if port.lower() == "any":
-            return port.lower()
-    raise cfy_exc.NonRecoverableError(
-        "Parameter 'port' must be integer, or 'any'")
