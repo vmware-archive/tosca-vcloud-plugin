@@ -69,7 +69,9 @@ PRIVATE_SERVICE_TYPE = 'vcd'
 
 
 def transform_resource_name(res, ctx):
-
+    """
+        return name as prefix from bootstrap context + resource name
+    """
     if isinstance(res, basestring):
         res = {'name': res}
 

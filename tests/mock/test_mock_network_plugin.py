@@ -71,6 +71,10 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
                 )
 
     def test_collectAssignedIps(self):
+        """
+            get list ips already used in current gateway based on nat
+            rules
+        """
         # empty gateway
         self.assertEqual(
             network_plugin.collectAssignedIps(None),
@@ -110,6 +114,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
 
     def test_getFreeIP(self):
+        """
+            check list returned list of free ip
+        """
         # exist free ip
         gateway = self.generate_gateway()
         gateway.get_public_ips = mock.MagicMock(return_value=[
@@ -131,10 +138,13 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             network_plugin.getFreeIP(gateway)
 
     def test_del_ondemand_public_ip(self):
+        """
+            test release public ip
+        """
         fake_client = self.generate_client()
         gateway = self.generate_gateway()
         fake_ctx = self.generate_node_context()
-        # cant deallocate ip
+        # can't deallocate ip
         gateway.deallocate_public_ip = mock.MagicMock(return_value=None)
         with self.assertRaises(cfy_exc.NonRecoverableError):
             network_plugin.del_ondemand_public_ip(
@@ -152,6 +162,10 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
 
     def test_save_gateway_configuration(self):
+        """
+            check reation of out code for different results from server
+            on save configuration
+        """
         gateway = self.generate_gateway()
         fake_client = self.generate_client()
         # cant save configuration - error in first call
@@ -191,6 +205,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
 
     def test_is_network_routed(self):
+        """
+            check network route state
+        """
         fake_client = self.generate_client(
             vms_networks=[{
                 'is_connected': True,
@@ -257,6 +274,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             network_plugin.check_port('some')
 
     def test_CheckAssignedExternalIp(self):
+        """
+            Check assigned external ip
+        """
         gateway = self.generate_gateway()
         gateway.get_public_ips = mock.MagicMock(return_value=[
             '10.1.1.1', '10.1.1.2'
@@ -278,6 +298,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             )
 
     def test_CheckAssignedInternalIp(self):
+        """
+            Check assigned internal ip
+        """
         gateway = self.generate_gateway()
         gateway.get_public_ips = mock.MagicMock(return_value=[
             '10.1.1.1', '10.1.1.2'
@@ -299,6 +322,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             )
 
     def test_get_gateway(self):
+        """
+            check get gateway
+        """
         # good case
         fake_client = self.generate_client()
         fake_ctx = self.generate_node_context()
@@ -323,6 +349,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
                 )
 
     def test_get_network(self):
+        """
+            check get network
+        """
         # good case
         fake_client = self.generate_client()
         fake_ctx = self.generate_node_context()
@@ -361,6 +390,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
                 )
 
     def test_get_network_name(self):
+        """
+            check get network name
+        """
         # external without resource_id
         with self.assertRaises(cfy_exc.NonRecoverableError):
             network_plugin.get_network_name({
@@ -408,6 +440,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             network_plugin.check_protocol("Unknow").capitalize()
 
     def test_get_ondemand_public_ip(self):
+        """
+            check allocate public ip for ondemand
+        """
         fake_ctx = self.generate_node_context()
         fake_client = self.generate_client()
         # empty result from server
@@ -447,6 +482,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             )
 
     def test_get_public_ip_subscription(self):
+        """
+            check allocate public ip / subscription
+        """
         gateway = self.generate_gateway()
         gateway.get_public_ips = mock.MagicMock(return_value=[
             '10.18.1.1', '10.18.1.2'
@@ -468,6 +506,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
 
     def test_get_public_ip_ondemand(self):
+        """
+            check allocate public ip / ondemand
+        """
         # ondemand
         fake_ctx = self.generate_node_context()
         fake_client = self.generate_client()
@@ -496,6 +537,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             )
 
     def test_check_ip(self):
+        """
+            check ip code
+        """
         # wrong type
         with self.assertRaises(cfy_exc.NonRecoverableError):
             network_plugin.check_ip({'wrong': None})
@@ -509,6 +553,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
 
     def test_is_valid_ip_range(self):
+        """
+            check ip range
+        """
         # wrong range
         self.assertFalse(
             network_plugin.is_valid_ip_range("1.1.1.50", "1.1.1.40")
@@ -519,6 +566,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
 
     def test_is_network_exists(self):
+        """
+            check network exist
+        """
         # network exist
         fake_ctx = self.generate_node_context()
         fake_client = self.generate_client()
@@ -542,6 +592,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             )
 
     def test_is_ips_in_same_subnet(self):
+        """
+            ips in same net
+        """
         # ips from several networks
         self.assertFalse(
             network_plugin.is_ips_in_same_subnet(
@@ -556,6 +609,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
 
     def test_is_separate_ranges(self):
+        """
+            ips in separate ranges
+        """
         IPRange = collections.namedtuple('IPRange', 'start end')
         # positive case
         self.assertTrue(
