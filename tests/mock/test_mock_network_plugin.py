@@ -5,6 +5,7 @@ import collections
 from cloudify import exceptions as cfy_exc
 import test_mock_base
 import network_plugin
+from network_plugin import utils
 import vcloud_plugin_common
 
 
@@ -263,15 +264,15 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             check port
         """
         # port int
-        network_plugin.check_port(10)
+        utils.check_port(10)
         # port int to big
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            network_plugin.check_port(65536)
+            utils.check_port(utils.MAX_PORT_NUMBER+1)
         # port any
-        network_plugin.check_port('any')
+        utils.check_port('any')
         # port not any and not int
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            network_plugin.check_port('some')
+            utils.check_port('some')
 
     def test_CheckAssignedExternalIp(self):
         """
@@ -430,14 +431,14 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         """
             check default protocols
         """
-        for protocol in ["Tcp", "Udp", "Tcpudp", "Icmp", "Any"]:
+        for protocol in utils.VALID_PROTOCOLS:
             self.assertEqual(
                 protocol.capitalize(),
-                network_plugin.check_protocol(protocol).capitalize()
+                utils.check_protocol(protocol).capitalize()
             )
         # something unknow
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            network_plugin.check_protocol("Unknow").capitalize()
+            utils.check_protocol("Unknow").capitalize()
 
     def test_get_ondemand_public_ip(self):
         """

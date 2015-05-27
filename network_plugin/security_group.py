@@ -4,7 +4,7 @@ from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, get_mandatory,
                                   get_vcloud_config)
 from network_plugin import (check_ip, get_vm_ip, save_gateway_configuration,
-                            check_protocol, check_port, get_gateway)
+                            get_gateway, utils)
 
 
 CREATE_RULE = 1
@@ -48,7 +48,7 @@ def creation_validation(vca_client, **kwargs):
             if source.capitalize() not in ADDRESS_LITERALS:
                 check_ip(source)
 
-        check_port(rule.get('source_port', 'any'))
+        utils.check_port(rule.get('source_port'))
 
         destination = rule.get('destination')
         if destination:
@@ -58,9 +58,9 @@ def creation_validation(vca_client, **kwargs):
             if destination.capitalize() not in ADDRESS_LITERALS:
                 check_ip(source)
 
-        check_port(rule.get('destination_port', 'any'))
+        utils.check_port(rule.get('destination_port'))
 
-        check_protocol(rule.get('protocol', 'any'))
+        utils.check_protocol(rule.get('protocol'))
 
         action = get_mandatory(rule, "action")
         if (not isinstance(action, basestring)
