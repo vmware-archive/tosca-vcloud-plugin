@@ -247,8 +247,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
                 server.create(ctx=fake_ctx)
             fake_client.create_vapp.assert_called_with(
                 'vdc_name', 'test', 'template', 'catalog',
-                vm_name='test', vm_memory=None, vm_cpus=None
-            )
+                vm_name='test')
 
     def test_create_cpu_mem_values(self):
         """
@@ -281,14 +280,12 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
                 server.create(ctx=fake_ctx)
             fake_client.create_vapp.assert_called_with(
                 'vdc_name', 'test', 'ubuntu', 'public',
-                vm_name='test', vm_memory=512, vm_cpus=1
-            )
+                vm_name='test')
 
     def check_create_call(self, fake_client, fake_ctx):
         fake_client.create_vapp.assert_called_with(
             'vdc_name', 'test', 'template', 'catalog',
-            vm_name='test', vm_memory=None, vm_cpus=None
-        )
+            vm_name='test')
         self.assertTrue(
             server.VCLOUD_VAPP_NAME in fake_ctx.instance.runtime_properties
         )
