@@ -1,3 +1,17 @@
+# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  * See the License for the specific language governing permissions and
+#  * limitations under the License.
+
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
@@ -70,13 +84,16 @@ def creation_validation(vca_client, **kwargs):
 
 def prepare_network_operation(vca_client, operation):
     try:
-        gateway = get_gateway(vca_client, ctx.target.node.properties['nat']['edge_gateway'])
+        gateway = get_gateway(
+            vca_client, ctx.target.node.properties['nat']['edge_gateway'])
         public_ip = _obtain_public_ip(vca_client, ctx, gateway, operation)
         private_ip = _create_ip_range(vca_client, gateway)
         for rule in ctx.target.node.properties['rules']:
             rule_type = rule['type']
-            nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
-                                  private_ip, "any", "any", "any")
+            nat_network_operation(
+                vca_client, gateway, operation,
+                rule_type, public_ip,
+                private_ip, "any", "any", "any")
     except KeyError as e:
         raise cfy_exc.NonRecoverableError("Parameter not found: {0}".format(e))
     _save_configuration(gateway, vca_client, operation, public_ip)
@@ -84,7 +101,8 @@ def prepare_network_operation(vca_client, operation):
 
 def prepare_server_operation(vca_client, operation):
     try:
-        gateway = get_gateway(vca_client, ctx.target.node.properties['nat']['edge_gateway'])
+        gateway = get_gateway(
+            vca_client, ctx.target.node.properties['nat']['edge_gateway'])
         public_ip = _obtain_public_ip(vca_client, ctx, gateway, operation)
         private_ip = get_vm_ip(vca_client, ctx, gateway)
         for rule in ctx.target.node.properties['rules']:
@@ -92,9 +110,10 @@ def prepare_server_operation(vca_client, operation):
             protocol = rule.get('protocol', "any")
             original_port = rule.get('original_port', "any")
             translated_port = rule.get('translated_port', "any")
-            nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
-                                  private_ip, original_port, translated_port,
-                                  protocol)
+            nat_network_operation(
+                vca_client, gateway, operation,
+                rule_type, public_ip,
+                private_ip, original_port, translated_port, protocol)
     except KeyError as e:
         raise cfy_exc.NonRecoverableError("Parameter not found: {0}".format(e))
     _save_configuration(gateway, vca_client, operation, public_ip)
@@ -103,25 +122,27 @@ def prepare_server_operation(vca_client, operation):
 def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
                           private_ip, original_port, translated_port,
                           protocol):
-    function = None
-    message = None
     if operation == CREATE:
-        new_original_port = _get_original_port_for_create(gateway, rule_type, public_ip, original_port,
-                                                          private_ip, translated_port, protocol)
+        new_original_port = _get_original_port_for_create(
+            gateway, rule_type, public_ip, original_port,
+            private_ip, translated_port, protocol)
         function = gateway.add_nat_rule
         message = "Add"
     elif operation == DELETE:
-        new_original_port = _get_original_port_for_delete(public_ip, original_port)
+        new_original_port = _get_original_port_for_delete(
+            public_ip, original_port)
         function = gateway.del_nat_rule
         message = "Remove"
     else:
         raise cfy_exc.NonRecoverableError(
             "Unknown operation: {0}".format(operation))
 
-    info_message = """{6} NAT rule: rule type '{2}', original_ip '{0}', translated_ip '{1}', \
-protocol '{3}', original_port '{4}', translated_port '{5}'"""
+    info_message = ("{6} NAT rule: rule type '{2}', original_ip '{0}', "
+                    "translated_ip '{1}',protocol '{3}', "
+                    "original_port '{4}', translated_port '{5}'")
     if rule_type == "SNAT":
-        # for SNAT type ports and protocol must by "any", because they are not configurable
+        # for SNAT type ports and protocol must by "any",
+        #  because they are not configurable
         ctx.logger.info(
             info_message.format(private_ip, public_ip, rule_type, protocol,
                                 new_original_port, translated_port,
@@ -217,7 +238,8 @@ def _obtain_public_ip(vca_client, ctx, gateway, operation):
         if PUBLIC_IP in ctx.target.instance.runtime_properties:
             public_ip = ctx.target.instance.runtime_properties[PUBLIC_IP]
         else:
-            raise cfy_exc.NonRecoverableError("Can't obtain public IP from runtime properties")
+            raise cfy_exc.NonRecoverableError(
+                "Can't obtain public IP from runtime properties")
     else:
         raise cfy_exc.NonRecoverableError("Unknown operation")
 
@@ -233,34 +255,43 @@ def _get_original_port_for_create(
         return new port that is next free port after current
     """
     nat_rules = gateway.get_nat_rules()
-    if isinstance(original_port, basestring) and original_port.lower() == 'any':
-        if _is_rule_exists(nat_rules, rule_type, original_ip,
-                            original_port, translated_ip,
-                            translated_port, protocol):
+    if isinstance(
+            original_port, basestring) and original_port.lower() == 'any':
+        if _is_rule_exists(
+                nat_rules, rule_type, original_ip,
+                original_port, translated_ip,
+                translated_port, protocol):
             raise cfy_exc.NonRecoverableError(
-                "The same NAT rule already exsists: original_ip '{0}',translated_ip '{1}', "
+                "The same NAT rule already exsists: "
+                "original_ip '{0}',translated_ip '{1}', "
                 "rule type '{2}', protocol '{3}', original_port '{4}, "
-                "translated_port {5}'".format(original_ip, translated_ip, rule_type, protocol,
-                                              original_port, translated_port))
+                "translated_port {5}'".format(
+                    original_ip, translated_ip, rule_type, protocol,
+                    original_port, translated_port))
         else:
             return original_port
 
     # origin port can be string
     for port in xrange(int(original_port), utils.MAX_PORT_NUMBER + 1):
         if not _is_rule_exists(nat_rules, rule_type, original_ip,
-                                port, translated_ip,
-                                translated_port, protocol):
+                               port, translated_ip,
+                               translated_port, protocol):
             if port == original_port:
                 return original_port
             else:
-                ctx.logger.info("For IP {} replace original port {} -> {}".format(original_ip, original_port, port))
-                if PORT_REPLACEMENT not in ctx.target.instance.runtime_properties:
-                    ctx.target.instance.runtime_properties[PORT_REPLACEMENT] = {}
-                ctx.target.instance.runtime_properties[PORT_REPLACEMENT][(original_ip, original_port)] = port
+                ctx.logger.info(
+                    "For IP {} replace original port {} -> {}"
+                    .format(original_ip, original_port, port))
+                if (PORT_REPLACEMENT not in
+                        ctx.target.instance.runtime_properties):
+                    ctx.target.instance.runtime_properties[
+                        PORT_REPLACEMENT] = {}
+                ctx.target.instance.runtime_properties[
+                    PORT_REPLACEMENT][
+                    (original_ip, original_port)] = port
                 return port
     raise cfy_exc.NonRecoverableError(
-        "Can't create NAT rule because maximum port number was reached"
-    )
+        "Can't create NAT rule because maximum port number was reached")
 
 
 def _get_original_port_for_delete(original_ip, original_port):
@@ -277,7 +308,9 @@ def _get_original_port_for_delete(original_ip, original_port):
         return original_port
 
 
-def _is_rule_exists(nat_rules, rule_type, original_ip, original_port, translated_ip, translated_port, protocol):
+def _is_rule_exists(nat_rules, rule_type,
+                    original_ip, original_port,
+                    translated_ip, translated_port, protocol):
     """
         check if we already have some rule with same properties
     """
@@ -286,12 +319,13 @@ def _is_rule_exists(nat_rules, rule_type, original_ip, original_port, translated
     cicmp = lambda t: t[1] and (str(t[0]).lower() == str(t[1]).lower())
     for natRule in nat_rules:
         gatewayNatRule = natRule.get_GatewayNatRule()
-        if (all(map(cicmp, [(rule_type, natRule.get_RuleType()),
-                            (original_ip, gatewayNatRule.get_OriginalIp()),
-                            (str(original_port), gatewayNatRule.get_OriginalPort()),
-                            (translated_ip, gatewayNatRule.get_TranslatedIp()),
-                            (str(translated_port), gatewayNatRule.get_TranslatedPort()),
-                            (protocol, gatewayNatRule.get_Protocol())]))):
+        if (all(map(cicmp, [
+           (rule_type, natRule.get_RuleType()),
+           (original_ip, gatewayNatRule.get_OriginalIp()),
+           (str(original_port), gatewayNatRule.get_OriginalPort()),
+           (translated_ip, gatewayNatRule.get_TranslatedIp()),
+           (str(translated_port), gatewayNatRule.get_TranslatedPort()),
+           (protocol, gatewayNatRule.get_Protocol())]))):
             break
     else:
         return False

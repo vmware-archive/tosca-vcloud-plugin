@@ -1,3 +1,17 @@
+# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  * See the License for the specific language governing permissions and
+#  * limitations under the License.
+
 import mock
 import random
 import socket
@@ -313,7 +327,8 @@ class VolumeTestCase(TestCase):
         self.addCleanup(ctx_patch2.stop)
 
     def test_volume(self):
-        disks_count = lambda: len(self.vca_client.get_disks(self.vcloud_config['vdc']))
+        disks_count = lambda: len(
+            self.vca_client.get_disks(self.vcloud_config['vdc']))
         volume.creation_validation()
         disks_before = disks_count()
         volume.create_volume()
@@ -323,9 +338,11 @@ class VolumeTestCase(TestCase):
         self.assertEqual(disks_before, disks_count())
 
     def _attach_detach(self):
-        links_count = lambda: [len(d[1]) for d in
-                               self.vca_client.get_disks(self.vcloud_config['vdc'])
-                               if d[0].name == self.relationctx.target.node.properties['volume']['name']][0]
+        links_count = lambda: [
+            len(d[1]) for d in
+            self.vca_client.get_disks(self.vcloud_config['vdc'])
+            if d[0].name == self.relationctx.target.node.properties[
+                'volume']['name']][0]
         with mock.patch('server_plugin.volume.ctx', self.relationctx):
             links_before = links_count()
             volume.attach_volume()
