@@ -1,7 +1,22 @@
+# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  * See the License for the specific language governing permissions and
+#  * limitations under the License.
+
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
-from vcloud_plugin_common import (wait_for_task, with_vca_client, get_vcloud_config, get_mandatory)
+from vcloud_plugin_common import (wait_for_task, with_vca_client,
+                                  get_vcloud_config, get_mandatory)
 from network_plugin import get_vapp_name
 
 
@@ -20,7 +35,8 @@ def create_volume(vca_client, **kwargs):
         wait_for_task(vca_client, disk.get_Tasks()[0])
         ctx.logger.info("Volume node {} has been created".format(name))
     else:
-        raise cfy_exc.NonRecoverableError("Disk creation error: {0}".format(disk))
+        raise cfy_exc.NonRecoverableError(
+            "Disk creation error: {0}".format(disk))
 
 
 @operation
@@ -36,7 +52,8 @@ def delete_volume(vca_client, **kwargs):
         wait_for_task(vca_client, task)
         ctx.logger.info("Volume node {} has been deleted".format(name))
     else:
-        raise cfy_exc.NonRecoverableError("Disk deletion error: {0}".format(task))
+        raise cfy_exc.NonRecoverableError(
+            "Disk deletion error: {0}".format(task))
 
 
 @operation
@@ -49,12 +66,14 @@ def creation_validation(vca_client, **kwargs):
     if ctx.node.properties['use_external_resource']:
         resource_id = get_mandatory(ctx.node.properties, 'resource_id')
         if resource_id not in disks_names:
-            raise cfy_exc.NonRecoverableError("Disk {} does't exists".format(resource_id))
+            raise cfy_exc.NonRecoverableError(
+                "Disk {} does't exists".format(resource_id))
     else:
         volume = get_mandatory(ctx.node.properties, 'volume')
         name = get_mandatory(volume, 'name')
         if name in disks_names:
-            raise cfy_exc.NonRecoverableError("Disk {} already exists".format(name))
+            raise cfy_exc.NonRecoverableError(
+                "Disk {} already exists".format(name))
         get_mandatory(volume, 'size')
 
 
@@ -85,16 +104,21 @@ def _volume_operation(vca_client, operation):
                 task = vapp.attach_disk_to_vm(vmName, ref)
                 if task:
                     wait_for_task(vca_client, task)
-                    ctx.logger.info("Volume node {} has been attached".format(volumeName))
+                    ctx.logger.info(
+                        "Volume node {} has been attached".format(volumeName))
                 else:
-                    raise cfy_exc.NonRecoverableError("Can't attach disk: {0}".format(volumeName))
+                    raise cfy_exc.NonRecoverableError(
+                        "Can't attach disk: {0}".format(volumeName))
 
             elif operation == 'DETACH':
                 task = vapp.detach_disk_from_vm(vmName, ref)
                 if task:
                     wait_for_task(vca_client, task)
-                    ctx.logger.info("Volume node {} has been detached".format(volumeName))
+                    ctx.logger.info(
+                        "Volume node {} has been detached".format(volumeName))
                 else:
-                    raise cfy_exc.NonRecoverableError("Can't detach disk: {0}".format(volumeName))
+                    raise cfy_exc.NonRecoverableError(
+                        "Can't detach disk: {0}".format(volumeName))
             else:
-                raise cfy_exc.NonRecoverableError("Unknown operation {0}".format(operation))
+                raise cfy_exc.NonRecoverableError(
+                    "Unknown operation {0}".format(operation))

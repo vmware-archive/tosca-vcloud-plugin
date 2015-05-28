@@ -13,13 +13,13 @@
 #  * limitations under the License.
 
 
-
 from cloudify import exceptions as cfy_exc
 
 
 # 2 ^ 16 - 1
 MAX_PORT_NUMBER = 65535
 VALID_PROTOCOLS = ["Tcp", "Udp", "Tcpudp", "Icmp", "Any"]
+
 
 def check_protocol(protocol):
     """
@@ -60,6 +60,7 @@ def check_port(port):
             return port
     raise cfy_exc.NonRecoverableError(
         "Parameter 'port' must be integer, or 'any'")
+
 
 def _port_is_any(port):
     """

@@ -11,6 +11,7 @@
 #  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  * See the License for the specific language governing permissions and
 #  * limitations under the License.
+
 from cloudify import ctx
 from cloudify.decorators import operation
 from cloudify import exceptions as cfy_exc
@@ -89,6 +90,7 @@ def create(vca_client, **kwargs):
             "External resource {0} has been used".format(res_id))
     else:
         _create(vca_client, config, server)
+
 
 def _create(vca_client, config, server):
     vapp_name = server['name']
