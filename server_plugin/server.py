@@ -112,21 +112,27 @@ def _create(vca_client, config, server):
         cpu = hardware.get('cpu')
         memory = hardware.get('memory')
         _check_hardware(cpu, memory)
-        vapp = vca_client.get_vapp(vca_client.get_vdc(config['vdc']), vapp_name)
+        vapp = vca_client.get_vapp(
+            vca_client.get_vdc(config['vdc']), vapp_name
+        )
         if memory:
             task = vapp.modify_vm_memory(vapp_name, memory)
             if task:
                 wait_for_task(vca_client, task)
                 ctx.logger.info("Customize VM memory: {0}.".format(memory))
             else:
-                raise cfy_exc.NonRecoverableError("Customize VM memory failed: {0}.".format(task))
+                raise cfy_exc.NonRecoverableError(
+                    "Customize VM memory failed: {0}.".format(task)
+                )
         if cpu:
             task = vapp.modify_vm_cpu(vapp_name, cpu)
             if task:
                 wait_for_task(vca_client, task)
                 ctx.logger.info("Customize VM cpu: {0}.".format(cpu))
             else:
-                raise cfy_exc.NonRecoverableError("Customize VM cpu failed: {0}.".format(task))
+                raise cfy_exc.NonRecoverableError(
+                    "Customize VM cpu failed: {0}.".format(task)
+                )
 
     ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = vapp_name
     connections = _create_connections_list(vca_client)
