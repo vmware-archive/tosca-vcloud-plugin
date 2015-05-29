@@ -15,3 +15,5 @@ lib
 .tox
 cover
 .coverage
+.venv/
+.idea/

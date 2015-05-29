@@ -31,11 +31,11 @@ nosetests --tc=ondemand: tosca-vcloud-plugin/tests/integration
 ```
 Run tests using tox. For subscription account use the following command
 ```
-tox -e subscription
+tox -e py27-subscription
 ```
 For OnDemand
 ```
-tox -e ondemand
+tox -e py27-ondemand
 ```
 For all accounts
 ```
