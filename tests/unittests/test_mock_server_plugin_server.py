@@ -267,34 +267,64 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         """
             check custom cpu/memmory with error in task
         """
-        fake_ctx = self.generate_node_context(properties={
-            'management_network': '_management_network',
-            'vcloud_config': {
-                'vdc': 'vdc_name'
-            },
-            'server': {
-                'template': 'ubuntu',
-                'catalog': 'public',
-                'hardware': {
-                    'cpu': 1,
-                    'memory': 512
+        fake_ctx = self.generate_node_context(
+            properties={
+                'management_network': '_management_network',
+                'vcloud_config': {
+                    'vdc': 'vdc_name'
+                },
+                'server': {
+                    'template': 'ubuntu',
+                    'catalog': 'public',
+                    'hardware': {
+                        'cpu': 1,
+                        'memory': 512
+                    }
                 }
+            },
+            relation_node_properties={
+                "not_test": "not_test"
             }
-        })
+        )
         fake_client = self.generate_client()
+        self.run_with_statuses(
+            fake_client, fake_ctx,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS,
+            vcloud_plugin_common.TASK_STATUS_SUCCESS
+        )
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            self.run_with_statuses(
-                fake_client, fake_ctx,
-                vcloud_plugin_common.TASK_STATUS_ERROR
-            )
+            # can't customize memory
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 server.create(ctx=fake_ctx)
             fake_client.create_vapp.assert_called_with(
                 'vdc_name', 'test', 'ubuntu', 'public',
                 vm_name='test')
+            fake_client._vapp.modify_vm_memory.assert_called_with(
+                'test', 512
+            )
+            fake_client._vapp.modify_vm_memory = mock.MagicMock(
+                return_value=self.generate_task(
+                    vcloud_plugin_common.TASK_STATUS_SUCCESS
+                )
+            )
+            # can't customize cpu
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                server.create(ctx=fake_ctx)
+            fake_client._vapp.modify_vm_cpu.assert_called_with(
+                'test', 1
+            )
+            fake_client._vapp.modify_vm_cpu = mock.MagicMock(
+                return_value=self.generate_task(
+                    vcloud_plugin_common.TASK_STATUS_SUCCESS
+                )
+            )
+            # everything fine
+            server.create(ctx=fake_ctx)
 
     def check_create_call(self, fake_client, fake_ctx):
         fake_client.create_vapp.assert_called_with(

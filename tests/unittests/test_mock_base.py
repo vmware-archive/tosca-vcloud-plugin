@@ -273,13 +273,6 @@ class TestBase(unittest.TestCase):
             return_value=(False, None)
         )
         client.get_diskRefs = mock.MagicMock(return_value=[])
-        # disk for vapp
-        client._vapp.attach_disk_to_vm = mock.MagicMock(
-            return_value=None
-        )
-        client._vapp.detach_disk_from_vm = mock.MagicMock(
-            return_value=None
-        )
         # login authification
         client.login = mock.MagicMock(
             return_value=False
@@ -309,6 +302,20 @@ class TestBase(unittest.TestCase):
         vapp = mock.Mock()
         vapp.me = mock.Mock()
         vapp.get_vms_network_info = _get_vms_network_info
+        # disk for vapp
+        vapp.attach_disk_to_vm = mock.MagicMock(
+            return_value=None
+        )
+        vapp.detach_disk_from_vm = mock.MagicMock(
+            return_value=None
+        )
+        # mememory/cpu customize
+        vapp.modify_vm_memory = mock.MagicMock(
+            return_value=None
+        )
+        vapp.modify_vm_cpu = mock.MagicMock(
+            return_value=None
+        )
         return vapp
 
     def generate_relation_context(self):
