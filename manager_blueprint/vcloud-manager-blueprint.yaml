@@ -332,9 +332,9 @@ node_templates:
             use_external_resource: { get_input: volume_use_external }
             resource_id: { get_input: volume_external_name }
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
-            relationships:
-                - type: cloudify.vcloud.volume_attached_to_server
-                  target: manager_server
+        relationships:
+            - type: cloudify.vcloud.volume_attached_to_server
+              target: manager_server
 
     manager_data:
         type: cloudify.nodes.FileSystem
