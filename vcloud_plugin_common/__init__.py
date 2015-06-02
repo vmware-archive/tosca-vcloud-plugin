@@ -98,11 +98,17 @@ def transform_resource_name(res, ctx):
 
 
 class Config(object):
+    """
+        load global config
+    """
 
     VCLOUD_CONFIG_PATH_ENV_VAR = 'VCLOUD_CONFIG_PATH'
     VCLOUD_CONFIG_PATH_DEFAULT = '~/vcloud_config.yaml'
 
     def get(self):
+        """
+            return settings from ~/vcloud_config.yaml
+        """
         cfg = {}
         env_name = self.VCLOUD_CONFIG_PATH_ENV_VAR
         default_location_tpl = self.VCLOUD_CONFIG_PATH_DEFAULT
@@ -122,6 +128,9 @@ class VcloudAirClient(object):
     LOGIN_RETRY_NUM = 5
 
     def get(self, config=None, *args, **kw):
+        """
+            return new vca client
+        """
         static_config = self.__class__.config().get()
         cfg = {}
         cfg.update(static_config)
@@ -130,6 +139,9 @@ class VcloudAirClient(object):
         return self.connect(cfg)
 
     def connect(self, cfg):
+        """
+            login to instance described in settings
+        """
         url = cfg.get('url')
         username = cfg.get('username')
         password = cfg.get('password')
@@ -167,6 +179,9 @@ class VcloudAirClient(object):
 
     def _subscription_login(self, url, username, password, token, service,
                             org_name):
+        """
+            login to subscription service
+        """
         logined = False
         vdc_logined = False
 
@@ -223,6 +238,9 @@ class VcloudAirClient(object):
         return vca
 
     def _ondemand_login(self, url, username, password, token, instance_id):
+        """
+            login to ondemand service
+        """
         def get_instance(vca, instance_id):
             instances = vca.get_instances() or []
             for instance in instances:
@@ -310,6 +328,9 @@ class VcloudAirClient(object):
 
     def _private_login(self, url, username, password, token, org_name,
                        org_url=None, api_version='5.6'):
+        """
+            login to private instance
+        """
         logined = False
 
         vca = vcloudair.VCA(
@@ -355,6 +376,9 @@ class VcloudAirClient(object):
 
 
 def with_vca_client(f):
+    """
+        add vca client to function params
+    """
     @wraps(f)
     def wrapper(*args, **kw):
         config = None
@@ -421,8 +445,14 @@ def get_mandatory(obj, parameter):
 
 
 def is_subscription(service_type):
+    """
+        check service type is subscription or empty
+    """
     return not service_type or service_type == SUBSCRIPTION_SERVICE_TYPE
 
 
 def is_ondemand(service_type):
+    """
+        check service type is ondemand
+    """
     return service_type == ONDEMAND_SERVICE_TYPE

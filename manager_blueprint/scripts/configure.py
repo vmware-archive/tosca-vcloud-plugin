@@ -10,12 +10,21 @@ PROVIDER_CONTEXT_RUNTIME_PROPERTY = 'provider_context'
 
 
 def configure(vcloud_config):
+    """
+        copy configuration to managment host,
+        install docker
+        and save current context to .cloudify/context
+        For now - we have saved only managment network name
+    """
     _copy_vsphere_configuration_to_manager(vcloud_config)
     _install_docker()
     _save_context()
 
 
 def _copy_vsphere_configuration_to_manager(vcloud_config):
+    """
+        Copy current config to remote node
+    """
     tmp = tempfile.mktemp()
     with open(tmp, 'w') as f:
         json.dump(vcloud_config, f)
@@ -24,6 +33,9 @@ def _copy_vsphere_configuration_to_manager(vcloud_config):
 
 
 def _install_docker():
+    """
+        install docker from https://get.docker.com/
+    """
     distro = fabric.api.run(
         'python -c "import platform; print platform.dist()[0]"')
     kernel_version = fabric.api.run(
@@ -33,7 +45,10 @@ def _install_docker():
 
 
 def _save_context():
-
+    """
+        save current managment network for use as default network for
+        all new nodes
+    """
     resources = dict()
 
     node_instances = ctx._endpoint.storage.get_node_instances()
@@ -41,7 +56,6 @@ def _save_context():
         {node.id: node for node in ctx._endpoint.storage.get_nodes()}
 
     for node_instance in node_instances:
-        run_props = node_instance.runtime_properties
         props = nodes_by_id[node_instance.node_id].properties
 
         if "management_network" == node_instance.node_id:

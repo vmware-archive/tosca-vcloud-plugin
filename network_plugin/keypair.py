@@ -6,6 +6,10 @@ import os.path
 
 @operation
 def creation_validation(**kwargs):
+    """
+        check availability of path used in field private_key_path of
+        node properties
+    """
     key = ctx.node.properties.get('private_key_path')
     if key:
         key_path = os.path.expanduser(key)

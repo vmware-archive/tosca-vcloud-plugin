@@ -30,6 +30,9 @@ PORT_REPLACEMENT = 'port_replacement'
 @operation
 @with_vca_client
 def net_connect_to_nat(vca_client, **kwargs):
+    """
+        create nat rule for current node
+    """
     if ctx.target.node.properties.get('use_external_resource', False):
         ctx.logger.info("Using existing Public NAT.")
         return
@@ -39,6 +42,9 @@ def net_connect_to_nat(vca_client, **kwargs):
 @operation
 @with_vca_client
 def net_disconnect_from_nat(vca_client, **kwargs):
+    """
+        drop nat rule for current node
+    """
     if ctx.target.node.properties.get('use_external_resource', False):
         ctx.logger.info("Using existing Public NAT.")
         return
@@ -48,18 +54,27 @@ def net_disconnect_from_nat(vca_client, **kwargs):
 @operation
 @with_vca_client
 def server_connect_to_nat(vca_client, **kwargs):
+    """
+        create nat rules for server
+    """
     prepare_server_operation(vca_client, CREATE)
 
 
 @operation
 @with_vca_client
 def server_disconnect_from_nat(vca_client, **kwargs):
+    """
+        drop nat rules for server
+    """
     prepare_server_operation(vca_client, DELETE)
 
 
 @operation
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
+    """
+        validate nat rules in node properties
+    """
     nat = get_mandatory(ctx.node.properties, 'nat')
     gateway = get_gateway(vca_client, get_mandatory(nat, 'edge_gateway'))
     service_type = get_vcloud_config().get('service_type')
@@ -83,6 +98,9 @@ def creation_validation(vca_client, **kwargs):
 
 
 def prepare_network_operation(vca_client, operation):
+    """
+        create nat rules by rules from network node
+    """
     try:
         gateway = get_gateway(
             vca_client, ctx.target.node.properties['nat']['edge_gateway'])
@@ -95,11 +113,16 @@ def prepare_network_operation(vca_client, operation):
                 rule_type, public_ip,
                 private_ip, "any", "any", "any")
     except KeyError as e:
-        raise cfy_exc.NonRecoverableError("Parameter not found: {0}".format(e))
+        raise cfy_exc.NonRecoverableError(
+            "Parameter not found: {0}".format(e)
+        )
     _save_configuration(gateway, vca_client, operation, public_ip)
 
 
 def prepare_server_operation(vca_client, operation):
+    """
+        generate nat rules by current list of rules in node
+    """
     try:
         gateway = get_gateway(
             vca_client, ctx.target.node.properties['nat']['edge_gateway'])
@@ -122,6 +145,9 @@ def prepare_server_operation(vca_client, operation):
 def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
                           private_ip, original_port, translated_port,
                           protocol):
+    """
+        create/drop nat rule for current network
+    """
     if operation == CREATE:
         new_original_port = _get_original_port_for_create(
             gateway, rule_type, public_ip, original_port,
@@ -159,6 +185,9 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
 
 
 def _save_configuration(gateway, vca_client, operation, public_ip):
+    """
+        save/refresh nat rules on gateway
+    """
     if not save_gateway_configuration(gateway, vca_client):
         return ctx.operation.retry(message='Waiting for gateway.',
                                    retry_after=10)
@@ -171,11 +200,16 @@ def _save_configuration(gateway, vca_client, operation, public_ip):
             if not ctx.target.node.properties['nat'].get(PUBLIC_IP):
                 del_ondemand_public_ip(
                     vca_client, gateway,
-                    ctx.target.instance.runtime_properties[PUBLIC_IP], ctx)
+                    ctx.target.instance.runtime_properties[PUBLIC_IP],
+                    ctx
+                )
         del ctx.target.instance.runtime_properties[PUBLIC_IP]
 
 
 def _create_ip_range(vca_client, gateway):
+    """
+        return ip range by avaible ranges from gateway and current network
+    """
     network_name = ctx.source.instance.runtime_properties[VCLOUD_NETWORK_NAME]
     org_name = get_vcloud_config()['org']
     net = _get_network_ip_range(vca_client, org_name, network_name)
@@ -208,6 +242,9 @@ def _get_network_ip_range(vca_client, org_name, network_name):
 
 
 def _get_gateway_ip_range(gateway, network_name):
+    """
+        return avaible ip ranges for current gateway
+    """
     addresses = []
     pools = gateway.get_dhcp_pools()
     if not pools:
