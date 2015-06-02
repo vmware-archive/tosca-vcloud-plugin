@@ -300,13 +300,12 @@ class VolumeTestCase(TestCase):
             'vcloud_config': self.vcloud_config
         }
         self.target = MockCloudifyContext(node_id="target",
-                                          properties=self.properties)
-        self.source = MockCloudifyContext(
-            node_id="source",
             properties={'vcloud_config': self.vcloud_config},
             runtime_properties={
-                VCLOUD_VAPP_NAME: self.test_config['test_vm']}
-        )
+                VCLOUD_VAPP_NAME: self.test_config['test_vm']})
+        self.source = MockCloudifyContext(
+            node_id="source",
+                 properties=self.properties)
         self.nodectx = cfy_mocks.MockCloudifyContext(
             node_id=name,
             node_name=name,
@@ -341,7 +340,7 @@ class VolumeTestCase(TestCase):
         links_count = lambda: [
             len(d[1]) for d in
             self.vca_client.get_disks(self.vcloud_config['vdc'])
-            if d[0].name == self.relationctx.target.node.properties[
+            if d[0].name == self.relationctx.source.node.properties[
                 'volume']['name']][0]
         with mock.patch('server_plugin.volume.ctx', self.relationctx):
             links_before = links_count()
