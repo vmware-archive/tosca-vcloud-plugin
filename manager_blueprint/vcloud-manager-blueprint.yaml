@@ -133,6 +133,22 @@ inputs:
         type: string
         default: ''
 
+    volume_use_external:
+        type: boolean
+        default: false
+
+    volume_external_name:
+        type: string
+        default: ''
+
+    volume_name:
+        type: string
+        default: 'manager_disk'
+
+    volume_size_Mb:
+        type: string
+        default: 10240
+
 
 node_types:
     vcloud_configuration:
@@ -176,32 +192,6 @@ node_templates:
                          Allow ping
                   protocol: ICMP
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
-
-    manager_server:
-        type: cloudify.vcloud.nodes.Server
-        properties:
-            install_agent: false
-            server:
-                name: { get_input: manager_server_name }
-                catalog: { get_input: manager_server_catalog }
-                template: { get_input: manager_server_template }
-                guest_customization:
-                    public_keys:
-                        - { get_property: [manager_keypair, public_key] }
-                        - { get_property: [agent_keypair, public_key] }
-                    computer_name: { get_input: manager_server_name }
-                hardware:
-                    cpu: { get_input: manager_server_cpus }
-                    memory: { get_input: manager_server_memory }
-            management_network: { get_input: management_network_name }
-            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
-        relationships:
-            - target: management_port
-              type: cloudify.vcloud.server_connected_to_port
-            - target: management_server_nat
-              type: cloudify.vcloud.server_connected_to_public_nat
-            - target: node_security_group
-              type: cloudify.vcloud.server_connected_to_security_group
 
     management_port:
         type: cloudify.vcloud.nodes.Port
@@ -305,6 +295,97 @@ node_templates:
             public_key:
                 key: { get_input: agent_public_key }
                 user: { get_input: agents_user }
+
+    manager_server:
+        type: cloudify.vcloud.nodes.Server
+        properties:
+            install_agent: false
+            server:
+                name: { get_input: manager_server_name }
+                catalog: { get_input: manager_server_catalog }
+                template: { get_input: manager_server_template }
+                guest_customization:
+                    public_keys:
+                        - { get_property: [manager_keypair, public_key] }
+                        - { get_property: [agent_keypair, public_key] }
+                    computer_name: { get_input: manager_server_name }
+                hardware:
+                    cpu: { get_input: manager_server_cpus }
+                    memory: { get_input: manager_server_memory }
+            management_network: { get_input: management_network_name }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+        relationships:
+            - target: management_port
+              type: cloudify.vcloud.server_connected_to_port
+            - target: management_server_nat
+              type: cloudify.vcloud.server_connected_to_public_nat
+            - target: node_security_group
+              type: cloudify.vcloud.server_connected_to_security_group
+
+    volume:
+        type: cloudify.openstack.nodes.Volume
+        properties:
+            device_name: /dev/sdb
+            volume:
+                name: { get_input: volume_name }
+                size: { get_input: volume_size_Mb }
+            use_external_resource: { get_input: volume_use_external }
+            resource_id: { get_input: volume_external_name }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+            relationships:
+                - type: cloudify.vcloud.volume_attached_to_server
+                  target: manager_server
+
+    manager_data:
+        type: cloudify.nodes.FileSystem
+        properties:
+            fs_type: ext4
+            fs_mount_path: /var/lib/docker
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                configure:
+                    implementation: fabric.fabric_plugin.tasks.run_script
+                    inputs:
+                        script_path: https://raw.githubusercontent.com/cloudify-cosmo/cloudify-manager/master/resources/rest-service/cloudify/fs/mkfs.sh
+                        fabric_env:
+                            user: { get_input: manager_server_user }
+                            key_filename: { get_input: manager_private_key_path }
+                            host_string: { get_attribute: [management_server_nat, public_ip] }
+        relationships:
+            - type: cloudify.relationships.file_system_depends_on_volume
+              target: volume
+              source_interfaces:
+                  cloudify.interfaces.relationship_lifecycle:
+                      preconfigure:
+                          implementation: fabric.fabric_plugin.tasks.run_script
+                          inputs:
+                              script_path: https://raw.githubusercontent.com/cloudify-cosmo/cloudify-manager/master/resources/rest-service/cloudify/fs/fdisk.sh
+                              device_name: { get_attribute: [TARGET, device_name] }
+                              fabric_env:
+                                  user: { get_input: manager_server_user }
+                                  key_filename: { get_input: manager_private_key_path }
+                                  host_string: { get_attribute: [management_server_nat, public_ip] }
+
+            - type: cloudify.relationships.file_system_contained_in_compute
+              target: manager_server
+              source_interfaces:
+                  cloudify.interfaces.relationship_lifecycle:
+                      establish:
+                          implementation: fabric.fabric_plugin.tasks.run_script
+                          inputs:
+                              script_path: https://raw.githubusercontent.com/cloudify-cosmo/cloudify-manager/master/resources/rest-service/cloudify/fs/mount-docker.sh
+                              fabric_env:
+                                  user: { get_input: manager_server_user }
+                                  key_filename: { get_input: manager_private_key_path }
+                                  host_string: { get_attribute: [management_server_nat, public_ip] }
+                      unlink:
+                          implementation: fabric.fabric_plugin.tasks.run_script
+                          inputs:
+                              script_path: https://raw.githubusercontent.com/cloudify-cosmo/cloudify-manager/master/resources/rest-service/cloudify/fs/unmount.sh
+                              fabric_env:
+                                  user: { get_input: manager_server_user }
+                                  key_filename: { get_input: manager_private_key_path }
+                                  host_string: { get_attribute: [management_server_nat, public_ip] }
 
     manager:
         type: cloudify.nodes.CloudifyManager

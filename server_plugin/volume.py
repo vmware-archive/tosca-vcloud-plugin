@@ -23,7 +23,7 @@ from network_plugin import get_vapp_name
 @operation
 @with_vca_client
 def create_volume(vca_client, **kwargs):
-    if ctx.node.properties['use_external_resource']:
+    if ctx.node.properties.get('use_external_resource'):
         ctx.logger.info("External resource has been used")
         return
     vdc_name = get_vcloud_config()['vdc']
@@ -42,7 +42,7 @@ def create_volume(vca_client, **kwargs):
 @operation
 @with_vca_client
 def delete_volume(vca_client, **kwargs):
-    if ctx.node.properties['use_external_resource']:
+    if ctx.node.properties.get('use_external_resource'):
         ctx.logger.info("External resource has been used")
         return
     vdc_name = get_vcloud_config()['vdc']
@@ -63,7 +63,7 @@ def creation_validation(vca_client, **kwargs):
     disks_names = [
         disk.name for [disk, _vms] in vca_client.get_disks(vdc_name)
     ]
-    if ctx.node.properties['use_external_resource']:
+    if ctx.node.properties.get('use_external_resource'):
         resource_id = get_mandatory(ctx.node.properties, 'resource_id')
         if resource_id not in disks_names:
             raise cfy_exc.NonRecoverableError(
