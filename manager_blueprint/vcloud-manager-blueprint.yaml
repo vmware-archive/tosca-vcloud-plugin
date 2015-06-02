@@ -323,7 +323,7 @@ node_templates:
               type: cloudify.vcloud.server_connected_to_security_group
 
     volume:
-        type: cloudify.openstack.nodes.Volume
+        type: cloudify.vcloud.nodes.Volume
         properties:
             device_name: /dev/sdb
             volume:
