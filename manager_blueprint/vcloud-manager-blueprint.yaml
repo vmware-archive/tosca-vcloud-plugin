@@ -417,6 +417,8 @@ node_templates:
         relationships:
             - target: manager_server
               type: cloudify.relationships.contained_in
+            - target: manager_data
+              type: cloudify.relationships.depends_on
 
         interfaces:
             cloudify.interfaces.lifecycle:
