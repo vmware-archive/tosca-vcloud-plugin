@@ -335,7 +335,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             },
             'use_external_resource': False
         }
-        fake_ctx._source.instance.runtime_properties = {
+        fake_ctx._target.instance.runtime_properties = {
             network_plugin.VCLOUD_VAPP_NAME: "some_other"
         }
         _run_volume_operation(fake_ctx, fake_client, 'DETACH')
@@ -347,16 +347,16 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         fake_client = self.generate_client()
         fake_ctx = self.generate_relation_context()
         fake_ctx._target.node.properties = {
+            'use_external_resource': True
+        }
+        fake_ctx._source.node.properties = {
             'volume': {
                 'name': 'some'
             },
-            'use_external_resource': True,
-            'resource_id': 'some'
-        }
-        fake_ctx._source.node.properties = {
             'vcloud_config': {
                 'vdc': 'vdc_name',
-            }
+            },
+            'resource_id': 'some'
         }
         return fake_ctx, fake_client
 
