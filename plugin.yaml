@@ -130,6 +130,8 @@ node_types:
     cloudify.vcloud.nodes.Volume:
         derived_from: cloudify.nodes.Volume
         properties:
+            device_name:
+                default: ''
             volume:
                 default: {}
             use_external_resource:
