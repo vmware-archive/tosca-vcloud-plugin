@@ -296,7 +296,8 @@ class VolumeTestCase(TestCase):
                 'name': self.volume_test_dict['name'],
                 'size': self.volume_test_dict['size']
             },
-            'use_external_resource': False,
+            'use_external_resource': True,
+            'resource_id': self.volume_test_dict['name_exists'],
             'vcloud_config': self.vcloud_config
         }
         self.target = MockCloudifyContext(node_id="target",
@@ -331,17 +332,26 @@ class VolumeTestCase(TestCase):
         volume.creation_validation()
         disks_before = disks_count()
         volume.create_volume()
-        self.assertEqual(disks_before + 1, disks_count())
+        if self.relationctx.source.node.properties['use_external_resource']:
+            self.assertEqual(disks_before, disks_count())
+        else:
+            self.assertEqual(disks_before + 1, disks_count())
         self._attach_detach()
         volume.delete_volume()
         self.assertEqual(disks_before, disks_count())
 
     def _attach_detach(self):
-        links_count = lambda: [
-            len(d[1]) for d in
-            self.vca_client.get_disks(self.vcloud_config['vdc'])
-            if d[0].name == self.relationctx.source.node.properties[
-                'volume']['name']][0]
+        def links_count():
+            if self.relationctx.source.node.properties['use_external_resource']:
+                return [len(d[1]) for d in
+                        self.vca_client.get_disks(self.vcloud_config['vdc'])
+                        if d[0].name == self.relationctx.source.node.properties[
+                                'resource_id']][0]
+            else:
+                return [len(d[1]) for d in
+                        self.vca_client.get_disks(self.vcloud_config['vdc'])
+                        if d[0].name == self.relationctx.source.node.properties[
+                                'volume']['name']][0]
         with mock.patch('server_plugin.volume.ctx', self.relationctx):
             links_before = links_count()
             volume.attach_volume()
