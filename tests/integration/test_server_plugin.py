@@ -299,13 +299,16 @@ class VolumeTestCase(TestCase):
             'use_external_resource': False,
             'vcloud_config': self.vcloud_config
         }
-        self.target = MockCloudifyContext(node_id="target",
+        self.target = MockCloudifyContext(
+            node_id="target",
             properties={'vcloud_config': self.vcloud_config},
             runtime_properties={
-                VCLOUD_VAPP_NAME: self.test_config['test_vm']})
+                VCLOUD_VAPP_NAME: self.test_config['test_vm']
+            }
+        )
         self.source = MockCloudifyContext(
-            node_id="source",
-                 properties=self.properties)
+            node_id="source", properties=self.properties
+        )
         self.nodectx = cfy_mocks.MockCloudifyContext(
             node_id=name,
             node_name=name,
