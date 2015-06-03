@@ -118,7 +118,7 @@ def _volume_operation(vca_client, operation):
     vdc_name = get_vcloud_config()['vdc']
     vdc = vca_client.get_vdc(vdc_name)
     vmName = get_vapp_name(ctx.target.instance.runtime_properties)
-    if ctx.target.node.properties.get('use_external_resource'):
+    if ctx.source.node.properties.get('use_external_resource'):
         volumeName = ctx.source.node.properties['resource_id']
     else:
         volumeName = ctx.source.node.properties['volume']['name']
