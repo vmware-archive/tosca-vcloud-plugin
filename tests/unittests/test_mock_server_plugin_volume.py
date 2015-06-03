@@ -25,6 +25,9 @@ import network_plugin
 
 class ServerPluginServerMockTestCase(test_mock_base.TestBase):
 
+    # vapp name used for tests
+    VAPPNAME = "some_other"
+
     def test_creation_validation_external_resource(self):
         fake_client = self.generate_client()
         fake_ctx = cfy_mocks.MockCloudifyContext(
@@ -303,13 +306,13 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         with self.assertRaises(cfy_exc.NonRecoverableError):
             _run_volume_operation(fake_ctx, fake_client, 'ATTACH')
         fake_client._vapp.attach_disk_to_vm.assert_called_with(
-            'some', disk_ref
+            self.VAPPNAME, disk_ref
         )
         # disk exist, can't detach
         with self.assertRaises(cfy_exc.NonRecoverableError):
             _run_volume_operation(fake_ctx, fake_client, 'DETACH')
         fake_client._vapp.detach_disk_from_vm.assert_called_with(
-            'some', disk_ref
+            self.VAPPNAME, disk_ref
         )
         # wrong operation
         with self.assertRaises(cfy_exc.NonRecoverableError):
@@ -335,9 +338,6 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             },
             'use_external_resource': False
         }
-        fake_ctx._target.instance.runtime_properties = {
-            network_plugin.VCLOUD_VAPP_NAME: "some_other"
-        }
         _run_volume_operation(fake_ctx, fake_client, 'DETACH')
         fake_client._vapp.detach_disk_from_vm.assert_called_with(
             'some_other', disk_ref
@@ -357,6 +357,9 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
                 'vdc': 'vdc_name',
             },
             'resource_id': 'some'
+        }
+        fake_ctx._target.instance.runtime_properties = {
+            network_plugin.VCLOUD_VAPP_NAME: self.VAPPNAME
         }
         return fake_ctx, fake_client
 
