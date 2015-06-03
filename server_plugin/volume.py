@@ -92,11 +92,11 @@ def detach_volume(vca_client, **kwargs):
 def _volume_operation(vca_client, operation):
     vdc_name = get_vcloud_config()['vdc']
     vdc = vca_client.get_vdc(vdc_name)
-    volumeName = ctx.source.node.properties['volume']['name']
+    vmName = get_vapp_name(ctx.target.instance.runtime_properties)
     if ctx.target.node.properties.get('use_external_resource'):
-        vmName = ctx.source.node.properties['resource_id']
+        volumeName = ctx.source.node.properties['resource_id']
     else:
-        vmName = get_vapp_name(ctx.target.instance.runtime_properties)
+        volumeName = ctx.source.node.properties['volume']['name']
     vapp = vca_client.get_vapp(vdc, vmName)
     for ref in vca_client.get_diskRefs(vdc):
         if ref.name == volumeName:
