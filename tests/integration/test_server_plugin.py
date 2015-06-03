@@ -345,16 +345,19 @@ class VolumeTestCase(TestCase):
 
     def _attach_detach(self):
         def links_count():
-            if self.relationctx.source.node.properties['use_external_resource']:
-                return [len(d[1]) for d in
-                        self.vca_client.get_disks(self.vcloud_config['vdc'])
-                        if d[0].name == self.relationctx.source.node.properties[
-                                'resource_id']][0]
+            node_properties = self.relationctx.source.node.properties
+            if node_properties['use_external_resource']:
+                return [
+                    len(d[1]) for d in self.vca_client.get_disks(
+                        self.vcloud_config['vdc']
+                    ) if d[0].name == node_properties['resource_id']
+                ][0]
             else:
-                return [len(d[1]) for d in
-                        self.vca_client.get_disks(self.vcloud_config['vdc'])
-                        if d[0].name == self.relationctx.source.node.properties[
-                                'volume']['name']][0]
+                return [
+                    len(d[1]) for d in self.vca_client.get_disks(
+                        self.vcloud_config['vdc']
+                    ) if d[0].name == node_properties['volume']['name']
+                ][0]
         with mock.patch('server_plugin.volume.ctx', self.relationctx):
             links_before = links_count()
             volume.attach_volume()
