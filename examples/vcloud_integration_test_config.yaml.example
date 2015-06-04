@@ -53,6 +53,12 @@ security_group:
         protocol: Tcp
         source: external
         source_port: 29
+    -   source: host
+        destination: any
+        action: allow
+        description: >
+         backward network connection for host updates
+        protocol: any
     security_group:
         edge_gateway: gatewayname
 server:
@@ -70,5 +76,9 @@ server:
     ondemand_catalog: Public Catalog
     ondemand_template: Ubuntu Server 12.04 LTS (amd64 20150127)
     template: ''
+volume:
+    name: test_disk
+    name_exists: manager_disk
+    size: 10
 test_network_name: test-network
 test_vm: vapp_name
