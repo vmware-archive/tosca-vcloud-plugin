@@ -2,6 +2,9 @@ import fabric
 
 
 def configure(vcloud_config):
+    """
+        only update container with vcloud specific packages
+    """
     _update_container()
 
 

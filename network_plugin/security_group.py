@@ -17,19 +17,30 @@ ACTIONS = ("allow", "deny")
 @operation
 @with_vca_client
 def create(vca_client, **kwargs):
+    """
+        create firewall rules for node
+    """
     _rule_operation(CREATE_RULE, vca_client)
 
 
 @operation
 @with_vca_client
 def delete(vca_client, **kwargs):
+    """
+        drop firewall rules for node
+    """
     _rule_operation(DELETE_RULE, vca_client)
 
 
 @operation
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
-    getaway = get_gateway(vca_client, _get_gateway_name(ctx.node.properties))
+    """
+        validate firewall rules for node
+    """
+    getaway = get_gateway(
+        vca_client, _get_gateway_name(ctx.node.properties)
+    )
     if not getaway.is_fw_enabled():
         raise cfy_exc.NonRecoverableError(
             "Gateway firewall is disabled. Please, enable firewall.")
@@ -75,6 +86,9 @@ def creation_validation(vca_client, **kwargs):
 
 
 def _rule_operation(operation, vca_client):
+    """
+        create/delete firewall rules in gateway for current node
+    """
     gateway = get_gateway(
         vca_client, _get_gateway_name(ctx.target.node.properties))
     for rule in ctx.target.node.properties['rules']:
@@ -113,6 +127,10 @@ def _rule_operation(operation, vca_client):
 
 
 def _get_gateway_name(properties):
+    """
+        return geteway for current node from vcloud config or security
+        group settings
+    """
     security_group = properties.get('security_group')
     if security_group and 'edge_gateway' in security_group:
         getaway_name = security_group.get('edge_gateway')

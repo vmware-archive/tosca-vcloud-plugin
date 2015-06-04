@@ -31,6 +31,24 @@ DELETE_POOL = 2
 @operation
 @with_vca_client
 def create(vca_client, **kwargs):
+    """
+        create new vcloud air network, e.g.:
+        {
+            'use_external_resource': False,
+            'resource_id': 'secret_network',
+            'network': {
+                'dhcp': {
+                    'dhcp_range': "10.1.1.128-10.1.1.255"
+                },
+                'static_range':  "10.1.1.2-10.1.1.127",
+                'gateway_ip': "10.1.1.1",
+                'edge_gateway': 'gateway',
+                'name': 'secret_network',
+                "netmask": '255.255.255.0',
+                "dns": ["8.8.8.8", "4.4.4.4"]
+            }
+        }
+    """
     vdc_name = get_vcloud_config()['vdc']
     if ctx.node.properties['use_external_resource']:
         network_name = ctx.node.properties['resource_id']
@@ -84,6 +102,9 @@ def create(vca_client, **kwargs):
 @operation
 @with_vca_client
 def delete(vca_client, **kwargs):
+    """
+        delete vcloud air network
+    """
     if ctx.node.properties['use_external_resource'] is True:
         del ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME]
         ctx.logger.info("Network was not deleted - external resource has"
@@ -105,6 +126,9 @@ def delete(vca_client, **kwargs):
 @operation
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
+    """
+        check network description from node description
+    """
     network_name = get_network_name(ctx.node.properties)
     ctx.logger.info("Validation cloudify.vcloud.nodes.Network node: {0}"
                     .format(network_name))
@@ -147,6 +171,9 @@ def creation_validation(vca_client, **kwargs):
 
 
 def _dhcp_operation(vca_client, network_name, operation):
+    """
+        update dhcp setting for network
+    """
     dhcp_settings = ctx.node.properties['network'].get('dhcp')
     if dhcp_settings is None:
         return
@@ -178,6 +205,10 @@ def _dhcp_operation(vca_client, network_name, operation):
 
 
 def _split_adresses(address_range):
+    """
+        split network addresses from 1.1.1.1-2.2.2.2 representation to
+        separate (start,end) tuple
+    """
     adresses = [ip.strip() for ip in address_range.split('-')]
     IPRange = collections.namedtuple('IPRange', 'start end')
     try:
@@ -194,6 +225,9 @@ def _split_adresses(address_range):
 
 
 def _get_network_list(vca_client, vdc_name):
+    """
+        list all avable network for current vdc
+    """
     vdc = vca_client.get_vdc(vdc_name)
     if not vdc:
         raise cfy_exc.NonRecoverableError(

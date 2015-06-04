@@ -300,13 +300,16 @@ class VolumeTestCase(TestCase):
             'resource_id': self.volume_test_dict['name_exists'],
             'vcloud_config': self.vcloud_config
         }
-        self.target = MockCloudifyContext(node_id="target",
+        self.target = MockCloudifyContext(
+            node_id="target",
             properties={'vcloud_config': self.vcloud_config},
             runtime_properties={
-                VCLOUD_VAPP_NAME: self.test_config['test_vm']})
+                VCLOUD_VAPP_NAME: self.test_config['test_vm']
+            }
+        )
         self.source = MockCloudifyContext(
-            node_id="source",
-                 properties=self.properties)
+            node_id="source", properties=self.properties
+        )
         self.nodectx = cfy_mocks.MockCloudifyContext(
             node_id=name,
             node_name=name,
@@ -342,16 +345,19 @@ class VolumeTestCase(TestCase):
 
     def _attach_detach(self):
         def links_count():
-            if self.relationctx.source.node.properties['use_external_resource']:
-                return [len(d[1]) for d in
-                        self.vca_client.get_disks(self.vcloud_config['vdc'])
-                        if d[0].name == self.relationctx.source.node.properties[
-                                'resource_id']][0]
+            node_properties = self.relationctx.source.node.properties
+            if node_properties['use_external_resource']:
+                return [
+                    len(d[1]) for d in self.vca_client.get_disks(
+                        self.vcloud_config['vdc']
+                    ) if d[0].name == node_properties['resource_id']
+                ][0]
             else:
-                return [len(d[1]) for d in
-                        self.vca_client.get_disks(self.vcloud_config['vdc'])
-                        if d[0].name == self.relationctx.source.node.properties[
-                                'volume']['name']][0]
+                return [
+                    len(d[1]) for d in self.vca_client.get_disks(
+                        self.vcloud_config['vdc']
+                    ) if d[0].name == node_properties['volume']['name']
+                ][0]
         with mock.patch('server_plugin.volume.ctx', self.relationctx):
             links_before = links_count()
             volume.attach_volume()

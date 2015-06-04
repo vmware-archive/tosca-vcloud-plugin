@@ -36,6 +36,9 @@ DEFAULT_HOME = "/home"
 @operation
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
+    """
+        validate server settings, look to template in catalog
+    """
     def get_catalog(catalog_name):
         catalogs = vca_client.get_catalogs()
         for catalog in catalogs:
@@ -76,6 +79,25 @@ def creation_validation(vca_client, **kwargs):
 @operation
 @with_vca_client
 def create(vca_client, **kwargs):
+    """
+        create server by template,
+        if external_resource set return without creation,
+        e.g.:
+        {
+            'management_network': '_management_network',
+            'server': {
+                'template': 'template',
+                'catalog': 'catalog',
+                'guest_customization': {
+                    'pre_script': 'pre_script',
+                    'post_script': 'post_script',
+                    'public_keys': [{
+                        'key': True
+                    }]
+                }
+            }
+        }
+    """
     config = get_vcloud_config()
     server = {
         'name': ctx.instance.id,
@@ -93,6 +115,13 @@ def create(vca_client, **kwargs):
 
 
 def _create(vca_client, config, server):
+    """
+        create server by template,
+        customize:
+         * hardware: memmory/cpu
+         * software: root password, computer internal hostname
+         connect vm to network
+    """
     vapp_name = server['name']
     vapp_template = server['template']
     vapp_catalog = server['catalog']
@@ -180,6 +209,7 @@ def _create(vca_client, config, server):
                     .format(vapp_name, network_name))
             wait_for_task(vca_client, task)
 
+    # customize root password and hostname
     custom = server.get(GUEST_CUSTOMIZATION)
     if custom:
         vdc = vca_client.get_vdc(config['vdc'])
@@ -209,6 +239,9 @@ def _create(vca_client, config, server):
 @operation
 @with_vca_client
 def start(vca_client, **kwargs):
+    """
+    power on server and wait network connection availability for host
+    """
     if ctx.node.properties.get('use_external_resource'):
         ctx.logger.info('not starting server since an external server is '
                         'being used')
@@ -233,6 +266,9 @@ def start(vca_client, **kwargs):
 @operation
 @with_vca_client
 def stop(vca_client, **kwargs):
+    """
+        poweroff server, if external resource - server stay poweroned
+    """
     if ctx.node.properties.get('use_external_resource'):
         ctx.logger.info('not stopping server since an external server is '
                         'being used')
@@ -251,6 +287,9 @@ def stop(vca_client, **kwargs):
 @operation
 @with_vca_client
 def delete(vca_client, **kwargs):
+    """
+        delete server
+    """
     if ctx.node.properties.get('use_external_resource'):
         ctx.logger.info('not deleting server since an external server is '
                         'being used')
@@ -269,6 +308,11 @@ def delete(vca_client, **kwargs):
 
 
 def _get_management_network_from_node():
+    """
+        get management network name from:
+        * node properties or
+        * provider context (bootstrap context)
+    """
     management_network_name = ctx.node.properties.get('management_network')
     if not management_network_name:
         resources = ctx.provider_context.get('resources')
@@ -281,6 +325,9 @@ def _get_management_network_from_node():
 
 
 def _get_state(vca_client):
+    """
+        check network connection availability for host
+    """
     vapp_name = get_vapp_name(ctx.instance.runtime_properties)
     config = get_vcloud_config()
     vdc = vca_client.get_vdc(config['vdc'])
@@ -311,15 +358,24 @@ def _get_state(vca_client):
 
 
 def _vapp_is_on(vapp):
+    """
+        server is on
+    """
     return vapp.me.get_status() == STATUS_POWERED_ON
 
 
 def _get_vm_network_connections(vapp):
+    """
+        get list connected networlks
+    """
     connections = vapp.get_vms_network_info()[0]
     return filter(lambda network: network['is_connected'], connections)
 
 
 def _get_vm_network_connection(vapp, network_name):
+    """
+        return network connection by name
+    """
     connections = _get_vm_network_connections(vapp)
     for connection in connections:
         if connection['network_name'] == network_name:
@@ -327,6 +383,9 @@ def _get_vm_network_connection(vapp, network_name):
 
 
 def _build_script(custom):
+    """
+        create customization script
+    """
     pre_script = custom.get('pre_script', "")
     post_script = custom.get('post_script', "")
     public_keys = custom.get('public_keys')
@@ -357,6 +416,9 @@ fi
 
 
 def _build_public_keys_script(public_keys):
+    """
+        create script for update ssh keys
+    """
     key_commands = []
     ssh_dir_template = "{0}/{1}/.ssh"
     authorized_keys_template = "{0}/authorized_keys"
@@ -388,6 +450,9 @@ def _build_public_keys_script(public_keys):
 
 
 def _create_connections_list(vca_client):
+    """
+        return full list connections for node
+    """
     connections = []
     ports = _get_connected(ctx.instance, 'port')
     networks = _get_connected(ctx.instance, 'network')
@@ -398,6 +463,7 @@ def _create_connections_list(vca_client):
         raise cfy_exc.NonRecoverableError(
             "Network {0} could not be found".format(management_network_name))
 
+    # connection by port
     for port in ports:
         port_properties = port.node.properties['port']
         connections.append(
@@ -408,11 +474,14 @@ def _create_connections_list(vca_client):
                                                    'POOL').upper(),
                                port_properties.get('primary_interface', False))
         )
+
+    # connection by networks
     for net in networks:
         connections.append(
             _create_connection(get_network_name(net.node.properties),
                                None, None, 'POOL'))
 
+    # add managmenty network if not exist in list
     if not any([conn['network'] == management_network_name
                 for conn in connections]):
         connections.append(_create_connection(management_network_name,
@@ -422,6 +491,8 @@ def _create_connections_list(vca_client):
                                                          False),
                                    connections)) > 0
 
+    # check list of connections and set managment network as primary
+    # in case when we dont have any primary networks
     for conn in connections:
         network_name = conn['network']
         if (conn['ip_allocation_mode'] == 'DHCP'
@@ -438,6 +509,9 @@ def _create_connections_list(vca_client):
 
 
 def _get_connected(instance, prop):
+    """
+        get property from instance relationships
+    """
     relationships = getattr(instance, 'relationships', None)
     if relationships:
         return [relationship.target for relationship in relationships
@@ -448,6 +522,9 @@ def _get_connected(instance, prop):
 
 def _create_connection(network, ip_address, mac_address, ip_allocation_mode,
                        primary_interface=False):
+    """
+        repack fields to dict
+    """
     return {'network': network,
             'ip_address': ip_address,
             'mac_address': mac_address,
@@ -456,6 +533,9 @@ def _create_connection(network, ip_address, mac_address, ip_allocation_mode,
 
 
 def _isDhcpAvailable(vca_client, network_name):
+    """
+        check dhcp availability for network
+    """
     vdc_name = get_vcloud_config()['vdc']
     network = vca_client.get_network(vdc_name, network_name)
     if network.get_Configuration().get_FenceMode() == "bridged":
@@ -472,6 +552,11 @@ def _isDhcpAvailable(vca_client, network_name):
 
 
 def _check_hardware(cpu, memory):
+    """
+        check hardware setting
+            1 <= cpu <= 64
+            512M <= memmory <= 512G
+    """
     if cpu is not None:
         if isinstance(cpu, int):
             if cpu < 1:

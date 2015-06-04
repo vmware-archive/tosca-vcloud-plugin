@@ -23,6 +23,16 @@ from network_plugin import get_vapp_name
 @operation
 @with_vca_client
 def create_volume(vca_client, **kwargs):
+    """
+        create new volume, e.g.:
+        {
+            'use_external_resource': False,
+            'volume': {
+                'name': 'some-other',
+                'size': 11
+            }
+        }
+    """
     if ctx.node.properties.get('use_external_resource'):
         ctx.logger.info("External resource has been used")
         return
@@ -42,6 +52,9 @@ def create_volume(vca_client, **kwargs):
 @operation
 @with_vca_client
 def delete_volume(vca_client, **kwargs):
+    """
+        drop volume
+    """
     if ctx.node.properties.get('use_external_resource'):
         ctx.logger.info("External resource has been used")
         return
@@ -59,6 +72,9 @@ def delete_volume(vca_client, **kwargs):
 @operation
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
+    """
+        check volume description
+    """
     vdc_name = get_vcloud_config()['vdc']
     disks_names = [
         disk.name for [disk, _vms] in vca_client.get_disks(vdc_name)
@@ -80,16 +96,25 @@ def creation_validation(vca_client, **kwargs):
 @operation
 @with_vca_client
 def attach_volume(vca_client, **kwargs):
+    """
+        attach volume
+    """
     _volume_operation(vca_client, "ATTACH")
 
 
 @operation
 @with_vca_client
 def detach_volume(vca_client, **kwargs):
+    """
+        detach volume
+    """
     _volume_operation(vca_client, "DETACH")
 
 
 def _volume_operation(vca_client, operation):
+    """
+        attach/detach volume
+    """
     vdc_name = get_vcloud_config()['vdc']
     vdc = vca_client.get_vdc(vdc_name)
     vmName = get_vapp_name(ctx.target.instance.runtime_properties)

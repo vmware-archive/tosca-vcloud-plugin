@@ -13,18 +13,34 @@ from network_plugin import (check_ip, CheckAssignedExternalIp,
 @operation
 @with_vca_client
 def connect_floatingip(vca_client, **kwargs):
+    """
+        create new floating ip for node
+    """
     _floatingip_operation(CREATE, vca_client, ctx)
 
 
 @operation
 @with_vca_client
 def disconnect_floatingip(vca_client, **kwargs):
+    """
+        release floating ip
+    """
     _floatingip_operation(DELETE, vca_client, ctx)
 
 
 @operation
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
+    """
+        validate node context,
+        fields from floatingip dict:
+        * edge_gateway - mandatory,
+        * public_ip - prefered ip for node, can be empty
+        fields from vcloud_config:
+        * service_type - ondemand, subscription
+        also check availability of public ip if set or exist some free
+        ip in subscription case
+    """
     floatingip = get_mandatory(ctx.node.properties, 'floatingip')
     edge_gateway = get_mandatory(floatingip, 'edge_gateway')
     gateway = get_gateway(vca_client, edge_gateway)
@@ -39,6 +55,11 @@ def creation_validation(vca_client, **kwargs):
 
 
 def _floatingip_operation(operation, vca_client, ctx):
+    """
+        create/release floating ip by nat rules for this ip with
+        relation to internal ip for current node,
+        save selected public_ip in runtime properties
+    """
     service_type = get_vcloud_config().get('service_type')
     gateway = get_gateway(
         vca_client, ctx.target.node.properties['floatingip']['edge_gateway'])
@@ -87,6 +108,10 @@ def _floatingip_operation(operation, vca_client, ctx):
 
 
 def _add_nat_rule(gateway, rule_type, original_ip, translated_ip):
+    """
+        add nat rule with enable any types of trafic from translated_ip
+        to origin_ip
+    """
     any_type = "any"
 
     ctx.logger.info("Create floating ip NAT rule: original_ip '{0}',"
@@ -98,6 +123,9 @@ def _add_nat_rule(gateway, rule_type, original_ip, translated_ip):
 
 
 def _del_nat_rule(gateway, rule_type, original_ip, translated_ip):
+    """
+        drop rule created by add_nat_rule
+    """
     any_type = 'any'
 
     ctx.logger.info("Delete floating ip NAT rule: original_ip '{0}',"
