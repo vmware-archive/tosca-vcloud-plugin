@@ -227,7 +227,7 @@ class SecurityGroupOperationsTestCase(TestCase):
     def test_firewall_rules_create_delete(self):
         rules = len(self.get_rules())
         security_group.create()
-        self.assertEqual(rules + 1, len(self.get_rules()))
+        self.assertEqual(rules + 2, len(self.get_rules()))
         security_group.delete()
         self.assertEqual(rules, len(self.get_rules()))
 

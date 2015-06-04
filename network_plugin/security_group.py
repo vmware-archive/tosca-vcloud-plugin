@@ -116,8 +116,8 @@ def _rule_operation(operation, vca_client):
             ctx.logger.info(
                 "Firewall rule has been created: {0}".format(description))
         elif operation == DELETE_RULE:
-            gateway.delete_fw_rule(protocol, dest_port, dest_ip.lower(),
-                                   source_port, source_ip.lower())
+            gateway.delete_fw_rule(protocol, dest_port, _check_case(dest_ip),
+                                   source_port, _check_case(source_ip))
             ctx.logger.info(
                 "Firewall rule has been deleted: {0}".format(description))
 
@@ -137,3 +137,14 @@ def _get_gateway_name(properties):
     else:
         getaway_name = get_vcloud_config()['edge_gateway']
     return getaway_name
+
+
+def _check_case(value):
+    """
+    Fix behavior in pyvcloud.
+    'Any' must be capitalized, but
+    'internal' or 'external' must be in low case.
+    """
+    if value != 'Any':
+        return value.lower()
+    return value
