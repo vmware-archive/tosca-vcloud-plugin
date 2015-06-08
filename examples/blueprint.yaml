@@ -1,8 +1,8 @@
 tosca_definitions_version: cloudify_dsl_1_0
 
 imports:
-    - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
-    - https://raw.githubusercontent.com/vmware/tosca-vcloud-plugin/master/plugin.yaml
+    - http://www.getcloudify.org/spec/cloudify/3.2/types.yaml
+    - https://raw.githubusercontent.com/cloudify-cosmo/tosca-vcloud-plugin/master/plugin.yaml
 
 node_types:
     vcloud_configuration:
@@ -58,6 +58,9 @@ node_templates:
               type: cloudify.vcloud.server_connected_to_network
             - target: example_floating_ip
               type: cloudify.vcloud.server_connected_to_floating_ip
+            - target: volume
+              type: cloudify.vcloud.volume_attached_to_server
+
 
     example_floating_ip:
         type: cloudify.vcloud.nodes.FloatingIP
@@ -74,8 +77,7 @@ node_templates:
                 edge_gateway: M000000000-1111
                 public_ip: 24.44.44.244
             rules:
-                type:
-                    - SNAT
+                - type: SNAT
 
     example_public_nat_for_vm:
         type: cloudify.vcloud.nodes.PublicNAT
@@ -84,12 +86,11 @@ node_templates:
                 edge_gateway: M000000000-1111
                 public_ip: 24.44.44.244
             rules:
-                type:
-                    - SNAT
-                    - DNAT
-                protocol: tcp
-                original_port: 80
-                translated_port: 8080
+                - type: SNAT
+                - type: DNAT
+                  protocol: tcp
+                  original_port: 80
+                  translated_port: 8080
 
     example_port:
         type: cloudify.vcloud.nodes.Port
@@ -132,12 +133,23 @@ node_templates:
                 static_range: 10.10.0.2-10.10.0.128
                 netmask: 255.255.255.0
                 gateway_ip: 10.10.0.1
-                dns: 10.10.0.1
+                dns:
+                    - 8.8.8.8
+                    - 10.10.0.1
                 dns_suffix: test
                 dhcp:
                     dhcp_range: 10.10.0.129-10.10.0.254
                     default_lease: 3600
                     max_lease: 7200
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+
+    volume:
+        type: cloudify.vcloud.nodes.Volume
+        properties:
+            volume:
+                name: my_disk
+                # size in Megabytes
+                size: 1024
             vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
 
     vcloud_configuration:
@@ -148,5 +160,5 @@ node_templates:
                 password: pw
                 url: https://vchs.vmware.com
                 service: M000000000-1111
-                vdc: M000000000-1111
+                org: M000000000-1111
                 edge_gateway: M000000000-1111

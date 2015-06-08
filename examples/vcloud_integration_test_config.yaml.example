@@ -1,0 +1,84 @@
+agent_keypair:
+    key: agentkey
+    user: ubuntu
+combined:
+    network_name: existing-network
+    network_use_existing: false
+floatingip:
+    edge_gateway: gatewayname
+    public_ip: 1.2.3.4
+management_network: networkname
+manager_keypair:
+    key: mangerkey
+    user: ubuntu
+network:
+    dhcp:
+        default_lease: 3600
+        dhcp_range: 192.168.0.200-192.168.0.210
+        max_lease: 7200
+    dns:
+        - 10.147.115.1
+    dns_suffix: example.com
+    edge_gateway: gatewayname
+    gateway_ip: 192.168.0.1
+    name: newnetworkname
+    netmask: 255.255.255.0
+    static_range: 192.168.0.100-192.168.0.199
+ondemand_management_network: default-routed-network
+public_nat:
+    nat:
+        edge_gateway: gatewayname
+        public_ip: 23.92.245.236
+    network_name: newnet
+    rules_net:
+        - type: SNAT
+    rules_port:
+        -   type: SNAT
+        -   type: DNAT
+            original_port: 80
+            translated_port: 8080
+            protocol: Tcp
+        -   type: DNAT
+            original_port: 90
+            translated_port: 9090
+            protocol: Tcp
+    test_vm: vapp_name
+security_group:
+    rules:
+    -   action: allow
+        description: Rule description
+        destination: internal
+        destination_port: any
+        log_traffic: false
+        protocol: Tcp
+        source: external
+        source_port: 29
+    -   source: host
+        destination: any
+        action: allow
+        description: >
+         backward network connection for host updates
+        protocol: any
+    security_group:
+        edge_gateway: gatewayname
+server:
+    catalog: ''
+    guest_customization:
+        admin_password: '123'
+        computer_name: custom-name
+        post_script: echo 'postscript works' > /tmp/guest_cust.out
+        pre_script: echo 'prescript works' > /tmp/guest_cust.out
+        public_keys: []
+        script_executor: /bin/bash
+    hardware:
+        cpu: 3
+        memory: 2048
+    ondemand_catalog: Public Catalog
+    ondemand_template: Ubuntu Server 12.04 LTS (amd64 20150127)
+    template: ''
+volume:
+    name: test_disk
+    name_exists: manager_disk
+    size: 10
+test_network_name: test-network
+test_vm: vapp_name

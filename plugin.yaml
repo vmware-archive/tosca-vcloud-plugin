@@ -1,6 +1,3 @@
-imports:
-    - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
-
 plugins:
     vcloud:
         executor: central_deployment_agent
@@ -10,6 +7,10 @@ node_types:
     cloudify.vcloud.nodes.Server:
         derived_from: cloudify.nodes.Compute
         properties:
+            use_external_resource:
+                default: false
+            resource_id:
+                default: ''
             server:
                 default: {}
             management_network:
@@ -30,10 +31,9 @@ node_types:
                 delete:
                     implementation: vcloud.server_plugin.server.delete
                     inputs: {}
-            cloudify.interfaces.host:
-                get_state:
-                    implementation: vcloud.server_plugin.server.get_state
-                    inputs: {}
+            cloudify.interfaces.validation:
+                creation:
+                    implementation: vcloud.server_plugin.server.creation_validation
 
     cloudify.vcloud.nodes.Network:
         derived_from: cloudify.nodes.Network
@@ -85,10 +85,14 @@ node_types:
     cloudify.vcloud.nodes.PublicNAT:
         derived_from: cloudify.nodes.VirtualIP
         properties:
+            use_external_resource:
+                default: false
             nat:
                 default: {}
             rules:
                 default: []
+            vcloud_config:
+                default: {}
         interfaces:
             cloudify.interfaces.validation:
                 creation:
@@ -122,6 +126,32 @@ node_types:
                 creation:
                     implementation: vcloud.network_plugin.keypair.creation_validation
 
+
+    cloudify.vcloud.nodes.Volume:
+        derived_from: cloudify.nodes.Volume
+        properties:
+            device_name:
+                default: ''
+            volume:
+                default: {}
+            use_external_resource:
+                default: false
+            resource_id:
+                default: ''
+            vcloud_config:
+                default: {}
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                create:
+                    implementation: vcloud.server_plugin.volume.create_volume
+                    inputs: {}
+                delete:
+                    implementation: vcloud.server_plugin.volume.delete_volume
+                    inputs: {}
+            cloudify.interfaces.validation:
+                creation:
+                    implementation: vcloud.server_plugin.volume.creation_validation
+
 relationships:
     cloudify.vcloud.server_connected_to_floating_ip:
         derived_from: cloudify.relationships.connected_to
@@ -150,6 +180,7 @@ relationships:
                     implementation: vcloud.network_plugin.security_group.delete
                     inputs: {}
     cloudify.vcloud.net_connected_to_public_nat:
+        derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
                 establish:
@@ -159,6 +190,7 @@ relationships:
                     implementation: vcloud.network_plugin.public_nat.net_disconnect_from_nat
                     inputs: {}
     cloudify.vcloud.server_connected_to_public_nat:
+        derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
                 establish:
@@ -166,4 +198,15 @@ relationships:
                     inputs: {}
                 unlink:
                     implementation: vcloud.network_plugin.public_nat.server_disconnect_from_nat
+                    inputs: {}
+
+    cloudify.vcloud.volume_attached_to_server:
+        derived_from: cloudify.relationships.connected_to
+        target_interfaces:
+            cloudify.interfaces.relationship_lifecycle:
+                establish:
+                    implementation: vcloud.server_plugin.volume.attach_volume
+                    inputs: {}
+                unlink:
+                    implementation: vcloud.server_plugin.volume.detach_volume
                     inputs: {}

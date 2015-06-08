@@ -4,14 +4,27 @@ import json
 import fabric
 
 import vcloud_plugin_common
+from cloudify import ctx
+
+PROVIDER_CONTEXT_RUNTIME_PROPERTY = 'provider_context'
 
 
 def configure(vcloud_config):
+    """
+        copy configuration to managment host,
+        install docker
+        and save current context to .cloudify/context
+        For now - we have saved only managment network name
+    """
     _copy_vsphere_configuration_to_manager(vcloud_config)
-    _update_vm()
+    _install_docker()
+    _save_context()
 
 
 def _copy_vsphere_configuration_to_manager(vcloud_config):
+    """
+        Copy current config to remote node
+    """
     tmp = tempfile.mktemp()
     with open(tmp, 'w') as f:
         json.dump(vcloud_config, f)
@@ -19,19 +32,40 @@ def _copy_vsphere_configuration_to_manager(vcloud_config):
                    vcloud_plugin_common.Config.VCLOUD_CONFIG_PATH_DEFAULT)
 
 
-def _get_distro():
-    """ detect current distro """
-    return fabric.api.run('python -c "import platform; print platform.dist()[0]"')
+def _install_docker():
+    """
+        install docker from https://get.docker.com/
+    """
+    distro = fabric.api.run(
+        'python -c "import platform; print platform.dist()[0]"')
+    kernel_version = fabric.api.run(
+        'python -c "import platform; print platform.release()"')
+    if kernel_version.startswith("3.13") and 'Ubuntu' in distro:
+        fabric.api.run("wget -qO- https://get.docker.com/ | sudo sh")
 
 
-def _update_vm():
-    """ install some packeges for future deployments creation """
-    distro = _get_distro()
-    if 'Ubuntu' in distro:
-        # update system to last version
-        fabric.api.run("sudo apt-get update -q -y 2>&1")
-        fabric.api.run("sudo apt-get dist-upgrade -q -y 2>&1")
-        # install:
-        # * zram-config for minimize out-of-memory cases with zswap
-        # * other packages for create deployments from source
-        fabric.api.run("sudo apt-get install zram-config gcc python-dev libxml2-dev libxslt-dev -q -y 2>&1")
+def _save_context():
+    """
+        save current managment network for use as default network for
+        all new nodes
+    """
+    resources = dict()
+
+    node_instances = ctx._endpoint.storage.get_node_instances()
+    nodes_by_id = \
+        {node.id: node for node in ctx._endpoint.storage.get_nodes()}
+
+    for node_instance in node_instances:
+        props = nodes_by_id[node_instance.node_id].properties
+
+        if "management_network" == node_instance.node_id:
+            resources['int_network'] = {
+                "name": props.get('resource_id')
+            }
+
+    provider = {
+        'resources': resources
+    }
+
+    ctx.instance.runtime_properties[PROVIDER_CONTEXT_RUNTIME_PROPERTY] = \
+        provider
