@@ -124,12 +124,12 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
             if rule_type == security_group.CREATE_RULE:
                 gateway.add_fw_rule.assert_called_once_with(
                     True, 'Rule added by pyvcloud', 'allow', 'Any',
-                    'Any', 'External', 'Any', 'External', False
+                    'any', 'external', 'any', 'external', False
                 )
                 self.assertFalse(gateway.delete_fw_rule.called)
             else:
                 gateway.delete_fw_rule.assert_called_once_with(
-                    'Any', 'Any', 'external', 'Any', 'external'
+                    'Any', 'any', 'external', 'any', 'external'
                 )
                 self.assertFalse(gateway.add_fw_rule.called)
             self.check_rule_operation_fail(rule_type, [{}])
@@ -155,7 +155,7 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
             if rule_type == security_group.CREATE_RULE:
                 gateway.add_fw_rule.assert_called_once_with(
                     True, 'description', 'deny', 'Tcp', '40',
-                    'Internal', '22', 'External', True
+                    'internal', '22', 'external', True
                 )
                 self.assertFalse(gateway.delete_fw_rule.called)
             else:
@@ -517,27 +517,6 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
                 "action": 'allow'
             })
 
-    def test_check_case(self):
-        """
-            check code for lower any strings, except 'Any'
-        """
-        def check_convert(origin, result):
-            self.assertEqual(
-                security_group._check_case(origin),
-                result
-            )
-        # "External" => "external"
-        check_convert("External", "external")
-        # "external" => "external"
-        check_convert("external", "external")
-        # "Internal" => "internal"
-        check_convert("Internal", "internal")
-        # "internal" => "internal"
-        check_convert("internal", "internal")
-        # "Any" => "any"
-        check_convert("Any", "Any")
-        # "any" => "any"
-        check_convert("any", "any")
 
 if __name__ == '__main__':
     unittest.main()
