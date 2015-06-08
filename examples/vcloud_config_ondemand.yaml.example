@@ -1,0 +1,6 @@
+password: password
+instance: 00000000-0000-0000-0000-000000000000
+service_type: ondemand
+url: iam.vchs.vmware.com
+username: user
+org: VDC1

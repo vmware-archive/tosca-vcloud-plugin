@@ -8,6 +8,11 @@ from network_plugin import check_ip
 @operation
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
+    """
+        validate port settings,
+        ip_allocation_mode must be in 'manual', 'dhcp', 'pool',
+        and valid ip_address if set
+    """
     port = get_mandatory(ctx.node.properties, 'port')
     ip_allocation_mode = port.get('ip_allocation_mode')
     if ip_allocation_mode:

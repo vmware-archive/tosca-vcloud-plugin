@@ -1,8 +1,21 @@
+# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  * See the License for the specific language governing permissions and
+#  * limitations under the License.
+
 import contextlib
 import ipaddress
 import mock
 import random
-import socket
 import string
 import time
 import unittest
@@ -11,9 +24,8 @@ from cloudify import mocks as cfy_mocks
 
 from network_plugin import floatingip, network
 from server_plugin import server
-from vcloud_plugin_common import get_vcloud_config, VcloudAirClient
 
-from tests.integration import TestCase, IntegrationTestConfig
+from tests.integration import TestCase
 
 RANDOM_PREFIX_LENGTH = 5
 
@@ -22,16 +34,15 @@ class CombinedTestCase(TestCase):
 
     def setUp(self):
         super(CombinedTestCase, self).setUp()
-        self.test_config = IntegrationTestConfig().get()
         chars = string.ascii_uppercase + string.digits
         self.name_prefix = ('plugin_test_{0}_'
                             .format(''.join(
                                 random.choice(chars)
-                                for _ in range(RANDOM_PREFIX_LENGTH)))
-                            )
+                                for _ in range(RANDOM_PREFIX_LENGTH))))
 
     def _setup_network(self):
-        network_use_existing = self.test_config['combined']['network_use_existing']
+        network_use_existing = \
+            self.test_config['combined']['network_use_existing']
         existing_network = self.test_config['combined']['network_name']
         self.network_name = (existing_network if network_use_existing
                              else self.name_prefix + "network")
@@ -41,9 +52,8 @@ class CombinedTestCase(TestCase):
             properties={
                 "network": self.test_config['network'],
                 "use_external_resource": network_use_existing,
-                "resource_id": self.network_name
-                }
-        )
+                "resource_id": self.network_name,
+                "vcloud_config": self.vcloud_config})
 
     def _setup_server(self, ip_allocation_mode):
         self.server_name = self.name_prefix + 'server'
@@ -65,7 +75,8 @@ class CombinedTestCase(TestCase):
             node_name=self.server_name,
             properties={
                 'server': self.test_config['server'],
-                'management_network': self.network_name
+                'management_network': self.network_name,
+                "vcloud_config": self.vcloud_config
             }
         )
         self.server_ctx.instance.relationships = [port_relationship]
@@ -80,6 +91,7 @@ class CombinedTestCase(TestCase):
                 properties={'floatingip': self.test_config['floatingip']}),
             source=cfy_mocks.MockCloudifyContext(
                 node_id="source",
+                properties={'vcloud_config': self.vcloud_config},
                 runtime_properties={server.VCLOUD_VAPP_NAME: self.server_name}
             )
         )
@@ -101,12 +113,14 @@ class CombinedTestCase(TestCase):
             netmask = self.network_ctx.node.properties['network']['netmask']
             gw_interface = ipaddress.IPv4Interface(
                 gw_ip + '/' + netmask)
-            vdc = self.vca_client.get_vdc(self.vcloud_config['vdc'])
+            vdc = self.vca_client.get_vdc(self.vcloud_config['org'])
             vapp = self.vca_client.get_vapp(
                 vdc,
-                self.server_ctx.instance.runtime_properties[server.VCLOUD_VAPP_NAME])
-            nw_connection = server._get_vm_network_connection(vapp,
-                                                              self.network_name)
+                self.server_ctx.instance.runtime_properties[
+                    server.VCLOUD_VAPP_NAME]
+            )
+            nw_connection = server._get_vm_network_connection(
+                vapp, self.network_name)
             self.assertTrue(ipaddress.IPv4Address(unicode(nw_connection['ip']))
                             in gw_interface.network,
                             "vm ip: {0}, expected network: {1}"
@@ -130,12 +144,14 @@ class CombinedTestCase(TestCase):
             netmask = self.network_ctx.node.properties['network']['netmask']
             gw_interface = ipaddress.IPv4Interface(
                 gw_ip + '/' + netmask)
-            vdc = self.vca_client.get_vdc(self.vcloud_config['vdc'])
+            vdc = self.vca_client.get_vdc(self.vcloud_config['org'])
             vapp = self.vca_client.get_vapp(
                 vdc,
-                self.server_ctx.instance.runtime_properties[server.VCLOUD_VAPP_NAME])
-            nw_connection = server._get_vm_network_connection(vapp,
-                                                              self.network_name)
+                self.server_ctx.instance.runtime_properties[
+                    server.VCLOUD_VAPP_NAME]
+            )
+            nw_connection = server._get_vm_network_connection(
+                vapp, self.network_name)
             self.assertTrue(ipaddress.IPv4Address(unicode(nw_connection['ip']))
                             in gw_interface.network,
                             "vm ip: {0}, expected network: {1}"
@@ -144,56 +160,56 @@ class CombinedTestCase(TestCase):
 
     def _create_network(self):
         with contextlib.nested(
-            mock.patch('network_plugin.network.ctx', self.network_ctx),
-            mock.patch('vcloud_plugin_common.ctx', self.network_ctx)):
-                network.create()
+                mock.patch('network_plugin.network.ctx', self.network_ctx),
+                mock.patch('vcloud_plugin_common.ctx', self.network_ctx)):
+            network.create()
 
     def _delete_network(self):
         with contextlib.nested(
-            mock.patch('network_plugin.network.ctx', self.network_ctx),
-            mock.patch('vcloud_plugin_common.ctx', self.network_ctx)):
-                network.delete()
+                mock.patch('network_plugin.network.ctx', self.network_ctx),
+                mock.patch('vcloud_plugin_common.ctx', self.network_ctx)):
+            network.delete()
 
     def _create_server(self):
         with contextlib.nested(
-            mock.patch('server_plugin.server.ctx', self.server_ctx),
-            mock.patch('vcloud_plugin_common.ctx', self.server_ctx)):
-                server.create()
-                server.start()
+                mock.patch('server_plugin.server.ctx', self.server_ctx),
+                mock.patch('vcloud_plugin_common.ctx', self.server_ctx)):
+            server.create()
+            self._run_with_retry(server.start, self.server_ctx)
 
     def _delete_server(self):
         with contextlib.nested(
-            mock.patch('server_plugin.server.ctx', self.server_ctx),
-            mock.patch('vcloud_plugin_common.ctx', self.server_ctx)):
-                server.stop()
-                server.delete()
+                mock.patch('server_plugin.server.ctx', self.server_ctx),
+                mock.patch('vcloud_plugin_common.ctx', self.server_ctx)):
+            server.stop()
+            server.delete()
 
     def _wait_for_server_configured(self):
         with contextlib.nested(
-            mock.patch('server_plugin.server.ctx', self.server_ctx),
-            mock.patch('vcloud_plugin_common.ctx', self.server_ctx)):
-                num_tries = 10
-                verified = False
-                for _ in range(num_tries):
-                    result = server.get_state()
-                    if result is True:
-                        verified = True
-                        break
-                    time.sleep(10)
-                self.assertTrue(verified,
-                                "Server configuration wasn't verified")
+                mock.patch('server_plugin.server.ctx', self.server_ctx),
+                mock.patch('vcloud_plugin_common.ctx', self.server_ctx)):
+            num_tries = 10
+            verified = False
+            for _ in range(num_tries):
+                result = server._get_state(self.vca_client)
+                if result is True:
+                    verified = True
+                    break
+                time.sleep(10)
+            self.assertTrue(verified,
+                            "Server configuration wasn't verified")
 
     def _connect_floating_ip(self):
         with contextlib.nested(
-            mock.patch('network_plugin.floatingip.ctx', self.fip_ctx),
-            mock.patch('vcloud_plugin_common.ctx', self.fip_ctx)):
-                floatingip.connect_floatingip()
+                mock.patch('network_plugin.floatingip.ctx', self.fip_ctx),
+                mock.patch('vcloud_plugin_common.ctx', self.fip_ctx)):
+            floatingip.connect_floatingip()
 
     def _disconnect_floating_ip(self):
         with contextlib.nested(
-            mock.patch('network_plugin.floatingip.ctx', self.fip_ctx),
-            mock.patch('vcloud_plugin_common.ctx', self.fip_ctx)):
-                floatingip.disconnect_floatingip()
+                mock.patch('network_plugin.floatingip.ctx', self.fip_ctx),
+                mock.patch('vcloud_plugin_common.ctx', self.fip_ctx)):
+            floatingip.disconnect_floatingip()
 
 
 if __name__ == '__main__':

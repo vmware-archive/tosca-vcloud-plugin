@@ -1,5 +1,4 @@
-#########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,24 +12,6 @@
 #  * See the License for the specific language governing permissions and
 #  * limitations under the License.
 
-from setuptools import setup
+from pkgutil import extend_path
 
-setup(
-    zip_safe=True,
-    name='cloudify-vcloud-plugin',
-    version='1.2',
-    packages=[
-        'vcloud_plugin_common',
-        'server_plugin',
-        'network_plugin'
-    ],
-    license='LICENSE',
-    description='Cloudify plugin for vmWare vCloud infrastructure.',
-    install_requires=[
-        'cloudify-plugins-common>=3.2',
-        'pyvcloud==13rc10',
-        'requests==2.4',
-        'IPy==0.81',
-        'PyYAML==3.10'
-    ]
-)
+__path__ = extend_path(__path__, __name__)
