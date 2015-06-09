@@ -165,7 +165,7 @@ node_templates:
                 name: nodevcloud_security_group
                 edge_gateway: { get_input: edge_gateway }
             rules:
-                - source: external
+                - source: any
                   destination: internal
                   destination_port: 22
                   action: allow
