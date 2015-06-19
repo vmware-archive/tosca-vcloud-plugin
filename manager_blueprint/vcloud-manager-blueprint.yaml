@@ -8,23 +8,36 @@ imports:
 inputs:
     vcloud_username:
         type: string
+        description: >
+            User login for vcloud air
 
     vcloud_password:
         type: string
+        default: ''
+        description: >
+            User password for vcloud air - for login by name + password
 
     vcloud_token:
         type: string
         default: ''
+        description: >
+            User token for vcloud air - for login by name + token
 
     vcloud_url:
         type: string
+        description: >
+            Vcloud url
 
     vcloud_service:
         type: string
+        description: >
+            Vcloud service
 
     vcloud_service_type:
         type: string
         default: 'subscription'
+        description: >
+            Type of service: subscription, ondemand, vcd, private
 
     vcloud_instance:
         type: string
@@ -35,6 +48,8 @@ inputs:
     vcloud_api_version:
         type: string
         default: '5.6'
+        description: >
+            Version of api, for now 5.6
 
     vcloud_org_url:
         type: string
@@ -47,49 +62,79 @@ inputs:
 
     vcloud_org:
         type: string
+        description: >
+            Organization uuid
 
     vcloud_vdc:
         type: string
+        description: >
+            Virtual data center name
 
     manager_server_name:
         type: string
+        description: >
+            Name for server
 
     manager_server_catalog:
         type: string
+        description: >
+            Name of catalog, can be 'Public Catalog'
 
     manager_server_template:
         type: string
+        description: >
+            Name of template from catalog,
+            can be 'Ubuntu Server 12.04 LTS (amd64 20150127)'
 
     manager_server_cpus:
         type: string
         default: 2
+        description: >
+            Count cpu on node
 
     manager_server_memory:
         type: string
         default: 4096
+        description: >
+            Amount memmory on node
 
     management_network_use_existing:
         type: boolean
         default: false
+        description: >
+            Use existed network
 
     management_network_name:
         type: string
+        description: >
+            Name common network that can be used for nodes as managment
+            network
 
     management_port_ip_allocation_mode:
         type: string
         default: pool
+        description: >
+            Ip allocation type for case when you doesn't set public ip
+            for node and want auto allocate ip
 
     management_port_ip_address:
         type: string
         default: ''
+        description: >
+            Port public ip
 
     management_network_public_nat_use_existing:
         type: boolean
         default: false
+        description: >
+            Use already existed nat rules, only for case when you
+            doesn't want to change nat rules
 
     management_network_public_ip:
         type: string
         default: ''
+        description: >
+            Manager network public ip (used for SNAT)
 
     edge_gateway:
         type: string
@@ -109,52 +154,73 @@ inputs:
         type: string
         default: 22
         description: >
-            ssh port that can be used for installed node
+            SSH port that can be used for installed node
 
     agents_user:
         type: string
         default: ubuntu
+        description: >
+            User name that will be used for agent
 
     manager_server_user:
         default: ubuntu
         type: string
+        description: >
+            User name that will be used for login to manager
 
     manager_private_key_path:
         default: ~/.ssh/cloudify-manager-kp.pem
         type: string
+        description: >
+            Private key for manager
 
     agent_private_key_path:
         default: ~/.ssh/cloudify-agent-kp.pem
         type: string
+        description: >
+            Private key for agent
 
     manager_public_key:
         type: string
         default: ''
+        description: >
+            Public key for manager
 
     agent_public_key:
         type: string
         default: ''
+        description: >
+            Public key for agent
 
     resources_prefix:
         type: string
         default: ''
+        description: >
+            Prefix for node name
 
     volume_use_external:
         type: boolean
         default: false
+        description: >
+            Use alredy exised volume
 
     volume_external_name:
         type: string
         default: ''
+        description: >
+            Volume resource id
 
     volume_name:
         type: string
         default: 'manager_disk'
+        description: >
+            Volume name
 
     volume_size_Mb:
         type: string
         default: 10240
-
+        description: >
+            Volume size in Mb
 
 node_types:
     vcloud_configuration:
