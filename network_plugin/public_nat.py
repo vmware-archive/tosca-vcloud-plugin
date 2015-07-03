@@ -29,6 +29,16 @@ PORT_REPLACEMENT = 'port_replacement'
 
 @operation
 @with_vca_client
+def net_connect_to_nat_preconfigure(vca_client, **kwargs):
+    for rule in ctx.target.node.properties['rules']:
+        if rule['type'].lower() == 'dnat':
+            raise cfy_exc.NonRecoverableError(
+                "In 'cloudify.vcloud.net_connected_to_public_nat' relationship"
+                " you can use only 'SNAT' rules.")
+
+
+@operation
+@with_vca_client
 def net_connect_to_nat(vca_client, **kwargs):
     """
         create nat rule for current node
