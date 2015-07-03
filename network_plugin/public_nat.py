@@ -145,6 +145,7 @@ def prepare_server_operation(vca_client, operation):
         for rule in ctx.target.node.properties['rules']:
             if has_snat:
                 ctx.logger.info("Rules list must contains only one SNAT rule.")
+                continue
             rule_type = rule['type']
             protocol = rule.get('protocol', "any")
             original_port = rule.get('original_port', "any")
