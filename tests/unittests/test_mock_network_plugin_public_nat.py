@@ -995,5 +995,37 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             'any', 'any'
         )
 
+    def test_net_connect_to_nat_preconfigure(self):
+        fake_client, fake_ctx = self.generate_client_and_context_network()
+        fake_ctx._target.node.properties = {
+            'nat': {
+                'edge_gateway': 'gateway'
+            },
+            'rules': [{
+                'type': 'DNAT'
+            }]
+        }
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                public_nat.net_connect_to_nat_preconfigure(ctx=fake_ctx)
+
+        fake_client, fake_ctx = self.generate_client_and_context_network()
+        fake_ctx._target.node.properties = {
+            'nat': {
+                'edge_gateway': 'gateway'
+            },
+            'rules': [{
+                'type': 'SNAT'
+            }]
+        }
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            public_nat.net_connect_to_nat_preconfigure(ctx=fake_ctx)
+
 if __name__ == '__main__':
     unittest.main()
