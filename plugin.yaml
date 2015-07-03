@@ -183,6 +183,9 @@ relationships:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
+                preconfigure:
+                    implementation: vcloud.network_plugin.public_nat.net_connect_to_nat_preconfigure
+                    inputs: {}
                 establish:
                     implementation: vcloud.network_plugin.public_nat.net_connect_to_nat
                     inputs: {}
