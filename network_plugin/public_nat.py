@@ -30,11 +30,14 @@ PORT_REPLACEMENT = 'port_replacement'
 @operation
 @with_vca_client
 def net_connect_to_nat_preconfigure(vca_client, **kwargs):
-    for rule in ctx.target.node.properties['rules']:
-        if rule['type'].lower() == 'dnat':
+    rules = ctx.target.node.properties['rules']
+    if len(rules) != 1:
+        raise cfy_exc.NonRecoverableError(
+            "Rules list must contains only one element")
+    if rules[0]['type'].lower() == 'dnat':
             raise cfy_exc.NonRecoverableError(
                 "In 'cloudify.vcloud.net_connected_to_public_nat' relationship"
-                " you can use only 'SNAT' rules.")
+                " you can use only 'SNAT' rule.")
 
 
 @operation
@@ -138,7 +141,11 @@ def prepare_server_operation(vca_client, operation):
             vca_client, ctx.target.node.properties['nat']['edge_gateway'])
         public_ip = _obtain_public_ip(vca_client, ctx, gateway, operation)
         private_ip = get_vm_ip(vca_client, ctx, gateway)
+        has_snat = False
         for rule in ctx.target.node.properties['rules']:
+            if has_snat:
+                ctx.logger.info("Rules list must contains only one SNAT rule.")
+                continue
             rule_type = rule['type']
             protocol = rule.get('protocol', "any")
             original_port = rule.get('original_port', "any")
@@ -147,6 +154,8 @@ def prepare_server_operation(vca_client, operation):
                 vca_client, gateway, operation,
                 rule_type, public_ip,
                 private_ip, original_port, translated_port, protocol)
+            if rule_type == "SNAT":
+                has_snat = True
     except KeyError as e:
         raise cfy_exc.NonRecoverableError("Parameter not found: {0}".format(e))
     _save_configuration(gateway, vca_client, operation, public_ip)
