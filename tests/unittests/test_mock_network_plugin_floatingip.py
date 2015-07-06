@@ -239,10 +239,10 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             with mock.patch(
                 'network_plugin.floatingip.ctx', fake_ctx
             ):
-                floatingip._floatingip_operation(
-                    network_plugin.DELETE, fake_client, fake_ctx
-                )
-        self.check_retry_realy_called(fake_ctx)
+                with self.assertRaises(cfy_exc.NonRecoverableError):
+                    floatingip._floatingip_operation(
+                        network_plugin.DELETE, fake_client, fake_ctx
+                    )
         # busy in save with ip in runtime_properties
         fake_client, fake_ctx = self.generate_client_and_context_floating_ip()
         self.set_services_conf_result(
@@ -264,10 +264,10 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             with mock.patch(
                 'network_plugin.floatingip.ctx', fake_ctx
             ):
-                floatingip._floatingip_operation(
-                    network_plugin.DELETE, fake_client, fake_ctx
-                )
-        self.check_retry_realy_called(fake_ctx)
+                with self.assertRaises(cfy_exc.NonRecoverableError):
+                    floatingip._floatingip_operation(
+                        network_plugin.DELETE, fake_client, fake_ctx
+                    )
         # unknow operation
         fake_client, fake_ctx = self.generate_client_and_context_floating_ip()
         fake_ctx._target.node.properties = {

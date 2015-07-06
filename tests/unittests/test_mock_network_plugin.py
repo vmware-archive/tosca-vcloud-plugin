@@ -183,13 +183,14 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         """
         gateway = self.generate_gateway()
         fake_client = self.generate_client()
+        fake_ctx = self.generate_relation_context()
         # cant save configuration - error in first call
         self.set_services_conf_result(
             gateway, None
         )
         with self.assertRaises(cfy_exc.NonRecoverableError):
             network_plugin.save_gateway_configuration(
-                gateway, fake_client
+                gateway, fake_ctx, fake_client
             )
         # error in status
         self.set_services_conf_result(
@@ -197,15 +198,15 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         with self.assertRaises(cfy_exc.NonRecoverableError):
             network_plugin.save_gateway_configuration(
-                gateway, fake_client
+                gateway, fake_ctx, fake_client
             )
         # everything fine
         self.set_services_conf_result(
             gateway, vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
-        self.assertTrue(
+        self.assertIsNone(
             network_plugin.save_gateway_configuration(
-                gateway, fake_client
+                gateway, fake_ctx, fake_client
             )
         )
         # server busy
@@ -213,11 +214,11 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             gateway, None
         )
         self.set_gateway_busy(gateway)
-        self.assertFalse(
+        with self.assertRaises(cfy_exc.NonRecoverableError):
             network_plugin.save_gateway_configuration(
-                gateway, fake_client
+                gateway, fake_ctx, fake_client
             )
-        )
+
 
     def test_is_network_routed(self):
         """

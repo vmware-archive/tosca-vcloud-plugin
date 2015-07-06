@@ -16,6 +16,9 @@ import mock
 import unittest
 from cloudify import mocks as cfy_mocks
 from network_plugin import BUSY_MESSAGE, NAT_ROUTED
+import network_plugin
+network_plugin.GATEWAY_TRY_COUNT = 2
+network_plugin.GATEWAY_TIMEOUT = 1
 
 
 class TestBase(unittest.TestCase):

@@ -113,12 +113,11 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
                 # returned busy, try next time
                 self.set_gateway_busy(fake_client._vdc_gateway)
                 self.prepare_retry(fake_ctx)
-
-                network._dhcp_operation(
-                    fake_client, '_management_network',
-                    network.DELETE_POOL
-                ), None
-                self.check_retry_realy_called(fake_ctx)
+                with self.assertRaises(cfy_exc.NonRecoverableError):
+                    network._dhcp_operation(
+                        fake_client, '_management_network',
+                        network.DELETE_POOL
+                    )
 
                 # no such gateway
                 fake_client.get_gateway = mock.MagicMock(return_value=None)

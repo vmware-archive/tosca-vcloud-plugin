@@ -132,7 +132,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             self.assertEqual(
                 fake_ctx._target.instance.runtime_properties,
                 {
-                    public_nat.PORT_REPLACEMENT:  {
+                    public_nat.PORT_REPLACEMENT: {
                         ('external', '10'): 11
                     }
                 }
@@ -392,11 +392,10 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         with mock.patch(
             'network_plugin.public_nat.ctx', fake_ctx
         ):
-            self.prepare_retry(fake_ctx)
-            public_nat._save_configuration(
-                gateway, fake_client, "any", "any"
-            )
-            self.check_retry_realy_called(fake_ctx)
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                public_nat._save_configuration(
+                    gateway, fake_client, "any", "any"
+                )
         # operation create
         fake_ctx = self.generate_relation_context()
         self.set_services_conf_result(
