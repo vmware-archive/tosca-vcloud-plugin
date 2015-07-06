@@ -111,7 +111,8 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         ]:
             gateway = self.check_rule_operation(rule_type, [])
             gateway.save_services_configuration.assert_called_once_with()
-            self.check_rule_operation_fail(rule_type, [])
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                self.check_rule_operation_fail(rule_type, [])
             self.assertFalse(gateway.add_fw_rule.called)
             self.assertFalse(gateway.delete_fw_rule.called)
 
@@ -126,13 +127,12 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
                     True, 'Rule added by pyvcloud', 'allow', 'Any',
                     'any', 'external', 'any', 'external', False
                 )
-                self.assertFalse(gateway.delete_fw_rule.called)
             else:
                 gateway.delete_fw_rule.assert_called_once_with(
                     'Any', 'any', 'external', 'any', 'external'
                 )
-                self.assertFalse(gateway.add_fw_rule.called)
-            self.check_rule_operation_fail(rule_type, [{}])
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                self.check_rule_operation_fail(rule_type, [{}])
 
     def test_rule_operation_internal_rule(self):
         for rule_type in [
@@ -163,7 +163,8 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
                     'Tcp', '40', 'internal', '22', 'external'
                 )
                 self.assertFalse(gateway.add_fw_rule.called)
-            self.check_rule_operation_fail(rule_type, rules)
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                self.check_rule_operation_fail(rule_type, rules)
 
     def test_rule_operation_icmp_rule(self):
         for rule_type in [
@@ -194,7 +195,8 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
                     'Icmp', '22', '5.6.7.8', '60', '1.2.3.4'
                 )
                 self.assertFalse(gateway.add_fw_rule.called)
-            self.check_rule_operation_fail(rule_type, rules)
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                self.check_rule_operation_fail(rule_type, rules)
 
     def test_rule_operation_tcp_rule(self):
         for rule_type in [
@@ -219,13 +221,10 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
                     True, 'ip', 'deny', 'Tcp', '22', '5.6.7.8', '60',
                     '1.2.3.4', True
                 )
-                self.assertFalse(gateway.delete_fw_rule.called)
             else:
                 gateway.delete_fw_rule.assert_called_once_with(
                     'Tcp', '22', '5.6.7.8', '60', '1.2.3.4'
                 )
-                self.assertFalse(gateway.add_fw_rule.called)
-            self.check_rule_operation_fail(rule_type, rules)
 
     def test_rule_operation_host_rule(self):
         for rule_type in [

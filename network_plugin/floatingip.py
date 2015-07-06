@@ -90,9 +90,7 @@ def _floatingip_operation(operation, vca_client, ctx):
 
     nat_operation(gateway, "SNAT", internal_ip, external_ip)
     nat_operation(gateway, "DNAT", external_ip, internal_ip)
-    if not save_gateway_configuration(gateway, vca_client):
-        return ctx.operation.retry(message='Waiting for gateway.',
-                                   retry_after=10)
+    save_gateway_configuration(gateway, ctx, vca_client)
 
     if operation == CREATE:
         ctx.target.instance.runtime_properties[PUBLIC_IP] = external_ip

@@ -132,7 +132,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             self.assertEqual(
                 fake_ctx._target.instance.runtime_properties,
                 {
-                    public_nat.PORT_REPLACEMENT:  {
+                    public_nat.PORT_REPLACEMENT: {
                         ('external', '10'): 11
                     }
                 }
@@ -392,11 +392,10 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         with mock.patch(
             'network_plugin.public_nat.ctx', fake_ctx
         ):
-            self.prepare_retry(fake_ctx)
-            public_nat._save_configuration(
-                gateway, fake_client, "any", "any"
-            )
-            self.check_retry_realy_called(fake_ctx)
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                public_nat._save_configuration(
+                    gateway, fake_client, "any", "any"
+                )
         # operation create
         fake_ctx = self.generate_relation_context()
         self.set_services_conf_result(
@@ -994,6 +993,38 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             'DNAT', '10.18.1.1', 'any', '127.1.1.100 - 127.1.1.200',
             'any', 'any'
         )
+
+    def test_net_connect_to_nat_preconfigure(self):
+        fake_client, fake_ctx = self.generate_client_and_context_network()
+        fake_ctx._target.node.properties = {
+            'nat': {
+                'edge_gateway': 'gateway'
+            },
+            'rules': [{
+                'type': 'DNAT'
+            }]
+        }
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                public_nat.net_connect_to_nat_preconfigure(ctx=fake_ctx)
+
+        fake_client, fake_ctx = self.generate_client_and_context_network()
+        fake_ctx._target.node.properties = {
+            'nat': {
+                'edge_gateway': 'gateway'
+            },
+            'rules': [{
+                'type': 'SNAT'
+            }]
+        }
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            public_nat.net_connect_to_nat_preconfigure(ctx=fake_ctx)
 
 if __name__ == '__main__':
     unittest.main()
