@@ -199,9 +199,7 @@ def _dhcp_operation(vca_client, network_name, operation):
         ctx.logger.info("DHCP rule successful deleted for network {0}"
                         .format(network_name))
 
-    if not save_gateway_configuration(gateway, vca_client):
-        return ctx.operation.retry(message='Waiting for gateway.',
-                                   retry_after=10)
+    save_gateway_configuration(gateway, ctx, vca_client)
 
 
 def _split_adresses(address_range):

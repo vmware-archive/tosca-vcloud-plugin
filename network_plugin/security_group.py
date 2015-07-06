@@ -121,9 +121,7 @@ def _rule_operation(operation, vca_client):
             ctx.logger.info(
                 "Firewall rule has been deleted: {0}".format(description))
 
-    if not save_gateway_configuration(gateway, vca_client):
-        return ctx.operation.retry(message='Waiting for gateway.',
-                                   retry_after=10)
+    save_gateway_configuration(gateway, ctx, vca_client)
 
 
 def _get_gateway_name(properties):

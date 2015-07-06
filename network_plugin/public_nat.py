@@ -207,9 +207,8 @@ def _save_configuration(gateway, vca_client, operation, public_ip):
     """
         save/refresh nat rules on gateway
     """
-    if not save_gateway_configuration(gateway, vca_client):
-        return ctx.operation.retry(message='Waiting for gateway.',
-                                   retry_after=10)
+    save_gateway_configuration(gateway, ctx, vca_client)
+
     ctx.logger.info("NAT configuration has been saved")
     if operation == CREATE:
         ctx.target.instance.runtime_properties[PUBLIC_IP] = public_ip
