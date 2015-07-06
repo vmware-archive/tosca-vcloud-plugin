@@ -219,7 +219,6 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
                 gateway, fake_ctx, fake_client
             )
 
-
     def test_is_network_routed(self):
         """
             check network route state
@@ -282,7 +281,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         utils.check_port(10)
         # port int to big
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            utils.check_port(utils.MAX_PORT_NUMBER+1)
+            utils.check_port(utils.MAX_PORT_NUMBER + 1)
         # port any
         utils.check_port('any')
         # port not any and not int
