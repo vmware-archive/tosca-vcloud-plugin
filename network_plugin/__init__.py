@@ -150,13 +150,15 @@ def save_gateway_configuration(gateway, ctx, vca_client):
         else:
             error = taskType.parseString(gateway.response.content, True)
             if BUSY_MESSAGE in error.message:
-                ctx.logger.info("Gateway is busy. Waiting for {} seconds.".format(GATEWAY_TIMEOUT))
+                ctx.logger.info("Gateway is busy. Waiting for {} seconds."
+                                .format(GATEWAY_TIMEOUT))
                 time.sleep(GATEWAY_TIMEOUT)
             else:
                 raise cfy_exc.NonRecoverableError(error.message)
                 ctx.logger.info()
     raise cfy_exc.NonRecoverableError("Can't save gateway configuration."
-                                      "The maximum number of save attempts has been exceed.")
+                                      "The maximum number of save"
+                                      " attempts has been exceed.")
 
 
 def getFreeIP(gateway):
