@@ -68,12 +68,13 @@ def creation_validation(vca_client, **kwargs):
     catalog = get_catalog(server_dict['catalog'])
     if catalog is None:
         raise cfy_exc.NonRecoverableError(
-            "Catalog {0} could not be found".format(server_dict['catalog']))
+            "Catalog '{0}' could not be found".format(server_dict['catalog']))
 
     template = get_template(catalog, server_dict['template'])
     if template is None:
         raise cfy_exc.NonRecoverableError(
-            "Template {0} could not be found".format(server_dict['template']))
+            "Template '{0}' could not be found".
+            format(server_dict['template']))
 
 
 @operation
@@ -173,7 +174,7 @@ def _create(vca_client, config, server):
             vapp = vca_client.get_vapp(vdc, vapp_name)
             if vapp is None:
                 raise cfy_exc.NonRecoverableError(
-                    "vApp {0} could not be found".format(vapp_name))
+                    "vApp '{0}' could not be found".format(vapp_name))
 
             network_name = connection.get('network')
             network = get_network(vca_client, network_name)
@@ -461,7 +462,7 @@ def _create_connections_list(vca_client):
 
     if not is_network_exists(vca_client, management_network_name):
         raise cfy_exc.NonRecoverableError(
-            "Network {0} could not be found".format(management_network_name))
+            "Network '{0}' could not be found".format(management_network_name))
 
     # connection by port
     for port in ports:

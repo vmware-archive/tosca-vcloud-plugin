@@ -183,14 +183,13 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         """
         gateway = self.generate_gateway()
         fake_client = self.generate_client()
-        fake_ctx = self.generate_relation_context()
         # cant save configuration - error in first call
         self.set_services_conf_result(
             gateway, None
         )
         with self.assertRaises(cfy_exc.NonRecoverableError):
             network_plugin.save_gateway_configuration(
-                gateway, fake_ctx, fake_client
+                gateway, fake_client
             )
         # error in status
         self.set_services_conf_result(
@@ -198,15 +197,15 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         with self.assertRaises(cfy_exc.NonRecoverableError):
             network_plugin.save_gateway_configuration(
-                gateway, fake_ctx, fake_client
+                gateway, fake_client
             )
         # everything fine
         self.set_services_conf_result(
             gateway, vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
-        self.assertIsNone(
+        self.assertTrue(
             network_plugin.save_gateway_configuration(
-                gateway, fake_ctx, fake_client
+                gateway, fake_client
             )
         )
         # server busy
@@ -214,10 +213,11 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             gateway, None
         )
         self.set_gateway_busy(gateway)
-        with self.assertRaises(cfy_exc.NonRecoverableError):
+        self.assertFalse(
             network_plugin.save_gateway_configuration(
-                gateway, fake_ctx, fake_client
+                gateway, fake_client
             )
+        )
 
     def test_is_network_routed(self):
         """
@@ -281,7 +281,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         utils.check_port(10)
         # port int to big
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            utils.check_port(utils.MAX_PORT_NUMBER + 1)
+            utils.check_port(utils.MAX_PORT_NUMBER+1)
         # port any
         utils.check_port('any')
         # port not any and not int

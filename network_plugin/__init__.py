@@ -1,4 +1,3 @@
-import time
 from IPy import IP
 from cloudify import exceptions as cfy_exc
 import collections
@@ -6,17 +5,18 @@ from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType
 from vcloud_plugin_common import (wait_for_task, get_vcloud_config,
                                   is_subscription)
 
+
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 PUBLIC_IP = 'public_ip'
 NAT_ROUTED = 'natRouted'
 CREATE = 1
 DELETE = 2
-GATEWAY_TRY_COUNT = 10
-GATEWAY_TIMEOUT = 30
 
 
 AssignedIPs = collections.namedtuple('AssignedIPs', 'external internal')
 BUSY_MESSAGE = "The entity gateway is busy completing an operation."
+
+GATEWAY_TIMEOUT = 30
 
 
 def check_ip(address):
@@ -134,31 +134,22 @@ def get_vapp_name(runtime_properties):
     return vapp_name
 
 
-def save_gateway_configuration(gateway, ctx, vca_client):
+def save_gateway_configuration(gateway, vca_client):
     """
         save gateway configuration,
         return everything successfully finished
         raise NonRecoverableError - can't get task description
     """
-    for count in range(GATEWAY_TRY_COUNT):
-        ctx.logger.info("Saving gateway configuration. Retry {} of {}"
-                        .format(count + 1, GATEWAY_TRY_COUNT))
-        task = gateway.save_services_configuration()
-        if task:
-            wait_for_task(vca_client, task)
-            return
+    task = gateway.save_services_configuration()
+    if task:
+        wait_for_task(vca_client, task)
+        return True
+    else:
+        error = taskType.parseString(gateway.response.content, True)
+        if BUSY_MESSAGE in error.message:
+            return False
         else:
-            error = taskType.parseString(gateway.response.content, True)
-            if BUSY_MESSAGE in error.message:
-                ctx.logger.info("Gateway is busy. Waiting for {} seconds."
-                                .format(GATEWAY_TIMEOUT))
-                time.sleep(GATEWAY_TIMEOUT)
-            else:
-                raise cfy_exc.NonRecoverableError(error.message)
-                ctx.logger.info()
-    raise cfy_exc.NonRecoverableError("Can't save gateway configuration."
-                                      "The maximum number of save"
-                                      " attempts has been exceed.")
+            raise cfy_exc.NonRecoverableError(error.message)
 
 
 def getFreeIP(gateway):
@@ -291,3 +282,9 @@ def get_gateway(vca_client, gateway_name):
         raise cfy_exc.NonRecoverableError(
             "Gateway {0}  not found".format(gateway_name))
     return gateway
+
+
+def set_retry(ctx):
+    return ctx.operation.retry(
+        message='Waiting for gateway.',
+        retry_after=GATEWAY_TIMEOUT)

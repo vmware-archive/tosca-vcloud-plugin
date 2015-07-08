@@ -7,7 +7,8 @@ from network_plugin import (check_ip, CheckAssignedExternalIp,
                             CheckAssignedInternalIp, get_vm_ip,
                             save_gateway_configuration, getFreeIP,
                             CREATE, DELETE, PUBLIC_IP, get_gateway,
-                            get_public_ip, del_ondemand_public_ip)
+                            get_public_ip, del_ondemand_public_ip,
+                            set_retry)
 
 
 @operation
@@ -16,7 +17,8 @@ def connect_floatingip(vca_client, **kwargs):
     """
         create new floating ip for node
     """
-    _floatingip_operation(CREATE, vca_client, ctx)
+    if not _floatingip_operation(CREATE, vca_client, ctx):
+        return set_retry(ctx)
 
 
 @operation
@@ -25,7 +27,8 @@ def disconnect_floatingip(vca_client, **kwargs):
     """
         release floating ip
     """
-    _floatingip_operation(DELETE, vca_client, ctx)
+    if not _floatingip_operation(DELETE, vca_client, ctx):
+        return set_retry(ctx)
 
 
 @operation
@@ -63,6 +66,8 @@ def _floatingip_operation(operation, vca_client, ctx):
     service_type = get_vcloud_config().get('service_type')
     gateway = get_gateway(
         vca_client, ctx.target.node.properties['floatingip']['edge_gateway'])
+    if gateway.is_busy():
+        return False
     internal_ip = get_vm_ip(vca_client, ctx, gateway)
 
     nat_operation = None
@@ -90,8 +95,9 @@ def _floatingip_operation(operation, vca_client, ctx):
 
     nat_operation(gateway, "SNAT", internal_ip, external_ip)
     nat_operation(gateway, "DNAT", external_ip, internal_ip)
-    save_gateway_configuration(gateway, ctx, vca_client)
-
+    success = save_gateway_configuration(gateway, vca_client)
+    if not success:
+        return False
     if operation == CREATE:
         ctx.target.instance.runtime_properties[PUBLIC_IP] = external_ip
     else:
@@ -103,6 +109,7 @@ def _floatingip_operation(operation, vca_client, ctx):
                     ctx.target.instance.runtime_properties[PUBLIC_IP],
                     ctx)
         del ctx.target.instance.runtime_properties[PUBLIC_IP]
+    return True
 
 
 def _add_nat_rule(gateway, rule_type, original_ip, translated_ip):

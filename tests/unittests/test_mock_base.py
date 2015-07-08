@@ -65,7 +65,7 @@ class TestBase(unittest.TestCase):
         """
         ctx.operation.retry.assert_called_with(
             message='Waiting for gateway.',
-            retry_after=10
+            retry_after=30
         )
 
     def generate_gateway(
@@ -110,6 +110,7 @@ class TestBase(unittest.TestCase):
         gate.deallocate_public_ip = mock.MagicMock(return_value=None)
         # public ips not exist
         gate.get_public_ips = mock.MagicMock(return_value=[])
+        gate.is_busy = mock.MagicMock(return_value=False)
         return gate
 
     def generate_fake_client_network(
