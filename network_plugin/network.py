@@ -119,7 +119,7 @@ def delete(vca_client, **kwargs):
             "Network {0} has been successful deleted.".format(network_name))
     else:
         raise cfy_exc.NonRecoverableError(
-            "Could not delete network {0}".format(network_name))
+            "Could not delete network {0}: {1}".format(network_name, task))
     wait_for_task(vca_client, task)
 
 
