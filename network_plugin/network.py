@@ -121,10 +121,10 @@ def delete(vca_client, **kwargs):
         get_vcloud_config()['vdc'], network_name)
     if success:
         ctx.logger.info(
-            "Network {0} has been successful deleted.".format(network_name))
+            "Network '{0}' has been successful deleted.".format(network_name))
     else:
         raise cfy_exc.NonRecoverableError(
-            "Could not delete network {0}".format(network_name))
+            "Could not delete network '{0}': {1}".format(network_name, task))
     wait_for_task(vca_client, task)
 
 
@@ -194,15 +194,18 @@ def _dhcp_operation(vca_client, network_name, operation):
         max_lease = dhcp_settings.get('max_lease')
         gateway.add_dhcp_pool(network_name, low_ip_address, hight_ip_address,
                               default_lease, max_lease)
-        ctx.logger.info("DHCP rule successful created for network {0}"
-                        .format(network_name))
+        if save_gateway_configuration(gateway, vca_client):
+            ctx.logger.info("DHCP rule successful created for network {0}"
+                            .format(network_name))
+            return True
 
     if operation == DELETE_POOL:
         gateway.delete_dhcp_pool(network_name)
-        ctx.logger.info("DHCP rule successful deleted for network {0}"
-                        .format(network_name))
-
-    return save_gateway_configuration(gateway, vca_client)
+        if save_gateway_configuration(gateway, vca_client):
+            ctx.logger.info("DHCP rule successful deleted for network {0}"
+                            .format(network_name))
+            return True
+    return False
 
 
 def _split_adresses(address_range):
