@@ -22,10 +22,10 @@ from network_plugin import (check_ip, is_valid_ip_range, is_separate_ranges,
                             is_ips_in_same_subnet, save_gateway_configuration,
                             get_network_name, is_network_exists)
 
-
 VCLOUD_NETWORK_NAME = 'vcloud_network_name'
 ADD_POOL = 1
 DELETE_POOL = 2
+CANT_DELETE = "cannot be deleted, because it is in use"
 
 
 @operation
@@ -89,11 +89,11 @@ def create(vca_client, **kwargs):
         vdc_name, network_name, gateway_name, start_address,
         end_address, gateway_ip, netmask, dns1, dns2, dns_suffix)
     if success:
-        ctx.logger.info("Network {0} has been successfully created."
+        ctx.logger.info("Network '{0}' has been successfully created."
                         .format(network_name))
     else:
         raise cfy_exc.NonRecoverableError(
-            "Could not create network {0}: {1}".format(network_name, result))
+            "Could not create network '{0}': {1}".format(network_name, result))
     wait_for_task(vca_client, result)
     ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = network_name
     _dhcp_operation(vca_client, network_name, ADD_POOL)
@@ -118,6 +118,10 @@ def delete(vca_client, **kwargs):
         ctx.logger.info(
             "Network {0} has been successful deleted.".format(network_name))
     else:
+        if task and CANT_DELETE in task:
+            ctx.logger.info("Network {} in use. Deleting the network skipped.".
+                            format(network_name))
+            return
         raise cfy_exc.NonRecoverableError(
             "Could not delete network {0}: {1}".format(network_name, task))
     wait_for_task(vca_client, task)
