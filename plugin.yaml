@@ -125,6 +125,13 @@ node_types:
             cloudify.interfaces.validation:
                 creation:
                     implementation: vcloud.network_plugin.keypair.creation_validation
+            cloudify.interfaces.lifecycle:
+                create:
+                    implementation: vcloud.network_plugin.keypair.create
+                    inputs: {}
+                delete:
+                    implementation: vcloud.network_plugin.keypair.delete
+                    inputs: {}
 
 
     cloudify.vcloud.nodes.Volume:
