@@ -13,7 +13,7 @@
 #  * limitations under the License.
 
 import unittest
-
+import mock
 from cloudify import exceptions as cfy_exc
 from tests.unittests import test_mock_base
 from network_plugin import keypair
@@ -37,6 +37,16 @@ class NetworkPluginKeyPairpMockTestCase(test_mock_base.TestBase):
         )
         with self.assertRaises(cfy_exc.NonRecoverableError):
             keypair.creation_validation(ctx=fake_ctx)
+
+    def test_create(self):
+        fake_ctx =  self.generate_node_context(
+            properties={'auto_generate': True})
+        with mock.patch(
+                'network_plugin.keypair.ctx', fake_ctx):
+            with mock.patch(
+                    'network_plugin.keypair._save_private_key', mock.MagicMock()):
+                keypair.create()
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -97,6 +97,15 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             fake_client.delete_vdc_network.assert_called_with(
                 'vdc_name', 'secret_network'
             )
+            # Error in deleted vdc network
+            task_delete_vdc = self.generate_task(
+                vcloud_plugin_common.TASK_STATUS_ERROR
+            )
+            fake_client.delete_vdc_network = mock.MagicMock(
+                return_value=(False, "Network cannot be deleted, because it is in use")
+            )
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                network.delete(ctx=fake_ctx)
             # Success in deleted vdc network
             task_delete_vdc = self.generate_task(
                 vcloud_plugin_common.TASK_STATUS_SUCCESS

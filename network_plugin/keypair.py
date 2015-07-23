@@ -58,10 +58,9 @@ def delete(**kwargs):
 
 def _generate_pair():
     key = RSA.generate(2048)
-    priv_value = key.exportKey('PEM')
-    pubkey = key.publickey()
-    pub_value = pubkey.exportKey('OpenSSH')
-    return pub_value, priv_value
+    private_value = key.exportKey('PEM')
+    public_value = key.publickey().exportKey('OpenSSH')
+    return public_value, private_value
 
 
 def _create_path():

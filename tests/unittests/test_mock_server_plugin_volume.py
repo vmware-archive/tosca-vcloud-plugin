@@ -292,7 +292,6 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
                     'server_plugin.volume.ctx', fake_ctx
                 ):
                     volume._volume_operation(fake_client, operation)
-
         # use external resource, no disks
         _run_volume_operation(fake_ctx, fake_client, 'ATTACH')
         fake_client.get_diskRefs.assert_called_with(
@@ -342,6 +341,19 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         fake_client._vapp.detach_disk_from_vm.assert_called_with(
             'some_other', disk_ref
         )
+        # disk exist, use external resource
+        fake_ctx._target.node.properties = {
+            'volume': {
+                'name': 'some'
+            },
+            'use_external_resource': False
+        }
+        fake_ctx._source.node.properties.update({'use_external_resource':True})
+        _run_volume_operation(fake_ctx, fake_client, 'DETACH')
+        fake_client._vapp.detach_disk_from_vm.assert_called_with(
+            'some_other', disk_ref
+        )
+
 
     def _gen_volume_context_and_client(self):
         fake_client = self.generate_client()
