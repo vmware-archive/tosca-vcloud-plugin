@@ -7,7 +7,7 @@ from Crypto.PublicKey import RSA
 
 PRIVATE_KEY_PATH = 'private_key_path'
 PRIVATE_KEY_VALUE = 'private_key_value'
-PUBLIC_KEY_VALUE = 'publci_key_value'
+PUBLIC_KEY_VALUE = 'public_key_value'
 AUTO_GENERATE = 'auto_generate'
 
 
@@ -33,12 +33,12 @@ def create(**kwargs):
         ctx.instance.runtime_properties[PRIVATE_KEY_PATH] = _create_path()
         ctx.instance.runtime_properties[PRIVATE_KEY_VALUE] = private
         ctx.instance.runtime_properties[PUBLIC_KEY_VALUE] = public
-        _save_private_key(ctx.instance.runtime_properties[PRIVATE_KEY_PATH],
+        _save_key_file(ctx.instance.runtime_properties[PRIVATE_KEY_PATH],
                           ctx.instance.runtime_properties[PRIVATE_KEY_VALUE])
     else:
         if ctx.node.properties[PRIVATE_KEY_VALUE]:
             ctx.instance.runtime_properties[PRIVATE_KEY_PATH] = _create_path()
-            _save_private_key(ctx.instance.runtime_properties[PRIVATE_KEY_PATH],
+            _save_key_file(ctx.instance.runtime_properties[PRIVATE_KEY_PATH],
                               ctx.node.properties[PRIVATE_KEY_VALUE])
 
 
@@ -67,7 +67,7 @@ def _create_path():
     return '~/.ssh/{}_private.key'.format(ctx.instance.id)
 
 
-def _save_private_key(path, value):
+def _save_key_file(path, value):
     with open(path, 'w') as content_file:
         chmod(path, 0600)
         content_file.write(value)
