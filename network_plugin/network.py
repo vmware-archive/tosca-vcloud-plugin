@@ -23,11 +23,11 @@ from network_plugin import (check_ip, is_valid_ip_range, is_separate_ranges,
                             get_network_name, is_network_exists,
                             get_gateway, set_retry)
 
-
 VCLOUD_NETWORK_NAME = 'vcloud_network_name'
 SKIP_CREATE_NETWORK = 'skip_create_network'
 ADD_POOL = 1
 DELETE_POOL = 2
+CANT_DELETE = "cannot be deleted, because it is in use"
 
 
 @operation
@@ -123,6 +123,10 @@ def delete(vca_client, **kwargs):
         ctx.logger.info(
             "Network '{0}' has been successful deleted.".format(network_name))
     else:
+        if task and CANT_DELETE in task:
+            ctx.logger.info("Network {} in use. Deleting the network skipped.".
+                            format(network_name))
+            return
         raise cfy_exc.NonRecoverableError(
             "Could not delete network '{0}': {1}".format(network_name, task))
     wait_for_task(vca_client, task)
