@@ -115,11 +115,11 @@ node_types:
     cloudify.vcloud.nodes.KeyPair:
         derived_from: cloudify.nodes.Root
         properties:
+            auto_generate:
+                default: false
             private_key_path:
                 default: ''
             public_key:
-                default: {}
-            vcloud_config:
                 default: {}
         interfaces:
             cloudify.interfaces.validation:
