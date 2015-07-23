@@ -4,7 +4,7 @@ from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, get_mandatory,
                                   get_vcloud_config)
 from network_plugin import (check_ip, get_vm_ip, save_gateway_configuration,
-                            get_gateway, utils)
+                            get_gateway, utils, set_retry)
 
 
 CREATE_RULE = 1
@@ -20,7 +20,8 @@ def create(vca_client, **kwargs):
     """
         create firewall rules for node
     """
-    _rule_operation(CREATE_RULE, vca_client)
+    if not _rule_operation(CREATE_RULE, vca_client):
+        return set_retry(ctx)
 
 
 @operation
@@ -29,7 +30,8 @@ def delete(vca_client, **kwargs):
     """
         drop firewall rules for node
     """
-    _rule_operation(DELETE_RULE, vca_client)
+    if not _rule_operation(DELETE_RULE, vca_client):
+        return set_retry(ctx)
 
 
 @operation
@@ -91,6 +93,8 @@ def _rule_operation(operation, vca_client):
     """
     gateway = get_gateway(
         vca_client, _get_gateway_name(ctx.target.node.properties))
+    if gateway.is_busy():
+        return False
     for rule in ctx.target.node.properties['rules']:
         description = rule.get('description', "Rule added by pyvcloud").strip()
         source_ip = rule.get("source", "external")
@@ -121,9 +125,7 @@ def _rule_operation(operation, vca_client):
             ctx.logger.info(
                 "Firewall rule has been deleted: {0}".format(description))
 
-    if not save_gateway_configuration(gateway, vca_client):
-        return ctx.operation.retry(message='Waiting for gateway.',
-                                   retry_after=10)
+    return save_gateway_configuration(gateway, vca_client)
 
 
 def _get_gateway_name(properties):

@@ -114,11 +114,10 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
                 self.set_gateway_busy(fake_client._vdc_gateway)
                 self.prepare_retry(fake_ctx)
 
-                network._dhcp_operation(
+                self.assertFalse(network._dhcp_operation(
                     fake_client, '_management_network',
                     network.DELETE_POOL
-                ), None
-                self.check_retry_realy_called(fake_ctx)
+                ))
 
                 # no such gateway
                 fake_client.get_gateway = mock.MagicMock(return_value=None)

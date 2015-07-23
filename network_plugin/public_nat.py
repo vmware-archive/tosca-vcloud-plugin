@@ -20,7 +20,7 @@ from vcloud_plugin_common import (with_vca_client, get_vcloud_config,
 from network_plugin import (check_ip, save_gateway_configuration,
                             get_vm_ip, get_public_ip,
                             get_gateway, getFreeIP, CREATE, DELETE, PUBLIC_IP,
-                            del_ondemand_public_ip, utils)
+                            del_ondemand_public_ip, utils, set_retry)
 from network_plugin.network import VCLOUD_NETWORK_NAME
 from IPy import IP
 
@@ -34,7 +34,7 @@ def net_connect_to_nat_preconfigure(vca_client, **kwargs):
     if len(rules) != 1:
         raise cfy_exc.NonRecoverableError(
             "Rules list must contains only one element")
-    if rules[0]['type'].lower() == 'dnat':
+    if _is_dnat(rules[0]['type']):
             raise cfy_exc.NonRecoverableError(
                 "In 'cloudify.vcloud.net_connected_to_public_nat' relationship"
                 " you can use only 'SNAT' rule.")
@@ -49,7 +49,8 @@ def net_connect_to_nat(vca_client, **kwargs):
     if ctx.target.node.properties.get('use_external_resource', False):
         ctx.logger.info("Using existing Public NAT.")
         return
-    prepare_network_operation(vca_client, CREATE)
+    if not prepare_network_operation(vca_client, CREATE):
+        return set_retry(ctx)
 
 
 @operation
@@ -61,7 +62,8 @@ def net_disconnect_from_nat(vca_client, **kwargs):
     if ctx.target.node.properties.get('use_external_resource', False):
         ctx.logger.info("Using existing Public NAT.")
         return
-    prepare_network_operation(vca_client, DELETE)
+    if not prepare_network_operation(vca_client, DELETE):
+        return set_retry(ctx)
 
 
 @operation
@@ -70,7 +72,8 @@ def server_connect_to_nat(vca_client, **kwargs):
     """
         create nat rules for server
     """
-    prepare_server_operation(vca_client, CREATE)
+    if not prepare_server_operation(vca_client, CREATE):
+        return set_retry(ctx)
 
 
 @operation
@@ -79,7 +82,8 @@ def server_disconnect_from_nat(vca_client, **kwargs):
     """
         drop nat rules for server
     """
-    prepare_server_operation(vca_client, DELETE)
+    if not prepare_server_operation(vca_client, DELETE):
+        return set_retry(ctx)
 
 
 @operation
@@ -98,7 +102,7 @@ def creation_validation(vca_client, **kwargs):
         if is_subscription(service_type):
             getFreeIP(gateway)
     for rule in get_mandatory(ctx.node.properties, 'rules'):
-        if rule['type'] == "DNAT":
+        if _is_dnat(rule['type']):
             utils.check_protocol(rule.get('protocol'))
             original_port = rule.get('original_port')
             if original_port and not isinstance(original_port, int):
@@ -129,7 +133,7 @@ def prepare_network_operation(vca_client, operation):
         raise cfy_exc.NonRecoverableError(
             "Parameter not found: {0}".format(e)
         )
-    _save_configuration(gateway, vca_client, operation, public_ip)
+    return _save_configuration(gateway, vca_client, operation, public_ip)
 
 
 def prepare_server_operation(vca_client, operation):
@@ -143,10 +147,10 @@ def prepare_server_operation(vca_client, operation):
         private_ip = get_vm_ip(vca_client, ctx, gateway)
         has_snat = False
         for rule in ctx.target.node.properties['rules']:
-            if has_snat:
+            rule_type = rule['type']
+            if has_snat and _is_snat(rule_type):
                 ctx.logger.info("Rules list must contains only one SNAT rule.")
                 continue
-            rule_type = rule['type']
             protocol = rule.get('protocol', "any")
             original_port = rule.get('original_port', "any")
             translated_port = rule.get('translated_port', "any")
@@ -154,11 +158,11 @@ def prepare_server_operation(vca_client, operation):
                 vca_client, gateway, operation,
                 rule_type, public_ip,
                 private_ip, original_port, translated_port, protocol)
-            if rule_type == "SNAT":
+            if _is_snat(rule_type):
                 has_snat = True
     except KeyError as e:
         raise cfy_exc.NonRecoverableError("Parameter not found: {0}".format(e))
-    _save_configuration(gateway, vca_client, operation, public_ip)
+    return _save_configuration(gateway, vca_client, operation, public_ip)
 
 
 def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
@@ -185,7 +189,7 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
     info_message = ("{6} NAT rule: rule type '{2}', original_ip '{0}', "
                     "translated_ip '{1}',protocol '{3}', "
                     "original_port '{4}', translated_port '{5}'")
-    if rule_type == "SNAT":
+    if _is_snat(rule_type):
         # for SNAT type ports and protocol must by "any",
         #  because they are not configurable
         ctx.logger.info(
@@ -194,22 +198,25 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
                                 message))
         function(
             rule_type, private_ip, "any", public_ip, "any", "any")
-    elif rule_type == "DNAT":
+    elif _is_dnat(rule_type):
         ctx.logger.info(
             info_message.format(public_ip, private_ip, rule_type, protocol,
                                 new_original_port, translated_port,
                                 message))
         function(rule_type, public_ip, str(new_original_port), private_ip,
                  str(translated_port), protocol)
+    else:
+        raise cfy_exc.NonRecoverableError(
+            "Unknown rule type: {0}".format(rule_type))
 
 
 def _save_configuration(gateway, vca_client, operation, public_ip):
     """
         save/refresh nat rules on gateway
     """
-    if not save_gateway_configuration(gateway, vca_client):
-        return ctx.operation.retry(message='Waiting for gateway.',
-                                   retry_after=10)
+    success = save_gateway_configuration(gateway, vca_client)
+    if not success:
+        return False
     ctx.logger.info("NAT configuration has been saved")
     if operation == CREATE:
         ctx.target.instance.runtime_properties[PUBLIC_IP] = public_ip
@@ -223,6 +230,7 @@ def _save_configuration(gateway, vca_client, operation, public_ip):
                     ctx
                 )
         del ctx.target.instance.runtime_properties[PUBLIC_IP]
+    return True
 
 
 def _create_ip_range(vca_client, gateway):
@@ -386,3 +394,11 @@ def _is_rule_exists(nat_rules, rule_type,
     else:
         return False
     return True
+
+
+def _is_snat(value):
+    return value.upper() == 'SNAT'
+
+
+def _is_dnat(value):
+    return value.upper() == 'DNAT'

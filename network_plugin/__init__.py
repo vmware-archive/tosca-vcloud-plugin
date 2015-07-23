@@ -5,6 +5,7 @@ from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType
 from vcloud_plugin_common import (wait_for_task, get_vcloud_config,
                                   is_subscription)
 
+
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 PUBLIC_IP = 'public_ip'
 NAT_ROUTED = 'natRouted'
@@ -14,6 +15,8 @@ DELETE = 2
 
 AssignedIPs = collections.namedtuple('AssignedIPs', 'external internal')
 BUSY_MESSAGE = "The entity gateway is busy completing an operation."
+
+GATEWAY_TIMEOUT = 30
 
 
 def check_ip(address):
@@ -134,10 +137,8 @@ def get_vapp_name(runtime_properties):
 def save_gateway_configuration(gateway, vca_client):
     """
         save gateway configuration,
-        return
-            True - everything successfully finished
-            False - gateway busy
-            raise NonRecoverableError - can't get task description
+        return everything successfully finished
+        raise NonRecoverableError - can't get task description
     """
     task = gateway.save_services_configuration()
     if task:
@@ -281,3 +282,9 @@ def get_gateway(vca_client, gateway_name):
         raise cfy_exc.NonRecoverableError(
             "Gateway {0}  not found".format(gateway_name))
     return gateway
+
+
+def set_retry(ctx):
+    return ctx.operation.retry(
+        message='Waiting for gateway.',
+        retry_after=GATEWAY_TIMEOUT)

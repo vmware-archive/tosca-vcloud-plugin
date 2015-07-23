@@ -93,17 +93,14 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         # check busy
         gateway = fake_client._vdc_gateway
         self.set_gateway_busy(gateway)
-        self.prepare_retry(fake_ctx)
         self.set_services_conf_result(
             fake_client._vdc_gateway, None
         )
         with mock.patch('network_plugin.security_group.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
-                security_group._rule_operation(
+                self.assertFalse(security_group._rule_operation(
                     rule_type, fake_client
-                )
-
-        self.check_retry_realy_called(fake_ctx)
+                ))
 
     def test_rule_operation_empty_rule(self):
         for rule_type in [
