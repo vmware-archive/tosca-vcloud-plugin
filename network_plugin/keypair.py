@@ -34,12 +34,12 @@ def create(**kwargs):
         ctx.instance.runtime_properties[PRIVATE_KEY_VALUE] = private
         ctx.instance.runtime_properties[PUBLIC_KEY_VALUE] = public
         _save_key_file(ctx.instance.runtime_properties[PRIVATE_KEY_PATH],
-                          ctx.instance.runtime_properties[PRIVATE_KEY_VALUE])
+                       ctx.instance.runtime_properties[PRIVATE_KEY_VALUE])
     else:
         if ctx.node.properties[PRIVATE_KEY_VALUE]:
             ctx.instance.runtime_properties[PRIVATE_KEY_PATH] = _create_path()
             _save_key_file(ctx.instance.runtime_properties[PRIVATE_KEY_PATH],
-                              ctx.node.properties[PRIVATE_KEY_VALUE])
+                           ctx.node.properties[PRIVATE_KEY_VALUE])
 
 
 @operation
@@ -55,7 +55,6 @@ def delete(**kwargs):
             del ctx.instance.runtime_properties[PRIVATE_KEY_PATH]
 
 
-
 def _generate_pair():
     key = RSA.generate(2048)
     private_value = key.exportKey('PEM')
@@ -68,10 +67,11 @@ def _create_path():
 
 
 def _save_key_file(path, value):
+    path = os.path.expanduser(path)
     with open(path, 'w') as content_file:
         chmod(path, 0600)
         content_file.write(value)
 
 
 def _delete_key_file(path):
-    os.unlink(path)
+    os.unlink(os.path.expanduser(path))
