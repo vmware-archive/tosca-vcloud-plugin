@@ -284,7 +284,7 @@ def delete(vca_client, **kwargs):
 
 @operation
 @with_vca_client
-def configure(vca_client, public_keys=[], **kwargs):
+def configure(vca_client, **kwargs):
     ctx.logger.info("Configure server")
     server = {'name': ctx.instance.id}
     server.update(ctx.node.properties.get('server', {}))
@@ -295,7 +295,7 @@ def configure(vca_client, public_keys=[], **kwargs):
     if custom:
         vdc = vca_client.get_vdc(config['vdc'])
         vapp = vca_client.get_vapp(vdc, vapp_name)
-        script = _build_script(custom, public_keys)
+        script = _build_script(custom)
         password = custom.get('admin_password')
         computer_name = custom.get('computer_name')
 
@@ -392,13 +392,13 @@ def _get_vm_network_connection(vapp, network_name):
             return connection
 
 
-def _build_script(custom, autogen_keys):
+def _build_script(custom):
     """
         create customization script
     """
     pre_script = custom.get('pre_script', "")
     post_script = custom.get('post_script', "")
-    public_keys = autogen_keys + custom.get('public_keys', [])
+    public_keys = _get_connected_keypairs()
     if not pre_script and not post_script and not public_keys:
         return None
     script_executor = custom.get('script_executor', DEFAULT_EXECUTOR)
@@ -423,6 +423,15 @@ fi
     script = script_template.format(script_executor, public_keys_script,
                                     pre_script, post_script)
     return script
+
+
+def _get_connected_keypairs():
+    relationships = getattr(ctx.instance, 'relationships', None)
+    if relationships:
+        return [relationship.target.instance.runtime_properties['public_key'] for relationship in relationships
+                if 'public_key' in relationship.instance.runtime_properties]
+    else:
+        return []
 
 
 def _build_public_keys_script(public_keys):
