@@ -210,32 +210,6 @@ def _create(vca_client, config, server):
                     .format(vapp_name, network_name))
             wait_for_task(vca_client, task)
 
-    # customize root password and hostname
-    custom = server.get(GUEST_CUSTOMIZATION)
-    if custom:
-        vdc = vca_client.get_vdc(config['vdc'])
-        vapp = vca_client.get_vapp(vdc, vapp_name)
-        script = _build_script(custom)
-        password = custom.get('admin_password')
-        computer_name = custom.get('computer_name')
-
-        task = vapp.customize_guest_os(
-            vapp_name,
-            customization_script=script,
-            computer_name=computer_name,
-            admin_password=password
-        )
-        if task is None:
-            raise cfy_exc.NonRecoverableError(
-                "Could not set guest customization parameters")
-        wait_for_task(vca_client, task)
-        # This function avialable from API version 5.6
-        if vapp.customize_on_next_poweron():
-            ctx.logger.info("Customizations successful")
-        else:
-            raise cfy_exc.NonRecoverableError(
-                "Can't run customization in next power on")
-
 
 @operation
 @with_vca_client
@@ -307,10 +281,41 @@ def delete(vca_client, **kwargs):
 
     del ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
 
+
 @operation
 @with_vca_client
-def configure(vca_client, public_key=None, **kwargs):
-        ctx.logger.info("Configure server")
+def configure(vca_client, public_keys=None, **kwargs):
+    ctx.logger.info("Configure server")
+    server = {'name': ctx.instance.id}
+    server.update(ctx.node.properties.get('server', {}))
+    # customize root password and hostname
+    custom = server.get(GUEST_CUSTOMIZATION)
+    vapp_name = server['name']
+    config = get_vcloud_config()
+    if custom:
+        vdc = vca_client.get_vdc(config['vdc'])
+        vapp = vca_client.get_vapp(vdc, vapp_name)
+        script = _build_script(custom, public_keys)
+        password = custom.get('admin_password')
+        computer_name = custom.get('computer_name')
+
+        task = vapp.customize_guest_os(
+            vapp_name,
+            customization_script=script,
+            computer_name=computer_name,
+            admin_password=password
+        )
+        if task is None:
+            raise cfy_exc.NonRecoverableError(
+                "Could not set guest customization parameters")
+        wait_for_task(vca_client, task)
+        # This function avialable from API version 5.6
+        if vapp.customize_on_next_poweron():
+            ctx.logger.info("Customizations successful")
+        else:
+            raise cfy_exc.NonRecoverableError(
+                "Can't run customization in next power on")
+
 
 def _get_management_network_from_node():
     """
@@ -387,7 +392,7 @@ def _get_vm_network_connection(vapp, network_name):
             return connection
 
 
-def _build_script(custom):
+def _build_script(custom, public_keys):
     """
         create customization script
     """

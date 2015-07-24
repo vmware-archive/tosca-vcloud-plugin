@@ -120,8 +120,8 @@ node_types:
         properties:
             auto_generate:
                 default: false
-            private_key_path:
-                default: ''
+            private_key:
+                default: {}
             public_key:
                 default: {}
         interfaces:

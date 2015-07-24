@@ -6,10 +6,12 @@ from os import chmod
 from Crypto.PublicKey import RSA
 from Crypto import Random
 
-PRIVATE_KEY_PATH = 'private_key_path'
-PRIVATE_KEY_VALUE = 'private_key_value'
-PUBLIC_KEY_VALUE = 'public_key_value'
 AUTO_GENERATE = 'auto_generate'
+PRIVATE_KEY = 'private_key'
+PUBLIC_KEY = 'public_key'
+PATH = 'path'
+KEY = 'key'
+USER = 'user'
 
 
 @operation
@@ -18,8 +20,8 @@ def creation_validation(**kwargs):
         check availability of path used in field private_key_path of
         node properties
     """
-    key = ctx.node.properties.get(PRIVATE_KEY_PATH)
-    if key:
+    key = ctx.node.properties.get(PRIVATE_KEY)
+    if key.get(PATH):
         key_path = os.path.expanduser(key)
         if not os.path.isfile(key_path):
             raise cfy_exc.NonRecoverableError(
@@ -28,33 +30,35 @@ def creation_validation(**kwargs):
 
 @operation
 def create(**kwargs):
+    ctx.instance.runtime_properties[PUBLIC_KEY] = {}
+    ctx.instance.runtime_properties[PRIVATE_KEY] = {}
+    ctx.instance.runtime_properties[PUBLIC_KEY][USER] = ctx.node.properties.get(PUBLIC_KEY).get(USER)
     if ctx.node.properties.get(AUTO_GENERATE):
         ctx.logger.info("Generating ssh keypair")
-        Random.atfork() # uses for strong key generation
+        Random.atfork()  # uses for strong key generation
         public, private = _generate_pair()
-        ctx.instance.runtime_properties[PRIVATE_KEY_PATH] = _create_path()
-        ctx.instance.runtime_properties[PRIVATE_KEY_VALUE] = private
-        ctx.instance.runtime_properties[PUBLIC_KEY_VALUE] = public
-        _save_key_file(ctx.instance.runtime_properties[PRIVATE_KEY_PATH],
-                       ctx.instance.runtime_properties[PRIVATE_KEY_VALUE])
+        ctx.instance.runtime_properties[PRIVATE_KEY][PATH] = _create_path()
+        ctx.instance.runtime_properties[PRIVATE_KEY][KEY] = private
+        ctx.instance.runtime_properties[PUBLIC_KEY][KEY] = public
+        _save_key_file(ctx.instance.runtime_properties[PRIVATE_KEY][PATH],
+                       ctx.instance.runtime_properties[PRIVATE_KEY][KEY])
     else:
-        if ctx.node.properties[PRIVATE_KEY_VALUE]:
-            ctx.instance.runtime_properties[PRIVATE_KEY_PATH] = _create_path()
-            _save_key_file(ctx.instance.runtime_properties[PRIVATE_KEY_PATH],
-                           ctx.node.properties[PRIVATE_KEY_VALUE])
+        if ctx.node.properties[PRIVATE_KEY][KEY]:
+            ctx.instance.runtime_properties[PRIVATE_KEY][KEY] = ctx.node.properties[PRIVATE_KEY][KEY]
+            ctx.instance.runtime_properties[PRIVATE_KEY][PATH] = _create_path()
+            _save_key_file(ctx.instance.runtime_properties[PRIVATE_KEY][PATH],
+                           ctx.instance.runtime_properties[PRIVATE_KEY][KEY])
 
 
 @operation
 def delete(**kwargs):
     if ctx.node.properties[AUTO_GENERATE]:
-        _delete_key_file(ctx.instance.runtime_properties[PRIVATE_KEY_PATH])
-        del ctx.instance.runtime_properties[PRIVATE_KEY_PATH]
-        del ctx.instance.runtime_properties[PRIVATE_KEY_VALUE]
-        del ctx.instance.runtime_properties[PUBLIC_KEY_VALUE]
+        _delete_key_file(ctx.instance.runtime_properties[PRIVATE_KEY][PATH])
     else:
-        if ctx.node.properties[PRIVATE_KEY_VALUE]:
-            _delete_key_file(ctx.instance.runtime_properties[PRIVATE_KEY_PATH])
-            del ctx.instance.runtime_properties[PRIVATE_KEY_PATH]
+        if ctx.node.properties[PRIVATE_KEY][KEY]:
+            _delete_key_file(ctx.instance.runtime_properties[PRIVATE_KEY][PATH])
+    del ctx.instance.runtime_properties[PRIVATE_KEY]
+    del ctx.instance.runtime_properties[PUBLIC_KEY]
 
 
 def _generate_pair():
