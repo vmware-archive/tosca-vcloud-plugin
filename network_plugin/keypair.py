@@ -4,6 +4,7 @@ from cloudify.decorators import operation
 import os.path
 from os import chmod
 from Crypto.PublicKey import RSA
+from Crypto import Random
 
 PRIVATE_KEY_PATH = 'private_key_path'
 PRIVATE_KEY_VALUE = 'private_key_value'
@@ -30,7 +31,8 @@ def create(**kwargs):
     if ctx.node.properties.get(AUTO_GENERATE):
         ctx.logger.info("Generating ssh keypair")
         public, private = 'public', 'private'
-        #_generate_pair()
+        Random.atfork()
+        _generate_pair()
         ctx.instance.runtime_properties[PRIVATE_KEY_PATH] = _create_path()
         ctx.instance.runtime_properties[PRIVATE_KEY_VALUE] = private
         ctx.instance.runtime_properties[PUBLIC_KEY_VALUE] = public
