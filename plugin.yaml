@@ -22,6 +22,9 @@ node_types:
                 create:
                     implementation: vcloud.server_plugin.server.create
                     inputs: {}
+                configure:
+                    implementation: vcloud.server_plugin.server.configure
+                    inputs: {}
                 start:
                     implementation: vcloud.server_plugin.server.start
                     inputs: {}

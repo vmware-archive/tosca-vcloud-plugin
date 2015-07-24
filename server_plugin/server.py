@@ -307,6 +307,10 @@ def delete(vca_client, **kwargs):
 
     del ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
 
+@operation
+@with_vca_client
+def configure(vca_client, public_key=None, **kwargs):
+        ctx.logger.info("Configure server")
 
 def _get_management_network_from_node():
     """

@@ -30,7 +30,7 @@ def creation_validation(**kwargs):
 def create(**kwargs):
     if ctx.node.properties.get(AUTO_GENERATE):
         ctx.logger.info("Generating ssh keypair")
-        Random.atfork()
+        Random.atfork() # uses for strong key generation
         public, private = _generate_pair()
         ctx.instance.runtime_properties[PRIVATE_KEY_PATH] = _create_path()
         ctx.instance.runtime_properties[PRIVATE_KEY_VALUE] = private
