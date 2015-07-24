@@ -44,6 +44,7 @@ def create(**kwargs):
                        ctx.instance.runtime_properties[PRIVATE_KEY][KEY])
     else:
         ctx.instance.runtime_properties[PUBLIC_KEY][KEY] = ctx.node.properties.get(PUBLIC_KEY).get(KEY)
+        ctx.instance.runtime_properties[PRIVATE_KEY][PATH] = ctx.node.properties[PRIVATE_KEY].get(PATH)
         if ctx.node.properties[PRIVATE_KEY].get(KEY):
             ctx.instance.runtime_properties[PRIVATE_KEY][KEY] = ctx.node.properties[PRIVATE_KEY][KEY]
             ctx.instance.runtime_properties[PRIVATE_KEY][PATH] = _create_path()
