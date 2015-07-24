@@ -284,7 +284,7 @@ def delete(vca_client, **kwargs):
 
 @operation
 @with_vca_client
-def configure(vca_client, public_keys=None, **kwargs):
+def configure(vca_client, public_keys=[], **kwargs):
     ctx.logger.info("Configure server")
     server = {'name': ctx.instance.id}
     server.update(ctx.node.properties.get('server', {}))
@@ -392,13 +392,13 @@ def _get_vm_network_connection(vapp, network_name):
             return connection
 
 
-def _build_script(custom, public_keys):
+def _build_script(custom, autogen_keys):
     """
         create customization script
     """
     pre_script = custom.get('pre_script', "")
     post_script = custom.get('post_script', "")
-    public_keys = custom.get('public_keys')
+    public_keys = autogen_keys + custom.get('public_keys', [])
     if not pre_script and not post_script and not public_keys:
         return None
     script_executor = custom.get('script_executor', DEFAULT_EXECUTOR)
