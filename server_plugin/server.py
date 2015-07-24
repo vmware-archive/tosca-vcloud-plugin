@@ -429,7 +429,7 @@ def _get_connected_keypairs():
     relationships = getattr(ctx.instance, 'relationships', None)
     if relationships:
         return [relationship.target.instance.runtime_properties['public_key'] for relationship in relationships
-                if 'public_key' in relationship.instance.runtime_properties]
+                if 'public_key' in relationship.target.instance.runtime_properties]
     else:
         return []
 
