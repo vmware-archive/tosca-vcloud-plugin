@@ -39,20 +39,23 @@ class NetworkPluginKeyPairpMockTestCase(test_mock_base.TestBase):
             keypair.creation_validation(ctx=fake_ctx)
 
     def test_create(self):
-        fake_ctx =  self.generate_node_context(
+        fake_ctx = self.generate_node_context(
             properties={'auto_generate': True})
         with mock.patch(
                 'network_plugin.keypair.ctx', fake_ctx):
             with mock.patch(
                     'network_plugin.keypair._save_key_file', mock.MagicMock()):
-                with mock.patch('network_plugin.keypair._generate_pair', mock.MagicMock(return_value=('public', 'private'))):
+                with mock.patch('network_plugin.keypair._generate_pair',
+                                mock.MagicMock(return_value=('public',
+                                                             'private'))):
                     keypair.create()
                     prop = fake_ctx.instance.runtime_properties
-                    self.assertEqual('~/.ssh/test_private.key', prop['private_key_path'])
+                    self.assertEqual('~/.ssh/test_private.key',
+                                     prop['private_key_path'])
                     self.assertEqual('private', prop['private_key_value'])
                     self.assertEqual('public', prop['public_key_value'])
 
-        fake_ctx =  self.generate_node_context(
+        fake_ctx = self.generate_node_context(
             properties={'auto_generate': False,
                         'private_key_value': 'private'})
         with mock.patch(
@@ -61,10 +64,11 @@ class NetworkPluginKeyPairpMockTestCase(test_mock_base.TestBase):
                     'network_plugin.keypair._save_key_file', mock.MagicMock()):
                 keypair.create()
                 prop = fake_ctx.instance.runtime_properties
-                self.assertEqual('~/.ssh/test_private.key', prop['private_key_path'])
+                self.assertEqual('~/.ssh/test_private.key',
+                                 prop['private_key_path'])
 
     def test_delete(self):
-        fake_ctx =  self.generate_node_context(
+        fake_ctx = self.generate_node_context(
             properties={'auto_generate': True},
             runtime_properties={'private_key_path': 'path',
                                 'private_key_value': 'private',
@@ -73,7 +77,8 @@ class NetworkPluginKeyPairpMockTestCase(test_mock_base.TestBase):
         with mock.patch(
                 'network_plugin.keypair.ctx', fake_ctx):
             with mock.patch(
-                    'network_plugin.keypair._delete_key_file', mock.MagicMock()):
+                    'network_plugin.keypair._delete_key_file',
+                    mock.MagicMock()):
                 prop = fake_ctx.instance.runtime_properties
                 self.assertTrue('private_key_path' in prop)
                 self.assertTrue('private_key_value' in prop)
@@ -83,14 +88,15 @@ class NetworkPluginKeyPairpMockTestCase(test_mock_base.TestBase):
                 self.assertFalse('private_key_value' in prop)
                 self.assertFalse('public_key_value' in prop)
 
-        fake_ctx =  self.generate_node_context(
+        fake_ctx = self.generate_node_context(
             properties={'auto_generate': False,
                         'private_key_value': 'private'},
             runtime_properties={'private_key_path': 'path'})
         with mock.patch(
                 'network_plugin.keypair.ctx', fake_ctx):
             with mock.patch(
-                    'network_plugin.keypair._delete_key_file', mock.MagicMock()):
+                    'network_plugin.keypair._delete_key_file',
+                    mock.MagicMock()):
                 prop = fake_ctx.instance.runtime_properties
                 self.assertTrue('private_key_path' in prop)
                 keypair.delete()
