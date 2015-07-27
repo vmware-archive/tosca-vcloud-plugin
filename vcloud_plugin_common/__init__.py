@@ -117,6 +117,8 @@ class Config(object):
         try:
             with open(config_path) as f:
                 cfg = yaml.load(f.read())
+                if not cfg:
+                    cfg = {}
         except IOError:
             pass
         return cfg
