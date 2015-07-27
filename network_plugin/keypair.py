@@ -76,7 +76,7 @@ def _generate_pair():
 
 def _create_path():
     if ctx._local:
-        key_dir = ctx._context['storage']._instances_dir
+        key_dir = ctx._context['storage']._storage_dir
     else:
         key_dir = os.path.dirname(os.environ['VIRTUALENV'])
     return '{}/{}_private.key'.format(key_dir, ctx.instance.id)
