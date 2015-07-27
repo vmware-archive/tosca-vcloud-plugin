@@ -212,7 +212,6 @@ relationships:
                 unlink:
                     implementation: vcloud.network_plugin.public_nat.server_disconnect_from_nat
                     inputs: {}
-
     cloudify.vcloud.volume_attached_to_server:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
@@ -223,3 +222,5 @@ relationships:
                 unlink:
                     implementation: vcloud.server_plugin.volume.detach_volume
                     inputs: {}
+    cloudify.vcloud.server_connected_to_keypair:
+        derived_from: cloudify.relationships.connected_to
