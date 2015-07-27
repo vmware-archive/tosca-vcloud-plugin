@@ -75,6 +75,7 @@ def _generate_pair():
 
 
 def _create_path():
+    ctx.logger.info("-------- {}".format(ctx._context['storage']._instances_dir))
     return '~/.ssh/{}_private.key'.format(ctx.instance.id)
 
 
