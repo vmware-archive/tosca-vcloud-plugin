@@ -132,7 +132,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             self.assertEqual(
                 fake_ctx._target.instance.runtime_properties,
                 {
-                    public_nat.PORT_REPLACEMENT:  {
+                    public_nat.PORT_REPLACEMENT: {
                         ('external', '10'): 11
                     }
                 }

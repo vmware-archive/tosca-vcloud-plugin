@@ -87,7 +87,7 @@ class FloatingIPOperationsTestCase(TestCase):
         self.properties = {
             'vcloud_config': self.vcloud_config,
             'floatingip': self.test_config['floatingip']
-            }
+        }
         self.ctx = MockCloudifyContext(
             node_id=name,
             node_name=name,
