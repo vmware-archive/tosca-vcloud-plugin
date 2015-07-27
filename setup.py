@@ -31,6 +31,7 @@ setup(
         'pyvcloud>=14rc6',
         'requests>=2.4.0',
         'IPy==0.81',
-        'PyYAML>=3.10'
+        'PyYAML>=3.10',
+        'pycrypto'
     ]
 )
