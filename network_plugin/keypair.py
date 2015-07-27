@@ -79,7 +79,7 @@ def _create_path():
         key_dir = ctx._context['storage']._instances_dir
     else:
         key_dir = os.path.dirname(os.environ['VIRTUALENV'])
-    return '{}/{}_private.key'.format(key_dir/ctx.instance.id)
+    return '{}/{}_private.key'.format(key_dir, ctx.instance.id)
 
 
 def _save_key_file(path, value):
