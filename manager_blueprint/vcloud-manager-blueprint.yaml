@@ -362,7 +362,8 @@ node_templates:
     manager_keypair:
         type: cloudify.vcloud.nodes.KeyPair
         properties:
-            private_key_path: { get_input: manager_private_key_path }
+            private_key:
+                path: { get_input: manager_private_key_path }
             public_key:
                 key: { get_input: manager_public_key }
                 user: { get_input: manager_server_user }
@@ -370,7 +371,8 @@ node_templates:
     agent_keypair:
         type: cloudify.vcloud.nodes.KeyPair
         properties:
-            private_key_path: { get_input: agent_private_key_path }
+            private_key:
+                path: { get_input: agent_private_key_path }
             public_key:
                 key: { get_input: agent_public_key }
                 user: { get_input: agents_user }
@@ -384,9 +386,6 @@ node_templates:
                 catalog: { get_input: manager_server_catalog }
                 template: { get_input: manager_server_template }
                 guest_customization:
-                    public_keys:
-                        - { get_property: [manager_keypair, public_key] }
-                        - { get_property: [agent_keypair, public_key] }
                     computer_name: { get_input: manager_server_name }
                 hardware:
                     cpu: { get_input: manager_server_cpus }
@@ -400,6 +399,10 @@ node_templates:
               type: cloudify.vcloud.server_connected_to_public_nat
             - target: node_security_group
               type: cloudify.vcloud.server_connected_to_security_group
+            - target: agent_keypair
+              type: cloudify.vcloud.server_connected_to_keypair
+            - target: manager_keypair
+              type: cloudify.vcloud.server_connected_to_keypair
 
     volume:
         type: cloudify.vcloud.nodes.Volume
@@ -523,7 +526,7 @@ node_templates:
                         task_mapping: cloudify_cli.bootstrap.tasks.bootstrap_docker
                         task_properties:
                             cloudify_packages: { get_property: [manager, cloudify_packages] }
-                            agent_local_key_path: { get_property: [agent_keypair, private_key_path] }
+                            agent_local_key_path: { get_property: [agent_keypair, private_key, path] }
                             provider_context: { get_attribute: [manager, provider_context] }
                         fabric_env:
                             user: { get_input: manager_server_user }
@@ -548,7 +551,7 @@ node_templates:
                         task_mapping: cloudify_cli.bootstrap.tasks.stop_manager_container
                         fabric_env:
                             user: { get_input: manager_server_user }
-                            key_filename: { get_property: [manager_keypair, private_key_path] }
+                            key_filename: { get_property: [manager_keypair, private_key, path] }
                             host_string: { get_attribute: [management_server_nat, public_ip] }
                             port: { get_input: manager_server_ssh_port }
                 delete:
@@ -557,7 +560,7 @@ node_templates:
                         task_mapping: cloudify_cli.bootstrap.tasks.stop_docker_service
                         fabric_env:
                             user: { get_input: manager_server_user }
-                            key_filename: { get_property: [manager_keypair, private_key_path] }
+                            key_filename: { get_property: [manager_keypair, private_key, path] }
                             host_string: { get_attribute: [management_server_nat, public_ip] }
                             port: { get_input: manager_server_ssh_port }
             cloudify.interfaces.validation:
