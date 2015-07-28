@@ -300,10 +300,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         ):
             # can't customize memory
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                server.create(ctx=fake_ctx)
-            fake_client.create_vapp.assert_called_with(
-                'vdc_name', 'test', 'ubuntu', 'public',
-                vm_name='test')
+                server.configure(ctx=fake_ctx)
             fake_client._vapp.modify_vm_memory.assert_called_with(
                 'test', 512
             )
@@ -314,7 +311,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             )
             # can't customize cpu
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                server.create(ctx=fake_ctx)
+                server.configure(ctx=fake_ctx)
             fake_client._vapp.modify_vm_cpu.assert_called_with(
                 'test', 1
             )
@@ -568,8 +565,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                server.create(ctx=fake_ctx)
-            self.check_create_call(fake_client, fake_ctx)
+                server.configure(ctx=fake_ctx)
 
     def test_create_customization_error(self):
         """
@@ -589,8 +585,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                server.create(ctx=fake_ctx)
-            self.check_create_call(fake_client, fake_ctx)
+                server.configure(ctx=fake_ctx)
 
     def test_create_customization_un_customized(self):
         """
@@ -613,8 +608,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                server.create(ctx=fake_ctx)
-            self.check_create_call(fake_client, fake_ctx)
+                server.configure(ctx=fake_ctx)
 
     def test_create_customization_customized(self):
         """
@@ -636,9 +630,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            server.create(ctx=fake_ctx)
-            self.check_create_call(fake_client, fake_ctx)
-            self.check_get_vapp(fake_client, 'test')
+            server.configure(ctx=fake_ctx)
 
 if __name__ == '__main__':
     unittest.main()

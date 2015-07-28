@@ -628,6 +628,26 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         fake_client._vdc_gateway.del_nat_rule.assert_called_with(
             'DNAT', '192.168.1.1', 'any', '1.1.1.1', 'any', 'any'
         )
+        # with SNAT rules
+        fake_client, fake_ctx = self.generate_client_and_context_server()
+        fake_ctx._target.node.properties = {
+            'nat': {
+                'edge_gateway': 'gateway'
+            },
+            'rules': [{'type': 'SNAT'}, {'type': 'SNAT'}]
+        }
+        with mock.patch(
+            'network_plugin.public_nat.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+                public_nat.prepare_server_operation(
+                    fake_client, network_plugin.DELETE
+                )
+        fake_client._vdc_gateway.del_nat_rule.assert_called_with(
+            'SNAT', '1.1.1.1', 'any', '192.168.1.1', 'any', 'any'
+        )
 
     def generate_client_and_context_network(self):
         """
@@ -1025,6 +1045,15 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             public_nat.net_connect_to_nat_preconfigure(ctx=fake_ctx)
+        # empty rules
+        fake_ctx._target.node.properties.update({'rules': []})
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                public_nat.net_connect_to_nat_preconfigure(ctx=fake_ctx)
+
 
 if __name__ == '__main__':
     unittest.main()

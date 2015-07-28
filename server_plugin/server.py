@@ -184,61 +184,6 @@ def _create(vca_client, config, server):
                     .format(vapp_name, network_name, error_response(vapp)))
             wait_for_task(vca_client, task)
 
-    # customize root password and hostname
-    custom = server.get(GUEST_CUSTOMIZATION)
-    if custom:
-        vdc = vca_client.get_vdc(config['vdc'])
-        vapp = vca_client.get_vapp(vdc, vapp_name)
-        script = _build_script(custom)
-        password = custom.get('admin_password')
-        computer_name = custom.get('computer_name')
-
-        task = vapp.customize_guest_os(
-            vapp_name,
-            customization_script=script,
-            computer_name=computer_name,
-            admin_password=password
-        )
-        if task is None:
-            raise cfy_exc.NonRecoverableError(
-                "Could not set guest customization parameters. {0}".
-                format(error_response(vapp)))
-        wait_for_task(vca_client, task)
-        # This function avialable from API version 5.6
-        if vapp.customize_on_next_poweron():
-            ctx.logger.info("Customizations successful")
-        else:
-            raise cfy_exc.NonRecoverableError(
-                "Can't run customization in next power on. {0}".
-                format(error_response(vapp)))
-
-    hardware = server.get('hardware')
-    if hardware:
-        cpu = hardware.get('cpu')
-        memory = hardware.get('memory')
-        _check_hardware(cpu, memory)
-        vapp = vca_client.get_vapp(
-            vca_client.get_vdc(config['vdc']), vapp_name
-        )
-        if memory:
-            try:
-                task = vapp.modify_vm_memory(vapp_name, memory)
-                wait_for_task(vca_client, task)
-                ctx.logger.info("Customize VM memory: {0}.".format(memory))
-            except Exception:
-                raise cfy_exc.NonRecoverableError(
-                    "Customize VM memory failed: {0}. {1}".
-                    format(task, error_response(vapp)))
-        if cpu:
-            try:
-                task = vapp.modify_vm_cpu(vapp_name, cpu)
-                wait_for_task(vca_client, task)
-                ctx.logger.info("Customize VM cpu: {0}.".format(cpu))
-            except Exception:
-                raise cfy_exc.NonRecoverableError(
-                    "Customize VM cpu failed: {0}. {1}".
-                    format(task, error_response(vapp)))
-
 
 @operation
 @with_vca_client
@@ -312,6 +257,67 @@ def delete(vca_client, **kwargs):
         wait_for_task(vca_client, task)
 
     del ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
+
+
+@operation
+@with_vca_client
+def configure(vca_client, **kwargs):
+    ctx.logger.info("Configure server")
+    server = {'name': ctx.instance.id}
+    server.update(ctx.node.properties.get('server', {}))
+    vapp_name = server['name']
+    config = get_vcloud_config()
+    custom = server.get(GUEST_CUSTOMIZATION)
+    if custom:
+        vdc = vca_client.get_vdc(config['vdc'])
+        vapp = vca_client.get_vapp(vdc, vapp_name)
+        script = _build_script(custom)
+        password = custom.get('admin_password')
+        computer_name = custom.get('computer_name')
+
+        task = vapp.customize_guest_os(
+            vapp_name,
+            customization_script=script,
+            computer_name=computer_name,
+            admin_password=password
+        )
+        if task is None:
+            raise cfy_exc.NonRecoverableError(
+                "Could not set guest customization parameters")
+        wait_for_task(vca_client, task)
+        # This function avialable from API version 5.6
+        if vapp.customize_on_next_poweron():
+            ctx.logger.info("Customizations successful")
+        else:
+            raise cfy_exc.NonRecoverableError(
+                "Can't run customization in next power on")
+
+    hardware = server.get('hardware')
+    if hardware:
+        cpu = hardware.get('cpu')
+        memory = hardware.get('memory')
+        _check_hardware(cpu, memory)
+        vapp = vca_client.get_vapp(
+            vca_client.get_vdc(config['vdc']), vapp_name
+        )
+        if memory:
+            try:
+                task = vapp.modify_vm_memory(vapp_name, memory)
+                wait_for_task(vca_client, task)
+                ctx.logger.info("Customize VM memory: {0}.".format(memory))
+            except Exception:
+                raise cfy_exc.NonRecoverableError(
+                    "Customize VM memory failed: {0}. {1}".
+                    format(task, error_response(vapp)))
+        if cpu:
+            try:
+                task = vapp.modify_vm_cpu(vapp_name, cpu)
+                wait_for_task(vca_client, task)
+                ctx.logger.info("Customize VM cpu: {0}.".format(cpu))
+            except Exception:
+                raise cfy_exc.NonRecoverableError(
+                    "Customize VM cpu failed: {0}. {1}".
+                    format(task, error_response(vapp)))
 
 
 def _get_management_network_from_node():
@@ -395,7 +401,7 @@ def _build_script(custom):
     """
     pre_script = custom.get('pre_script', "")
     post_script = custom.get('post_script', "")
-    public_keys = custom.get('public_keys')
+    public_keys = _get_connected_keypairs()
     if not pre_script and not post_script and not public_keys:
         return None
     script_executor = custom.get('script_executor', DEFAULT_EXECUTOR)
@@ -420,6 +426,16 @@ fi
     script = script_template.format(script_executor, public_keys_script,
                                     pre_script, post_script)
     return script
+
+
+def _get_connected_keypairs():
+    relationships = getattr(ctx.instance, 'relationships', None)
+    if relationships:
+        return [relationship.target.instance.runtime_properties['public_key']
+                for relationship in relationships
+                if 'public_key' in relationship.target.instance.runtime_properties]
+    else:
+        return []
 
 
 def _build_public_keys_script(public_keys):
