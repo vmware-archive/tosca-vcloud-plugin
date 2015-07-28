@@ -16,7 +16,8 @@ from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (wait_for_task, with_vca_client,
-                                  get_vcloud_config, get_mandatory)
+                                  get_vcloud_config, get_mandatory,
+                                  error_response)
 from network_plugin import get_vapp_name
 
 
@@ -133,17 +134,20 @@ def _volume_operation(vca_client, operation):
                         "Volume node {} has been attached".format(volumeName))
                 else:
                     raise cfy_exc.NonRecoverableError(
-                        "Can't attach disk: {0}".format(volumeName))
+                        "Can't attach disk: {0} {1}".
+                        format(volumeName, error_response(vapp)))
 
             elif operation == 'DETACH':
                 task = vapp.detach_disk_from_vm(vmName, ref)
                 if task:
                     wait_for_task(vca_client, task)
                     ctx.logger.info(
-                        "Volume node {} has been detached".format(volumeName))
+                        "Volume node {0} has been detached.".
+                        format(volumeName))
                 else:
                     raise cfy_exc.NonRecoverableError(
-                        "Can't detach disk: {0}".format(volumeName))
+                        "Can't detach disk: {0}.  {1}".
+                        format(volumeName, error_response(vapp)))
             else:
                 raise cfy_exc.NonRecoverableError(
                     "Unknown operation {0}".format(operation))

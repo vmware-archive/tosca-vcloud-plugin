@@ -20,6 +20,7 @@ from vcloud_plugin_common import (get_vcloud_config,
                                   transform_resource_name,
                                   wait_for_task,
                                   with_vca_client,
+                                  error_response,
                                   STATUS_POWERED_ON)
 
 from network_plugin import (get_network_name, get_network, is_network_exists,
@@ -134,35 +135,8 @@ def _create(vca_client, config, server):
                                   vm_name=vapp_name)
     if not task:
         raise cfy_exc.NonRecoverableError("Could not create vApp: {0}"
-                                          .format(vca_client.response.content))
+                                          .format(error_response(vca_client)))
     wait_for_task(vca_client, task)
-
-    hardware = server.get('hardware')
-    if hardware:
-        cpu = hardware.get('cpu')
-        memory = hardware.get('memory')
-        _check_hardware(cpu, memory)
-        vapp = vca_client.get_vapp(
-            vca_client.get_vdc(config['vdc']), vapp_name
-        )
-        if memory:
-            task = vapp.modify_vm_memory(vapp_name, memory)
-            if task:
-                wait_for_task(vca_client, task)
-                ctx.logger.info("Customize VM memory: {0}.".format(memory))
-            else:
-                raise cfy_exc.NonRecoverableError(
-                    "Customize VM memory failed: {0}.".format(task)
-                )
-        if cpu:
-            task = vapp.modify_vm_cpu(vapp_name, cpu)
-            if task:
-                wait_for_task(vca_client, task)
-                ctx.logger.info("Customize VM cpu: {0}.".format(cpu))
-            else:
-                raise cfy_exc.NonRecoverableError(
-                    "Customize VM cpu failed: {0}.".format(task)
-                )
 
     ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = vapp_name
     connections = _create_connections_list(vca_client)
@@ -182,8 +156,8 @@ def _create(vca_client, config, server):
             task = vapp.connect_to_network(network_name, network.get_href())
             if not task:
                 raise cfy_exc.NonRecoverableError(
-                    "Could not add network {0} to VApp {1}"
-                    .format(network_name, vapp_name))
+                    "Could not add network {0} to VApp {1}. {2}"
+                    .format(network_name, vapp_name, error_response(vapp)))
             wait_for_task(vca_client, task)
 
             connections_primary_index = None
@@ -206,8 +180,8 @@ def _create(vca_client, config, server):
             task = vapp.connect_vms(**connection_args)
             if task is None:
                 raise cfy_exc.NonRecoverableError(
-                    "Could not connect vApp {0} to network {1}"
-                    .format(vapp_name, network_name))
+                    "Could not connect vApp {0} to network {1}. {2}"
+                    .format(vapp_name, network_name, error_response(vapp)))
             wait_for_task(vca_client, task)
 
     # customize root password and hostname
@@ -227,14 +201,43 @@ def _create(vca_client, config, server):
         )
         if task is None:
             raise cfy_exc.NonRecoverableError(
-                "Could not set guest customization parameters")
+                "Could not set guest customization parameters. {0}".
+                format(error_response(vapp)))
         wait_for_task(vca_client, task)
         # This function avialable from API version 5.6
         if vapp.customize_on_next_poweron():
             ctx.logger.info("Customizations successful")
         else:
             raise cfy_exc.NonRecoverableError(
-                "Can't run customization in next power on")
+                "Can't run customization in next power on. {0}".
+                format(error_response(vapp)))
+
+    hardware = server.get('hardware')
+    if hardware:
+        cpu = hardware.get('cpu')
+        memory = hardware.get('memory')
+        _check_hardware(cpu, memory)
+        vapp = vca_client.get_vapp(
+            vca_client.get_vdc(config['vdc']), vapp_name
+        )
+        if memory:
+            try:
+                task = vapp.modify_vm_memory(vapp_name, memory)
+                wait_for_task(vca_client, task)
+                ctx.logger.info("Customize VM memory: {0}.".format(memory))
+            except Exception:
+                raise cfy_exc.NonRecoverableError(
+                    "Customize VM memory failed: {0}. {1}".
+                    format(task, error_response(vapp)))
+        if cpu:
+            try:
+                task = vapp.modify_vm_cpu(vapp_name, cpu)
+                wait_for_task(vca_client, task)
+                ctx.logger.info("Customize VM cpu: {0}.".format(cpu))
+            except Exception:
+                raise cfy_exc.NonRecoverableError(
+                    "Customize VM cpu failed: {0}. {1}".
+                    format(task, error_response(vapp)))
 
 
 @operation
@@ -255,7 +258,8 @@ def start(vca_client, **kwargs):
             ctx.logger.info("Power-on VApp {0}".format(vapp_name))
             task = vapp.poweron()
             if not task:
-                raise cfy_exc.NonRecoverableError("Could not power-on vApp")
+                raise cfy_exc.NonRecoverableError("Could not power-on vApp. {0}".
+                                                  format(error_response(vapp)))
             wait_for_task(vca_client, task)
 
     if not _get_state(vca_client):
@@ -281,7 +285,8 @@ def stop(vca_client, **kwargs):
         ctx.logger.info("Power-off and undeploy VApp {0}".format(vapp_name))
         task = vapp.undeploy()
         if not task:
-            raise cfy_exc.NonRecoverableError("Could not undeploy vApp")
+            raise cfy_exc.NonRecoverableError("Could not undeploy vApp {0}".
+                                              format(error_response(vapp)))
         wait_for_task(vca_client, task)
 
 
@@ -302,7 +307,8 @@ def delete(vca_client, **kwargs):
         ctx.logger.info("Deleting VApp {0}".format(vapp_name))
         task = vapp.delete()
         if not task:
-            raise cfy_exc.NonRecoverableError("Could not delete vApp")
+            raise cfy_exc.NonRecoverableError("Could not delete vApp {0}".
+                                              format(error_response(vapp)))
         wait_for_task(vca_client, task)
 
     del ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
