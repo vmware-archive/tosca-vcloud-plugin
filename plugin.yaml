@@ -118,6 +118,8 @@ node_types:
     cloudify.vcloud.nodes.KeyPair:
         derived_from: cloudify.nodes.Root
         properties:
+            private_key_path:
+                default: ''
             auto_generate:
                 default: false
             private_key:
