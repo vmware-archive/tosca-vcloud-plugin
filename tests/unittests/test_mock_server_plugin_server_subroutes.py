@@ -124,7 +124,11 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                 )
 
     def test_build_script(self):
-        self.assertEqual(None, server._build_script({}))
+        with mock.patch('server_plugin.server._get_connected_keypairs',
+                        mock.MagicMock(
+                            return_value=[])):
+            self.assertEqual(None, server._build_script({}))
+
         custom = {
             'pre_script': 'pre_script',
             'post_script': 'post_script',
@@ -132,7 +136,10 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                 'key': True
             }]
         }
-        self.assertNotEqual(None, server._build_script(custom))
+        with mock.patch('server_plugin.server._get_connected_keypairs',
+                        mock.MagicMock(
+                            return_value=[{'key': 'key'}])):
+            self.assertNotEqual(None, server._build_script(custom))
 
     def test_build_public_keys_script(self):
         self.assertEqual('', server._build_public_keys_script([]))

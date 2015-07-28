@@ -348,12 +348,12 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             },
             'use_external_resource': False
         }
-        fake_ctx._source.node.properties.update({'use_external_resource':True})
+        fake_ctx._source.node.properties.update(
+            {'use_external_resource': True})
         _run_volume_operation(fake_ctx, fake_client, 'DETACH')
         fake_client._vapp.detach_disk_from_vm.assert_called_with(
             'some_other', disk_ref
         )
-
 
     def _gen_volume_context_and_client(self):
         fake_client = self.generate_client()

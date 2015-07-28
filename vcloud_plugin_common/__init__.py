@@ -117,6 +117,8 @@ class Config(object):
         try:
             with open(config_path) as f:
                 cfg = yaml.load(f.read())
+                if not cfg:
+                    cfg = {}
         except IOError:
             pass
         return cfg
@@ -456,3 +458,13 @@ def is_ondemand(service_type):
         check service type is ondemand
     """
     return service_type == ONDEMAND_SERVICE_TYPE
+
+
+def error_response(obj):
+    """
+        return description of response error
+    """
+    try:
+        return obj.response.content
+    except AttributeError:
+        return ''

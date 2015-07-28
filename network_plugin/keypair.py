@@ -20,9 +20,9 @@ def creation_validation(**kwargs):
         check availability of path used in field private_key_path of
         node properties
     """
-    key = ctx.node.properties.get(PRIVATE_KEY)
-    if key.get(PATH):
-        key_path = os.path.expanduser(key)
+    key_path = ctx.node.properties.get(PRIVATE_KEY, {}).get(PATH)
+    if key_path:
+        key_path = os.path.expanduser(key_path)
         if not os.path.isfile(key_path):
             raise cfy_exc.NonRecoverableError(
                 "Private key file {0} is absent".format(key_path))
@@ -33,7 +33,7 @@ def create(**kwargs):
     ctx.instance.runtime_properties[PUBLIC_KEY] = {}
     ctx.instance.runtime_properties[PRIVATE_KEY] = {}
     ctx.instance.runtime_properties[PUBLIC_KEY][USER] = \
-        ctx.node.properties.get(PUBLIC_KEY).get(USER)
+        ctx.node.properties.get(PUBLIC_KEY, {}).get(USER)
     if ctx.node.properties.get(AUTO_GENERATE):
         ctx.logger.info("Generating ssh keypair")
         public, private = _generate_pair()
@@ -44,12 +44,12 @@ def create(**kwargs):
                        ctx.instance.runtime_properties[PRIVATE_KEY][KEY])
     else:
         ctx.instance.runtime_properties[PUBLIC_KEY][KEY] = \
-            ctx.node.properties.get(PUBLIC_KEY).get(KEY)
+            ctx.node.properties.get(PUBLIC_KEY, {}).get(KEY)
         ctx.instance.runtime_properties[PRIVATE_KEY][KEY] = \
-            ctx.node.properties[PRIVATE_KEY].get(KEY)
+            ctx.node.properties.get(PRIVATE_KEY, {}).get(KEY)
         ctx.instance.runtime_properties[PRIVATE_KEY][PATH] = \
-            ctx.node.properties[PRIVATE_KEY].get(PATH)
-        if ctx.node.properties[PRIVATE_KEY].get(KEY):
+            ctx.node.properties.get(PRIVATE_KEY, {}).get(PATH)
+        if ctx.node.properties.get(PRIVATE_KEY, {}).get(KEY):
             ctx.instance.runtime_properties[PRIVATE_KEY][PATH] = _create_path()
             _save_key_file(ctx.instance.runtime_properties[PRIVATE_KEY][PATH],
                            ctx.instance.runtime_properties[PRIVATE_KEY][KEY])
@@ -60,7 +60,7 @@ def delete(**kwargs):
     if ctx.node.properties[AUTO_GENERATE]:
         _delete_key_file(ctx.instance.runtime_properties[PRIVATE_KEY][PATH])
     else:
-        if ctx.node.properties[PRIVATE_KEY].get(KEY):
+        if ctx.node.properties.get(PRIVATE_KEY, {}).get(KEY):
             _delete_key_file(ctx.instance.runtime_properties[PRIVATE_KEY][PATH])
     del ctx.instance.runtime_properties[PRIVATE_KEY]
     del ctx.instance.runtime_properties[PUBLIC_KEY]
