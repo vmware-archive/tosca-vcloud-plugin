@@ -12,6 +12,7 @@ PUBLIC_KEY = 'public_key'
 PATH = 'path'
 KEY = 'key'
 USER = 'user'
+HOME = 'home'
 
 
 @operation
@@ -34,6 +35,8 @@ def create(**kwargs):
     ctx.instance.runtime_properties[PRIVATE_KEY] = {}
     ctx.instance.runtime_properties[PUBLIC_KEY][USER] = \
         ctx.node.properties.get(PUBLIC_KEY, {}).get(USER)
+    ctx.instance.runtime_properties[PUBLIC_KEY][HOME] = \
+        ctx.node.properties.get(PUBLIC_KEY, {}).get(HOME)
     if ctx.node.properties.get(AUTO_GENERATE):
         ctx.logger.info("Generating ssh keypair")
         public, private = _generate_pair()
