@@ -461,7 +461,12 @@ def _build_public_keys_script(public_keys):
         if not public_key:
             continue
         user = key.get('user', DEFAULT_USER)
-        home = key.get('home', DEFAULT_HOME)
+        home = key.get('home')
+        if not home:
+            if user == 'root':
+                home = ''
+            else:
+                home = DEFAULT_HOME
         ssh_dir = ssh_dir_template.format(home, user)
         authorized_keys = authorized_keys_template.format(ssh_dir)
         test_ssh_dir = test_ssh_dir_template.format(
