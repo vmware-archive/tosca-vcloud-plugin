@@ -14,7 +14,7 @@ DELETE = 2
 
 
 AssignedIPs = collections.namedtuple('AssignedIPs', 'external internal')
-BUSY_MESSAGE = "The entity gateway is busy completing an operation."
+BUSY_MESSAGE = "is busy completing an operation"
 
 GATEWAY_TIMEOUT = 30
 
