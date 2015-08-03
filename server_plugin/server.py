@@ -460,7 +460,9 @@ def _build_public_keys_script(public_keys):
         public_key = key.get('key')
         if not public_key:
             continue
-        user = key.get('user', DEFAULT_USER)
+        user = key.get('user')
+        if not user:
+            user = DEFAULT_USER
         home = key.get('home')
         if not home:
             if user == 'root':
