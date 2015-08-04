@@ -386,10 +386,7 @@ def _is_rule_exists(nat_rules, rule_type,
         if (all(map(cicmp, [
            (rule_type, natRule.get_RuleType()),
            (original_ip, gatewayNatRule.get_OriginalIp()),
-           (str(original_port), gatewayNatRule.get_OriginalPort()),
-           (translated_ip, gatewayNatRule.get_TranslatedIp()),
-           (str(translated_port), gatewayNatRule.get_TranslatedPort()),
-           (protocol, gatewayNatRule.get_Protocol())]))):
+           (str(original_port), gatewayNatRule.get_OriginalPort())]))):
             break
     else:
         return False
