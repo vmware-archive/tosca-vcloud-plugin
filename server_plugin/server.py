@@ -127,6 +127,7 @@ def _create(vca_client, config, server):
     vapp_name = server['name']
     vapp_template = server['template']
     vapp_catalog = server['catalog']
+    connections = _create_connections_list(vca_client)
     ctx.logger.info("Creating VApp with parameters: {0}".format(server))
     task = vca_client.create_vapp(config['vdc'],
                                   vapp_name,
@@ -139,7 +140,6 @@ def _create(vca_client, config, server):
     wait_for_task(vca_client, task)
 
     ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = vapp_name
-    connections = _create_connections_list(vca_client)
 
     # we allways have connection to management_network_name
     if connections:
