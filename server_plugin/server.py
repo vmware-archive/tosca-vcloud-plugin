@@ -93,9 +93,9 @@ def create(vca_client, **kwargs):
                 'guest_customization': {
                     'pre_script': 'pre_script',
                     'post_script': 'post_script',
-                    'public_keys': [{
-                        'key': True
-                    }]
+                    'admin_password': 'pass',
+                    'computer_name': 'computer'
+
                 }
             }
         }
@@ -203,8 +203,9 @@ def start(vca_client, **kwargs):
             ctx.logger.info("Power-on VApp {0}".format(vapp_name))
             task = vapp.poweron()
             if not task:
-                raise cfy_exc.NonRecoverableError("Could not power-on vApp. {0}".
-                                                  format(error_response(vapp)))
+                raise cfy_exc.NonRecoverableError(
+                    "Could not power-on vApp. {0}".
+                    format(error_response(vapp)))
             wait_for_task(vca_client, task)
 
     if not _get_state(vca_client):
@@ -433,7 +434,8 @@ def _get_connected_keypairs():
     if relationships:
         return [relationship.target.instance.runtime_properties['public_key']
                 for relationship in relationships
-                if 'public_key' in relationship.target.instance.runtime_properties]
+                if 'public_key' in
+                relationship.target.instance.runtime_properties]
     else:
         return []
 
@@ -465,10 +467,7 @@ def _build_public_keys_script(public_keys):
             user = DEFAULT_USER
         home = key.get('home')
         if not home:
-            if user == 'root':
-                home = ''
-            else:
-                home = DEFAULT_HOME
+            home = '' if user == 'root' else DEFAULT_HOME
         ssh_dir = ssh_dir_template.format(home, user)
         authorized_keys = authorized_keys_template.format(ssh_dir)
         test_ssh_dir = test_ssh_dir_template.format(
