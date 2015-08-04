@@ -305,37 +305,20 @@ def configure(vca_client, **kwargs):
             try:
                 task = vapp.modify_vm_memory(vapp_name, memory)
                 wait_for_task(vca_client, task)
-                ctx.logger.info("Customize VM memory: {0}.".format(memory))
+                ctx.logger.info("Customize VM memory: '{0}'.".format(memory))
             except Exception:
                 raise cfy_exc.NonRecoverableError(
-                    "Customize VM memory failed: {0}. {1}".
+                    "Customize VM memory failed: '{0}'. {1}".
                     format(task, error_response(vapp)))
         if cpu:
             try:
                 task = vapp.modify_vm_cpu(vapp_name, cpu)
                 wait_for_task(vca_client, task)
-                ctx.logger.info("Customize VM cpu: {0}.".format(cpu))
+                ctx.logger.info("Customize VM cpu: '{0}'.".format(cpu))
             except Exception:
                 raise cfy_exc.NonRecoverableError(
-                    "Customize VM cpu failed: {0}. {1}".
+                    "Customize VM cpu failed: '{0}'. {1}".
                     format(task, error_response(vapp)))
-
-
-def _get_management_network_from_node():
-    """
-        get management network name from:
-        * node properties or
-        * provider context (bootstrap context)
-    """
-    management_network_name = ctx.node.properties.get('management_network')
-    if not management_network_name:
-        resources = ctx.provider_context.get('resources')
-        if resources and 'int_network' in resources:
-            management_network_name = resources['int_network'].get('name')
-    if not management_network_name:
-        raise cfy_exc.NonRecoverableError(
-            "Parameter 'managment_network' for Server node is not defined.")
-    return management_network_name
 
 
 def _get_state(vca_client):
@@ -352,7 +335,6 @@ def _get_state(vca_client):
         ctx.instance.runtime_properties['ip'] = None
         ctx.instance.runtime_properties['networks'] = {}
         return True
-    management_network_name = _get_management_network_from_node()
 
     if not all([connection['ip'] for connection in nw_connections]):
         ctx.logger.info("Network configuration is not finished yet.")
@@ -363,9 +345,11 @@ def _get_state(vca_client):
         for connection in nw_connections}
 
     for connection in nw_connections:
-        if connection['network_name'] == management_network_name:
-            ctx.logger.info("Management network ip address {0}"
-                            .format(connection['ip']))
+        if connection['is_primary']:
+            ctx.logger.info("Primary network ip address '{0}' for"
+                            "  network '{1}'."
+                            .format(connection['ip'],
+                                    connection['network_name']))
             ctx.instance.runtime_properties['ip'] = connection['ip']
             return True
     return False
@@ -486,13 +470,8 @@ def _create_connections_list(vca_client):
     ports = _get_connected(ctx.instance, 'port')
     networks = _get_connected(ctx.instance, 'network')
 
-    management_network_name = _get_management_network_from_node()
+    management_network_name = ctx.node.properties.get('management_network')
 
-    if not is_network_exists(vca_client, management_network_name):
-        raise cfy_exc.NonRecoverableError(
-            "Network '{0}' could not be found".format(management_network_name))
-
-    # connection by port
     for port in ports:
         port_properties = port.node.properties['port']
         connections.append(
@@ -504,21 +483,36 @@ def _create_connections_list(vca_client):
                                port_properties.get('primary_interface', False))
         )
 
-    # connection by networks
     for net in networks:
         connections.append(
             _create_connection(get_network_name(net.node.properties),
                                None, None, 'POOL'))
 
-    # add managmenty network if not exist in list
-    if not any([conn['network'] == management_network_name
-                for conn in connections]):
+    if management_network_name and not any(
+            [conn['network'] == management_network_name
+             for conn in connections]):
         connections.append(_create_connection(management_network_name,
                                               None, None, 'POOL'))
+
+    for conn in connections:
+        if not is_network_exists(vca_client, conn['network']):
+            raise cfy_exc.NonRecoverableError(
+                "Network '{0}' could not be found".format(conn['network']))
 
     primary_iface_set = len(filter(lambda conn: conn.get('primary_interface',
                                                          False),
                                    connections)) > 0
+    if not primary_iface_set:
+        if management_network_name:
+            primary_name = management_network_name
+        else:
+            if ports:
+                primary_name = ports[0]['network']
+            elif networks:
+                primary_name = networks[0]['network']
+            else:
+                raise cfy_exc.NonRecoverableError(
+                    "Can't setup primary interface")
 
     # check list of connections and set managment network as primary
     # in case when we dont have any primary networks
@@ -529,10 +523,13 @@ def _create_connections_list(vca_client):
             raise cfy_exc.NonRecoverableError(
                 "DHCP for network {0} is not available"
                 .format(network_name))
-
         if primary_iface_set is False:
             conn['primary_interface'] = \
-                (network_name == management_network_name)
+                (network_name == primary_name)
+        if conn['primary_interface']:
+            ctx.logger.info(
+                "The primary interface has been set to {}".format(
+                    primary_name))
 
     return connections
 
