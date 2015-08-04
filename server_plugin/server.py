@@ -269,10 +269,11 @@ def configure(vca_client, **kwargs):
     vapp_name = server['name']
     config = get_vcloud_config()
     custom = server.get(GUEST_CUSTOMIZATION)
-    if custom:
+    public_keys = _get_connected_keypairs()
+    if custom or public_keys:
         vdc = vca_client.get_vdc(config['vdc'])
         vapp = vca_client.get_vapp(vdc, vapp_name)
-        script = _build_script(custom)
+        script = _build_script(custom, public_keys)
         password = custom.get('admin_password')
         computer_name = custom.get('computer_name')
 
@@ -380,13 +381,12 @@ def _get_vm_network_connection(vapp, network_name):
             return connection
 
 
-def _build_script(custom):
+def _build_script(custom, public_keys):
     """
         create customization script
     """
     pre_script = custom.get('pre_script', "")
     post_script = custom.get('post_script', "")
-    public_keys = _get_connected_keypairs()
     if not pre_script and not post_script and not public_keys:
         return None
     script_executor = custom.get('script_executor', DEFAULT_EXECUTOR)
