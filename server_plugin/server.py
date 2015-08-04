@@ -268,7 +268,7 @@ def configure(vca_client, **kwargs):
     server.update(ctx.node.properties.get('server', {}))
     vapp_name = server['name']
     config = get_vcloud_config()
-    custom = server.get(GUEST_CUSTOMIZATION)
+    custom = server.get(GUEST_CUSTOMIZATION, {})
     public_keys = _get_connected_keypairs()
     if custom or public_keys:
         vdc = vca_client.get_vdc(config['vdc'])
@@ -285,14 +285,15 @@ def configure(vca_client, **kwargs):
         )
         if task is None:
             raise cfy_exc.NonRecoverableError(
-                "Could not set guest customization parameters")
+                "Could not set guest customization parameters. {0}".
+                format(error_response(vapp)))
         wait_for_task(vca_client, task)
-        # This function avialable from API version 5.6
         if vapp.customize_on_next_poweron():
             ctx.logger.info("Customizations successful")
         else:
             raise cfy_exc.NonRecoverableError(
-                "Can't run customization in next power on")
+                "Can't run customization in next power on. {0}".
+                format(error_response(vapp)))
 
     hardware = server.get('hardware')
     if hardware:
