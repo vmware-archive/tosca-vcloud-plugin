@@ -142,6 +142,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_node_context()
         fake_client = self.generate_client([{
             'is_connected': True,
+            'is_primary': True,
             'network_name': 'network_name',
             'ip': '1.1.1.1'
         }])
@@ -174,6 +175,16 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 server.start(ctx=fake_ctx)
 
+        fake_client = self.generate_client([{
+            'is_connected': False,
+            'is_primary': False,
+            'network_name': 'network_name',
+            'ip': '1.1.1.1'
+        }])
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
             # poweroff with success in task but not connected
             fake_client._vapp.me.get_status = mock.MagicMock(
                 return_value=vcloud_plugin_common.STATUS_POWERED_OFF
@@ -184,18 +195,17 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             fake_client._vapp.poweron = mock.MagicMock(
                 return_value=fake_task
             )
-            with self.assertRaises(cfy_exc.OperationRetry):
-                server.start(ctx=fake_ctx)
+            self.assertEquals(server.start(ctx=fake_ctx), None)
 
             # poweron with success in task but not connected
             fake_client._vapp.me.get_status = mock.MagicMock(
                 return_value=vcloud_plugin_common.STATUS_POWERED_OFF
             )
-            with self.assertRaises(cfy_exc.OperationRetry):
-                server.start(ctx=fake_ctx)
+            self.assertEquals(server.start(ctx=fake_ctx), None)
 
         fake_client = self.generate_client([{
             'is_connected': True,
+            'is_primary': True,
             'network_name': '_management_network',
             'ip': '1.1.1.1'
         }])
@@ -207,8 +217,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             fake_client._vapp.me.get_status = mock.MagicMock(
                 return_value=vcloud_plugin_common.STATUS_POWERED_ON
             )
-            with self.assertRaises(cfy_exc.OperationRetry):
-                server.start(ctx=fake_ctx)
+            self.assertEquals(server.start(ctx=fake_ctx), None)
 
     def test_start_external_resource(self):
         """
@@ -225,6 +234,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         )
         fake_client = self.generate_client([{
             'is_connected': True,
+            'is_primary': True,
             'network_name': 'network_name',
             'ip': '1.1.1.1'
         }])
@@ -232,8 +242,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            with self.assertRaises(cfy_exc.OperationRetry):
-                server.start(ctx=fake_ctx)
+            self.assertEquals(server.start(ctx=fake_ctx), None)
 
     def test_create_default_values(self):
         """
@@ -257,6 +266,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             self.run_with_statuses(
                 fake_client, fake_ctx
             )
+            fake_ctx.instance._relationships = None
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 server.create(ctx=fake_ctx)
             fake_client.create_vapp.assert_called_with(

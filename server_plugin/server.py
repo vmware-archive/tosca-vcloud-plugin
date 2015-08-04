@@ -506,14 +506,11 @@ def _create_connections_list(vca_client):
     if not primary_iface_set:
         if management_network_name:
             primary_name = management_network_name
+        elif connections:
+            primary_name = connections[0]['network']
         else:
-            if ports:
-                primary_name = ports[0]['network']
-            elif networks:
-                primary_name = networks[0]['network']
-            else:
-                raise cfy_exc.NonRecoverableError(
-                    "Can't setup primary interface")
+            raise cfy_exc.NonRecoverableError(
+                "Can't setup primary interface")
 
     # check list of connections and set managment network as primary
     # in case when we dont have any primary networks
@@ -524,13 +521,13 @@ def _create_connections_list(vca_client):
             raise cfy_exc.NonRecoverableError(
                 "DHCP for network {0} is not available"
                 .format(network_name))
-        if primary_iface_set is False:
+        if not primary_iface_set:
             conn['primary_interface'] = \
                 (network_name == primary_name)
         if conn['primary_interface']:
             ctx.logger.info(
                 "The primary interface has been set to {}".format(
-                    primary_name))
+                    network_name))
 
     return connections
 

@@ -25,6 +25,7 @@ from network_plugin.network import VCLOUD_NETWORK_NAME
 from IPy import IP
 
 PORT_REPLACEMENT = 'port_replacement'
+DEFAULT_SSH_PORT = '22'
 
 
 @operation
@@ -177,7 +178,8 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
             private_ip, translated_port, protocol)
         function = gateway.add_nat_rule
         message = "Add"
-
+        if _is_dnat(rule_type) and str(translated_port) == DEFAULT_SSH_PORT:
+            ctx.source.instance.runtime_properties['ssh_port'] = str(new_original_port)
     elif operation == DELETE:
         new_original_port = _get_original_port_for_delete(
             public_ip, original_port)
@@ -230,8 +232,10 @@ def _save_configuration(gateway, vca_client, operation, public_ip):
                     ctx.target.instance.runtime_properties[PUBLIC_IP],
                     ctx
                 )
-        del ctx.target.instance.runtime_properties[PUBLIC_IP]
-        del ctx.target.instance.runtime_properties[PORT_REPLACEMENT]
+        if PUBLIC_IP in ctx.target.instance.runtime_properties:
+            del ctx.target.instance.runtime_properties[PUBLIC_IP]
+        if PORT_REPLACEMENT in ctx.target.instance.runtime_properties:
+            del ctx.target.instance.runtime_properties[PORT_REPLACEMENT]
     return True
 
 
@@ -320,6 +324,7 @@ def _get_original_port_for_create(
         return port that can be used in rule, if port have already used
         return new port that is next free port after current
     """
+    ctx.target.instance.runtime_properties.setdefault(PORT_REPLACEMENT, {})
     nat_rules = gateway.get_nat_rules()
     if isinstance(
             original_port, basestring) and original_port.lower() == 'any':
@@ -337,7 +342,6 @@ def _get_original_port_for_create(
         else:
             return original_port
 
-    ctx.target.instance.runtime_properties.setdefault(PORT_REPLACEMENT, {})
     # origin port can be string
     for port in xrange(int(original_port), utils.MAX_PORT_NUMBER + 1):
         if not _is_rule_exists(nat_rules, rule_type, original_ip,
@@ -362,6 +366,8 @@ def _get_original_port_for_delete(original_ip, original_port):
         check may be we already replaced port by some new free port
     """
     runtime_properties = ctx.target.instance.runtime_properties
+    if PORT_REPLACEMENT not in runtime_properties:
+        return original_port
     key = '{}:{}'.format(original_ip, original_port)
     port = runtime_properties[PORT_REPLACEMENT].get(key)
     return port if port else original_port

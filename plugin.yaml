@@ -224,3 +224,11 @@ relationships:
                     inputs: {}
     cloudify.vcloud.server_connected_to_keypair:
         derived_from: cloudify.relationships.connected_to
+        target_interfaces:
+            cloudify.interfaces.relationship_lifecycle:
+                establish:
+                    implementation: vcloud.network_plugin.keypair.server_connect_to_keypair
+                    inputs: {}
+                unlink:
+                    implementation: vcloud.network_plugin.keypair.server_disconnect_from_keypair
+                    inputs: {}

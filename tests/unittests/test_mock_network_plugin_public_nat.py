@@ -39,13 +39,16 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         # not exist
         self.assertFalse(
             public_nat._is_rule_exists(
-                [rule_inlist], 'SNAT', 'external', '22', 'internal',
+                [rule_inlist], 'DNAT', 'external', '22', 'internal',
                 '11', 'UDP')
         )
 
     def test_get_original_port_for_delete(self):
         # no replacement
         fake_ctx = self.generate_relation_context()
+        fake_ctx._target.instance.runtime_properties = {
+            public_nat.PORT_REPLACEMENT: {}}
+
         with mock.patch(
             'network_plugin.public_nat.ctx', fake_ctx
         ):
@@ -57,7 +60,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_relation_context()
         fake_ctx._target.instance.runtime_properties = {
             public_nat.PORT_REPLACEMENT: {
-                ("10.1.1.2", "11"): '12'
+                "10.1.1.2:11": '12'
             }
         }
         with mock.patch(
@@ -71,7 +74,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_relation_context()
         fake_ctx._target.instance.runtime_properties = {
             public_nat.PORT_REPLACEMENT: {
-                ("10.1.1.2", "11"): '12'
+                "10.1.1.2:11": '12'
             }
         }
         with mock.patch(
@@ -84,30 +87,27 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
 
     def test_get_original_port_for_create(self):
         gateway = mock.Mock()
+        fake_ctx = self.generate_relation_context()
         rule_inlist = self.generate_nat_rule(
-            'SNAT', 'external', 'any', 'internal', '11', 'TCP'
-        )
+            'DNAT', 'external', 'any', 'internal', '11', 'TCP')
         gateway.get_nat_rules = mock.MagicMock(return_value=[rule_inlist])
-        # exeption about same port
-        with self.assertRaises(cfy_exc.NonRecoverableError):
-            public_nat._get_original_port_for_create(
-                gateway, 'SNAT', 'external', 'any', 'internal', '11', 'TCP'
-            )
-        # everythiong fine with different port
-        self.assertEqual(
-            public_nat._get_original_port_for_create(
-                gateway, 'SNAT', 'external', 'any', 'internal', '12', 'TCP'
-            ),
-            'any'
-        )
-        # relink some port to other
-        # port have not used yet
-        self.assertEqual(
-            public_nat._get_original_port_for_create(
-                gateway, 'SNAT', 'external', 10, 'internal', '12', 'TCP'
-            ),
-            10
-        )
+        with mock.patch(
+            'network_plugin.public_nat.ctx', fake_ctx
+        ):
+            # exeption about same port
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                public_nat._get_original_port_for_create(
+                    gateway, 'DNAT', 'external', 'any', 'internal', '11', 'TCP'
+                )
+            # everythiong fine with different port
+            self.assertEqual(
+                public_nat._get_original_port_for_create(
+                    gateway, 'DNAT', 'external', '12', 'internal', '12', 'TCP'), 12)
+            # relink some port to other
+            # port have not used yet
+            self.assertEqual(
+                public_nat._get_original_port_for_create(
+                    gateway, 'SNAT', 'external', 13, 'internal', '12', 'TCP'), 13)
 
     def test_get_original_port_for_create_with_ctx(self):
         # with replace, but without replace table - up port +1
@@ -133,7 +133,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 fake_ctx._target.instance.runtime_properties,
                 {
                     public_nat.PORT_REPLACEMENT: {
-                        ('external', '10'): 11
+                        'external:10': 11
                     }
                 }
             )
@@ -152,7 +152,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 fake_ctx._target.instance.runtime_properties,
                 {
                     public_nat.PORT_REPLACEMENT: {
-                        ('external', '10'): 11
+                        'external:10': 11
                     }
                 }
             )
@@ -497,6 +497,8 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             )
         # run correct operation/rule
         fake_ctx = self.generate_relation_context()
+        fake_ctx._target.instance.runtime_properties = {
+            public_nat.PORT_REPLACEMENT: {}}
         for operation in [network_plugin.DELETE, network_plugin.CREATE]:
             for rule_type in ["SNAT", "DNAT"]:
                 with mock.patch(

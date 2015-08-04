@@ -60,74 +60,11 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
     def test_check_hardware(self):
         server._check_hardware(1, 512)
 
-    def test_get_management_network_name_in_properties(self):
-        ''' exist some managment network name in properties '''
-        fake_ctx = cfy_mocks.MockCloudifyContext(
-            node_id='test',
-            node_name='test',
-            properties={
-                'management_network': '_management_network'
-            })
-        with mock.patch('server_plugin.server.ctx', fake_ctx):
-            self.assertEqual(
-                '_management_network',
-                server._get_management_network_from_node()
-            )
-
-    def test_get_management_network_name_without_properties(self):
-        ''' without name in properties '''
-        fake_ctx = cfy_mocks.MockCloudifyContext(
-            node_id='test',
-            node_name='test',
-            properties={})
-        with mock.patch('server_plugin.server.ctx', fake_ctx):
-            with self.assertRaises(cfy_exc.NonRecoverableError):
-                server._get_management_network_from_node()
-
-    def test_get_management_network_name_in_provider_context(self):
-        ''' with name in provider_context '''
-        fake_ctx = cfy_mocks.MockCloudifyContext(
-            node_id='test',
-            node_name='test',
-            properties={},
-            provider_context={
-                'resources': {
-                    'int_network': {
-                        'name': '_management_network'
-                    }
-                }
-            })
-        with mock.patch('server_plugin.server.ctx', fake_ctx):
-            self.assertEqual(
-                '_management_network',
-                server._get_management_network_from_node()
-            )
-
-    def test_get_management_network_without_name_in_context(self):
-        ''' without name in provider_context '''
-        fake_ctx = cfy_mocks.MockCloudifyContext(
-            node_id='test',
-            node_name='test',
-            properties={},
-            provider_context={
-                'resources': {
-                    'int_network': {
-                        'other_name': '_management_network'
-                    }
-                }
-            })
-        with mock.patch('server_plugin.server.ctx', fake_ctx):
-            with self.assertRaises(cfy_exc.NonRecoverableError):
-                self.assertEqual(
-                    '_management_network',
-                    server._get_management_network_from_node()
-                )
-
     def test_build_script(self):
         with mock.patch('server_plugin.server._get_connected_keypairs',
                         mock.MagicMock(
                             return_value=[])):
-            self.assertEqual(None, server._build_script({}))
+            self.assertEqual(None, server._build_script({}, []))
 
         custom = {
             'pre_script': 'pre_script',
@@ -139,7 +76,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
         with mock.patch('server_plugin.server._get_connected_keypairs',
                         mock.MagicMock(
                             return_value=[{'key': 'key'}])):
-            self.assertNotEqual(None, server._build_script(custom))
+            self.assertNotEqual(None, server._build_script(custom, []))
 
     def test_build_public_keys_script(self):
         self.assertEqual('', server._build_public_keys_script([]))
@@ -508,6 +445,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                 # connected network_name
                 fake_client = self.generate_client([{
                     'is_connected': True,
+                    'is_primary': False,
                     'network_name': 'network_name',
                     'ip': '1.1.1.1'
                 }])
@@ -522,6 +460,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                 # not ip in connected network_name
                 fake_client = self.generate_client([{
                     'is_connected': True,
+                    'is_primary': False,
                     'network_name': 'network_name',
                     'ip': None
                 }])
@@ -529,6 +468,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                 # with managment_network
                 fake_client = self.generate_client([{
                     'is_connected': True,
+                    'is_primary': True,
                     'network_name': '_management_network',
                     'ip': '1.1.1.1'
                 }])

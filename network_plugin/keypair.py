@@ -13,6 +13,7 @@ PATH = 'path'
 KEY = 'key'
 USER = 'user'
 HOME = 'home'
+SSH_KEY = 'ssh_key'
 
 
 @operation
@@ -67,6 +68,23 @@ def delete(**kwargs):
             _delete_key_file(ctx.instance.runtime_properties[PRIVATE_KEY][PATH])
     del ctx.instance.runtime_properties[PRIVATE_KEY]
     del ctx.instance.runtime_properties[PUBLIC_KEY]
+
+
+@operation
+def server_connect_to_keypair(**kwargs):
+    host_rt_properties = ctx.source.instance.runtime_properties
+    if SSH_KEY not in host_rt_properties:
+        host_rt_properties[SSH_KEY] = {}
+        host_rt_properties[SSH_KEY][PATH] = ctx.instance.runtime_properties[PRIVATE_KEY][PATH]
+        host_rt_properties[SSH_KEY][KEY] = ctx.instance.runtime_properties[PRIVATE_KEY][KEY]
+        host_rt_properties[SSH_KEY][USER] = ctx.instance.runtime_properties[PUBLIC_KEY][USER]
+
+
+@operation
+def server_disconnect_from_keypair(**kwargs):
+    host_rt_properties = ctx.source.instance.runtime_properties
+    if SSH_KEY in host_rt_properties:
+        del host_rt_properties[SSH_KEY]
 
 
 def _generate_pair():
