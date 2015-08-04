@@ -177,6 +177,7 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
             private_ip, translated_port, protocol)
         function = gateway.add_nat_rule
         message = "Add"
+
     elif operation == DELETE:
         new_original_port = _get_original_port_for_delete(
             public_ip, original_port)
@@ -230,6 +231,7 @@ def _save_configuration(gateway, vca_client, operation, public_ip):
                     ctx
                 )
         del ctx.target.instance.runtime_properties[PUBLIC_IP]
+        del ctx.target.instance.runtime_properties[PORT_REPLACEMENT]
     return True
 
 
@@ -335,6 +337,7 @@ def _get_original_port_for_create(
         else:
             return original_port
 
+    ctx.target.instance.runtime_properties.setdefault(PORT_REPLACEMENT, {})
     # origin port can be string
     for port in xrange(int(original_port), utils.MAX_PORT_NUMBER + 1):
         if not _is_rule_exists(nat_rules, rule_type, original_ip,
@@ -346,13 +349,9 @@ def _get_original_port_for_create(
                 ctx.logger.info(
                     "For IP {} replace original port {} -> {}"
                     .format(original_ip, original_port, port))
-                if (PORT_REPLACEMENT not in
-                        ctx.target.instance.runtime_properties):
-                    ctx.target.instance.runtime_properties[
-                        PORT_REPLACEMENT] = {}
+                key = '{}:{}'.format(original_ip, original_port)
                 ctx.target.instance.runtime_properties[
-                    PORT_REPLACEMENT][
-                    (original_ip, original_port)] = port
+                    PORT_REPLACEMENT][key] = port
                 return port
     raise cfy_exc.NonRecoverableError(
         "Can't create NAT rule because maximum port number was reached")
@@ -362,14 +361,10 @@ def _get_original_port_for_delete(original_ip, original_port):
     """
         check may be we already replaced port by some new free port
     """
-    if PORT_REPLACEMENT in ctx.target.instance.runtime_properties:
-        runtime_properties = ctx.target.instance.runtime_properties
-        port = runtime_properties[PORT_REPLACEMENT].get(
-            (original_ip, original_port)
-        )
-        return port if port else original_port
-    else:
-        return original_port
+    runtime_properties = ctx.target.instance.runtime_properties
+    key = '{}:{}'.format(original_ip, original_port)
+    port = runtime_properties[PORT_REPLACEMENT].get(key)
+    return port if port else original_port
 
 
 def _is_rule_exists(nat_rules, rule_type,
