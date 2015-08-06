@@ -75,9 +75,9 @@ def server_connect_to_keypair(**kwargs):
     host_rt_properties = ctx.source.instance.runtime_properties
     if SSH_KEY not in host_rt_properties:
         host_rt_properties[SSH_KEY] = {}
-        host_rt_properties[SSH_KEY][PATH] = ctx.instance.runtime_properties[PRIVATE_KEY][PATH]
-        host_rt_properties[SSH_KEY][KEY] = ctx.instance.runtime_properties[PRIVATE_KEY][KEY]
-        host_rt_properties[SSH_KEY][USER] = ctx.instance.runtime_properties[PUBLIC_KEY][USER]
+        host_rt_properties[SSH_KEY][PATH] = ctx.target.instance.runtime_properties[PRIVATE_KEY][PATH]
+        host_rt_properties[SSH_KEY][KEY] = ctx.target.instance.runtime_properties[PRIVATE_KEY][KEY]
+        host_rt_properties[SSH_KEY][USER] = ctx.target.instance.runtime_properties[PUBLIC_KEY][USER]
 
 
 @operation
