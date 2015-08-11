@@ -1,7 +1,7 @@
 plugins:
     vcloud:
         executor: central_deployment_agent
-        source: https://github.com/cloudify-cosmo/tosca-vcloud-plugin/archive/master.zip
+        source: https://github.com/cloudify-cosmo/tosca-vcloud-plugin/archive/CFY-3343.zip
 
 node_types:
     cloudify.vcloud.nodes.Server:
@@ -232,3 +232,8 @@ relationships:
                 unlink:
                     implementation: vcloud.network_plugin.keypair.server_disconnect_from_keypair
                     inputs: {}
+
+workflows:
+    scoreinstall: vcloud.vcloud_plugin_common.workflows.install
+
+    scoreuninstall: vcloud.vcloud_plugin_common.workflows.uninstall
