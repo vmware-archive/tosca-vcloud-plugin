@@ -152,7 +152,8 @@ def _create(vca_client, config, server):
 
             network_name = connection.get('network')
             network = get_network(vca_client, network_name)
-
+            ctx.logger.info("Connect network '{0}' to server '{1}'."
+                            .format(network_name, vapp_name))
             task = vapp.connect_to_network(network_name, network.get_href())
             if not task:
                 raise cfy_exc.NonRecoverableError(
@@ -276,7 +277,7 @@ def configure(vca_client, **kwargs):
         script = _build_script(custom, public_keys)
         password = custom.get('admin_password')
         computer_name = custom.get('computer_name')
-
+        ctx.logger.info("Customize guest OS")
         task = vapp.customize_guest_os(
             vapp_name,
             customization_script=script,
@@ -305,18 +306,18 @@ def configure(vca_client, **kwargs):
         )
         if memory:
             try:
+                ctx.logger.info("Customize VM memory: '{0}'.".format(memory))
                 task = vapp.modify_vm_memory(vapp_name, memory)
                 wait_for_task(vca_client, task)
-                ctx.logger.info("Customize VM memory: '{0}'.".format(memory))
             except Exception:
                 raise cfy_exc.NonRecoverableError(
                     "Customize VM memory failed: '{0}'. {1}".
                     format(task, error_response(vapp)))
         if cpu:
             try:
+                ctx.logger.info("Customize VM cpu: '{0}'.".format(cpu))
                 task = vapp.modify_vm_cpu(vapp_name, cpu)
                 wait_for_task(vca_client, task)
-                ctx.logger.info("Customize VM cpu: '{0}'.".format(cpu))
             except Exception:
                 raise cfy_exc.NonRecoverableError(
                     "Customize VM cpu failed: '{0}'. {1}".

@@ -86,17 +86,19 @@ def create(vca_client, **kwargs):
             if len(dns_list) > 1:
                 dns2 = dns_list[1]
         dns_suffix = net_prop.get("dns_suffix")
+        ctx.logger.info("Create network {0}."
+                        .format(network_name))
         success, result = vca_client.create_vdc_network(
             vdc_name, network_name, gateway_name, start_address,
             end_address, gateway_ip, netmask, dns1, dns2, dns_suffix)
         if success:
+            wait_for_task(vca_client, result)
             ctx.logger.info("Network {0} has been successfully created."
                             .format(network_name))
         else:
             raise cfy_exc.NonRecoverableError(
                 "Could not create network {0}: {1}".
                 format(network_name, result))
-        wait_for_task(vca_client, result)
         ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = network_name
     if not _dhcp_operation(vca_client, network_name, ADD_POOL):
         ctx.instance.runtime_properties[SKIP_CREATE_NETWORK] = True
@@ -117,9 +119,11 @@ def delete(vca_client, **kwargs):
     network_name = get_network_name(ctx.node.properties)
     if not _dhcp_operation(vca_client, network_name, DELETE_POOL):
         return set_retry(ctx)
+    ctx.logger.info("Delete network '{0}'".format(network_name))
     success, task = vca_client.delete_vdc_network(
         get_vcloud_config()['vdc'], network_name)
     if success:
+        wait_for_task(vca_client, task)
         ctx.logger.info(
             "Network '{0}' has been successful deleted.".format(network_name))
     else:
@@ -129,7 +133,6 @@ def delete(vca_client, **kwargs):
             return
         raise cfy_exc.NonRecoverableError(
             "Could not delete network '{0}': {1}".format(network_name, task))
-    wait_for_task(vca_client, task)
 
 
 @operation

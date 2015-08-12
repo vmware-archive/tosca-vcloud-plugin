@@ -108,6 +108,7 @@ class ServerNoNetworkTestCase(TestCase):
 
     def test_server_create_delete(self):
         server.create()
+        server.configure()
         vdc = self.vca_client.get_vdc(self.vcloud_config['org'])
         vapp = self.vca_client.get_vapp(
             vdc,

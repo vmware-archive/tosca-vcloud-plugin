@@ -405,9 +405,9 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             'network_plugin.public_nat.ctx', fake_ctx
         ):
             # success save configuration
-            public_nat._save_configuration(
-                gateway, fake_client, network_plugin.CREATE, "1.2.3.4"
-            )
+            with mock.patch('vcloud_plugin_common.ctx', mock.MagicMock()):
+                public_nat._save_configuration(
+                    gateway, fake_client, network_plugin.CREATE, "1.2.3.4")
             self.assertEqual(
                 fake_ctx._target.instance.runtime_properties,
                 {

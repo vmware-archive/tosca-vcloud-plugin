@@ -41,10 +41,12 @@ def create_volume(vca_client, **kwargs):
     name = ctx.node.properties['volume']['name']
     size = ctx.node.properties['volume']['size']
     size_in_Mb = size * 1024 * 1024
+    ctx.logger.info("Create volume '{0}' to '{1}' with size {2}Mb."
+                    .format(name, vdc_name, size_in_Mb))
     success, disk = vca_client.add_disk(vdc_name, name, size_in_Mb)
     if success:
         wait_for_task(vca_client, disk.get_Tasks()[0])
-        ctx.logger.info("Volume node {} has been created".format(name))
+        ctx.logger.info("Volume node '{0}' has been created".format(name))
     else:
         raise cfy_exc.NonRecoverableError(
             "Disk creation error: {0}".format(disk))
@@ -61,10 +63,12 @@ def delete_volume(vca_client, **kwargs):
         return
     vdc_name = get_vcloud_config()['vdc']
     name = ctx.node.properties['volume']['name']
+    ctx.logger.info("Delete volume '{0}' from '{1}'."
+                    .format(name, vdc_name))
     success, task = vca_client.delete_disk(vdc_name, name)
     if success:
         wait_for_task(vca_client, task)
-        ctx.logger.info("Volume node {} has been deleted".format(name))
+        ctx.logger.info("Volume node '{0}' has been deleted".format(name))
     else:
         raise cfy_exc.NonRecoverableError(
             "Disk deletion error: {0}".format(task))
@@ -127,27 +131,29 @@ def _volume_operation(vca_client, operation):
     for ref in vca_client.get_diskRefs(vdc):
         if ref.name == volumeName:
             if operation == 'ATTACH':
+                ctx.logger.info("Attach volume node '{0}'.".format(volumeName))
                 task = vapp.attach_disk_to_vm(vmName, ref)
                 if task:
                     wait_for_task(vca_client, task)
                     ctx.logger.info(
-                        "Volume node {} has been attached".format(volumeName))
+                        "Volume node '{0}' has been attached".format(volumeName))
                 else:
                     raise cfy_exc.NonRecoverableError(
-                        "Can't attach disk: {0} {1}".
+                        "Can't attach disk: '{0}' with error: {1}".
                         format(volumeName, error_response(vapp)))
 
             elif operation == 'DETACH':
+                ctx.logger.info("Detach volume node '{0}'.".format(volumeName))
                 task = vapp.detach_disk_from_vm(vmName, ref)
                 if task:
                     wait_for_task(vca_client, task)
                     ctx.logger.info(
-                        "Volume node {0} has been detached.".
+                        "Volume node '{0}' has been detached.".
                         format(volumeName))
                 else:
                     raise cfy_exc.NonRecoverableError(
-                        "Can't detach disk: {0}.  {1}".
+                        "Can't detach disk: '{0}'. With error: {1}".
                         format(volumeName, error_response(vapp)))
             else:
                 raise cfy_exc.NonRecoverableError(
-                    "Unknown operation {0}".format(operation))
+                    "Unknown operation '{0}'".format(operation))

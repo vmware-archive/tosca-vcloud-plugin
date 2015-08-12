@@ -172,9 +172,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
                 vcloud_plugin_common.TASK_STATUS_SUCCESS
             )
         )
-        network_plugin.del_ondemand_public_ip(
-            fake_client, gateway, '127.0.0.1', fake_ctx
-        )
+        with mock.patch('vcloud_plugin_common.ctx', mock.MagicMock()):
+            network_plugin.del_ondemand_public_ip(
+                fake_client, gateway, '127.0.0.1', fake_ctx)
 
     def test_save_gateway_configuration(self):
         """
@@ -196,18 +196,17 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             gateway, vcloud_plugin_common.TASK_STATUS_ERROR
         )
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            network_plugin.save_gateway_configuration(
-                gateway, fake_client
-            )
+            with mock.patch('vcloud_plugin_common.ctx', mock.MagicMock()):
+                network_plugin.save_gateway_configuration(
+                    gateway, fake_client)
         # everything fine
         self.set_services_conf_result(
             gateway, vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
-        self.assertTrue(
-            network_plugin.save_gateway_configuration(
-                gateway, fake_client
-            )
-        )
+        with mock.patch('vcloud_plugin_common.ctx', mock.MagicMock()):
+            self.assertTrue(
+                network_plugin.save_gateway_configuration(
+                    gateway, fake_client))
         # server busy
         self.set_services_conf_result(
             gateway, None

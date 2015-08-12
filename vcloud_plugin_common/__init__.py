@@ -26,7 +26,7 @@ from cloudify import ctx
 from cloudify import context
 from cloudify import exceptions as cfy_exc
 
-TASK_RECHECK_TIMEOUT = 2
+TASK_RECHECK_TIMEOUT = 3
 RELOGIN_TIMEOUT = 3
 TASK_STATUS_SUCCESS = 'success'
 TASK_STATUS_ERROR = 'error'
@@ -400,21 +400,32 @@ def wait_for_task(vca_client, task):
     """
         check status of current task and make request for recheck
         task status in case when we have not well defined state
-        (not error and not success)
+        (not error and not success or by timeout)
     """
+    WAIT_TIME_MAX_MINUTES = 30
+    MAX_ATTEMPTS = WAIT_TIME_MAX_MINUTES * 60 / TASK_RECHECK_TIMEOUT
+    ctx.logger.debug('Maximun task wait time {0} minutes.'
+                     .format(WAIT_TIME_MAX_MINUTES))
+    ctx.logger.debug('Task recheck after {0} seconds.'
+                     .format(TASK_RECHECK_TIMEOUT))
     status = task.get_status()
-    while status != TASK_STATUS_SUCCESS:
+    for attempt in range(MAX_ATTEMPTS):
+        ctx.logger.debug('Attempt: {0}/{1}.'.format(attempt + 1, MAX_ATTEMPTS))
+        if status == TASK_STATUS_SUCCESS:
+            ctx.logger.debug('Task completed in {0} seconds'
+                             .format(attempt * TASK_RECHECK_TIMEOUT))
+            return
         if status == TASK_STATUS_ERROR:
             error = task.get_Error()
             raise cfy_exc.NonRecoverableError(
                 "Error during task execution: {0}".format(error.get_message()))
-        else:
-            time.sleep(TASK_RECHECK_TIMEOUT)
-            response = requests.get(
-                task.get_href(),
-                headers=vca_client.vcloud_session.get_vcloud_headers())
-            task = taskType.parseString(response.content, True)
-            status = task.get_status()
+        time.sleep(TASK_RECHECK_TIMEOUT)
+        response = requests.get(
+            task.get_href(),
+            headers=vca_client.vcloud_session.get_vcloud_headers())
+        task = taskType.parseString(response.content, True)
+        status = task.get_status()
+    raise cfy_exc.NonRecoverableError("Wait for task timeout.")
 
 
 def get_vcloud_config():
