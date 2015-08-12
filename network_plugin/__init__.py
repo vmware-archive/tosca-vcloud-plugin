@@ -3,7 +3,7 @@ from cloudify import exceptions as cfy_exc
 import collections
 from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType
 from vcloud_plugin_common import (wait_for_task, get_vcloud_config,
-                                  is_subscription)
+                                  is_subscription, error_response)
 
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
@@ -229,18 +229,19 @@ def get_ondemand_public_ip(vca_client, gateway, ctx):
         try to allocate new public ip for ondemand service
     """
     old_public_ips = set(gateway.get_public_ips())
+    ctx.logger.info("Try to allocate public IP")
     task = gateway.allocate_public_ip()
     if task:
         wait_for_task(vca_client, task)
     else:
         raise cfy_exc.NonRecoverableError(
-            "Can't get public ip for ondemand service")
+            "Can't get public ip for ondemand service {0}".format(error_response(gateway)))
     # update gateway for new IP address
     gateway = vca_client.get_gateways(get_vcloud_config()['vdc'])[0]
     new_public_ips = set(gateway.get_public_ips())
     new_ip = new_public_ips - old_public_ips
     if new_ip:
-        ctx.logger.info("Assign public IP {0}".format(new_ip))
+        ctx.logger.info("Public IP {0} was asigned.".format(new_ip))
     else:
         raise cfy_exc.NonRecoverableError(
             "Can't get new public IP address")
@@ -251,13 +252,15 @@ def del_ondemand_public_ip(vca_client, gateway, ip, ctx):
     """
         try to deallocate public ip
     """
+    ctx.logger.info("Try to deallocate public IP {0}".format(ip))
     task = gateway.deallocate_public_ip(ip)
     if task:
         wait_for_task(vca_client, task)
-        ctx.logger.info("Public IP {0} deallocated".format(ip))
+        ctx.logger.info("Public IP {0} was deallocated".format(ip))
     else:
         raise cfy_exc.NonRecoverableError(
-            "Can't deallocate public ip {0} for ondemand service".format(ip))
+            "Can't deallocate public ip {0}. {1} for ondemand service".
+            format(ip, error_response(gateway)))
 
 
 def get_public_ip(vca_client, gateway, service_type, ctx):
