@@ -77,11 +77,13 @@ inputs:
 
     manager_server_catalog:
         type: string
+        default: 'Public Catalog'
         description: >
             Name of catalog, can be 'Public Catalog'
 
     manager_server_template:
         type: string
+        default: 'Ubuntu Server 12.04 LTS (amd64 20150127)'
         description: >
             Name of template from catalog,
             can be 'Ubuntu Server 12.04 LTS (amd64 20150127)'
@@ -478,11 +480,11 @@ node_templates:
         properties:
             cloudify_packages:
                 agents:
-                    ubuntu_agent_url: http://gigaspaces-repository-eu.s3.amazonaws.com/org/cloudify3/3.2.0/ga-RELEASE/cloudify-ubuntu-agent_3.2.0-ga-b200_amd64.deb
-                    centos_agent_url: http://gigaspaces-repository-eu.s3.amazonaws.com/org/cloudify3/3.2.0/ga-RELEASE/cloudify-centos-final-agent_3.2.0-ga-b200_amd64.deb
-                    windows_agent_url: http://gigaspaces-repository-eu.s3.amazonaws.com/org/cloudify3/3.2.0/ga-RELEASE/cloudify-windows-agent_3.2.0-ga-b200_amd64.deb
+                    ubuntu_agent_url: http://gigaspaces-repository-eu.s3.amazonaws.com/org/cloudify3/3.2.1/ga-RELEASE/cloudify-ubuntu-agent_3.2.1-ga-b212_amd64.deb
+                    centos_agent_url: http://gigaspaces-repository-eu.s3.amazonaws.com/org/cloudify3/3.2.1/ga-RELEASE/cloudify-centos-final-agent_3.2.1-ga-b212_amd64.deb
+                    windows_agent_url: http://gigaspaces-repository-eu.s3.amazonaws.com/org/cloudify3/3.2.1/ga-RELEASE/cloudify-windows-agent_3.2.1-ga-b212_amd64.deb
                 docker:
-                    docker_url: http://gigaspaces-repository-eu.s3.amazonaws.com/org/cloudify3/3.2.0/ga-RELEASE/cloudify-docker_3.2.0-ga-b200.tar
+                    docker_url: http://gigaspaces-repository-eu.s3.amazonaws.com/org/cloudify3/3.2.1/ga-RELEASE/cloudify-docker_3.2.1-ga-b212.tar
 
             cloudify:
                 resources_prefix: { get_input: resources_prefix }
