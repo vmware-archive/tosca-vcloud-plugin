@@ -55,8 +55,7 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                     ):
                         return client._subscription_login(
                             url, username, password, token, service,
-                            org_name
-                        )
+                            org_name)
         # can't login with token
         with self.assertRaises(cfy_exc.NonRecoverableError):
             _run(
@@ -125,8 +124,7 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                         'vcloud_plugin_common.ctx', fake_ctx
                     ):
                         return client._ondemand_login(
-                            url, username, password, token, instance_id
-                        )
+                            url, username, password, token, instance_id)
 
         # bad case without instance
         with self.assertRaises(cfy_exc.NonRecoverableError):
