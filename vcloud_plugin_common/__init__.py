@@ -159,9 +159,9 @@ class VcloudAirClient(object):
         api_version = cfg.get('api_version', '5.6')
         session_token = cfg.get(SESSION_TOKEN)
         org_url = cfg.get(ORG_URL)
-        if not (all([url, token]) or all([url, username, password])):
+        if not (all([url, token]) or all([url, username, password]) or session_token):
             raise cfy_exc.NonRecoverableError(
-                "Login credentials must be specified")
+                "Login credentials must be specified.")
         if (service_type == SUBSCRIPTION_SERVICE_TYPE and not (
             service and org_name
         )):
