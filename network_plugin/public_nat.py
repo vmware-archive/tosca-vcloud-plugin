@@ -180,6 +180,7 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
         message = "Add"
         if _is_dnat(rule_type) and str(translated_port) == DEFAULT_SSH_PORT:
             ctx.source.instance.runtime_properties['ssh_port'] = str(new_original_port)
+            ctx.source.instance.runtime_properties['ssh_public_ip'] = public_ip            
     elif operation == DELETE:
         new_original_port = _get_original_port_for_delete(
             public_ip, original_port)
