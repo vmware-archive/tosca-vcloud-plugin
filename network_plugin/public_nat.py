@@ -184,9 +184,9 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
             while retries_update > 0 and update_pending:
                 retries_update = retries_update -1
                 try:
-                    ctx.source.instance.update()        
                     ctx.source.instance.runtime_properties['ssh_port'] = str(new_original_port)
                     ctx.source.instance.runtime_properties['ssh_public_ip'] = public_ip            
+                    ctx.source.instance.update()        
                     update_pending = False
                 except rest_exceptions.CloudifyClientError as e:
                     if 'conflict' in str(e):
