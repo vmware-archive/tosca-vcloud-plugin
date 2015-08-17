@@ -181,7 +181,7 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
         if _is_dnat(rule_type) and str(translated_port) == DEFAULT_SSH_PORT:
             retries_update = 3
             update_pending = True
-            while retries_update > 0 and update_pending
+            while retries_update > 0 and update_pending:
                 retries_update = retries_update -1
                 try:
                     ctx.source.instance.update()        
