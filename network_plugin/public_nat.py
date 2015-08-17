@@ -179,8 +179,21 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
         function = gateway.add_nat_rule
         message = "Add"
         if _is_dnat(rule_type) and str(translated_port) == DEFAULT_SSH_PORT:
-            ctx.source.instance.runtime_properties['ssh_port'] = str(new_original_port)
-            ctx.source.instance.runtime_properties['ssh_public_ip'] = public_ip            
+            retries_update = 3
+            update_pending = True
+            while retries_update > 0 and update_pending
+                retries_update = retries_update -1
+                try:
+                    ctx.source.instance.update()        
+                    ctx.source.instance.runtime_properties['ssh_port'] = str(new_original_port)
+                    ctx.source.instance.runtime_properties['ssh_public_ip'] = public_ip            
+                    update_pending = False
+                except rest_exceptions.CloudifyClientError as e:
+                    if 'conflict' in str(e):
+                        # cannot 'return' in contextmanager
+                        ctx.logger.info("Conflict in updating backend, retrying")
+                    else:
+                        raise
     elif operation == DELETE:
         new_original_port = _get_original_port_for_delete(
             public_ip, original_port)
