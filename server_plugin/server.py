@@ -110,6 +110,12 @@ def create(vca_client, **kwargs):
     if ctx.node.properties.get('use_external_resource'):
         res_id = ctx.node.properties['resource_id']
         ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = res_id
+        vdc = vca_client.get_vdc(config['vdc'])
+        if not vca_client.get_vapp(vdc, res_id):
+            raise cfy_exc.NonRecoverableError(
+                "Unable to find external vAPP server resource {0}."
+                .format(res_id))
+        server.update({'name': res_id})
         ctx.logger.info(
             "External resource {0} has been used".format(res_id))
     else:
@@ -264,64 +270,75 @@ def delete(vca_client, **kwargs):
 @operation
 @with_vca_client
 def configure(vca_client, **kwargs):
-    ctx.logger.info("Configure server")
-    server = {'name': ctx.instance.id}
-    server.update(ctx.node.properties.get('server', {}))
-    vapp_name = server['name']
-    config = get_vcloud_config()
-    custom = server.get(GUEST_CUSTOMIZATION, {})
-    public_keys = _get_connected_keypairs()
-    if custom or public_keys:
-        vdc = vca_client.get_vdc(config['vdc'])
-        vapp = vca_client.get_vapp(vdc, vapp_name)
-        script = _build_script(custom, public_keys)
-        password = custom.get('admin_password')
-        computer_name = custom.get('computer_name')
-        ctx.logger.info("Customize guest OS")
-        task = vapp.customize_guest_os(
-            vapp_name,
-            customization_script=script,
-            computer_name=computer_name,
-            admin_password=password
-        )
-        if task is None:
-            raise cfy_exc.NonRecoverableError(
-                "Could not set guest customization parameters. {0}".
-                format(error_response(vapp)))
-        wait_for_task(vca_client, task)
-        if vapp.customize_on_next_poweron():
-            ctx.logger.info("Customizations successful")
-        else:
-            raise cfy_exc.NonRecoverableError(
-                "Can't run customization in next power on. {0}".
-                format(error_response(vapp)))
 
-    hardware = server.get('hardware')
-    if hardware:
-        cpu = hardware.get('cpu')
-        memory = hardware.get('memory')
-        _check_hardware(cpu, memory)
-        vapp = vca_client.get_vapp(
-            vca_client.get_vdc(config['vdc']), vapp_name
-        )
-        if memory:
-            try:
-                ctx.logger.info("Customize VM memory: '{0}'.".format(memory))
-                task = vapp.modify_vm_memory(vapp_name, memory)
-                wait_for_task(vca_client, task)
-            except Exception:
+    if ctx.node.properties.get('use_external_resource'):
+        ctx.logger.info('Avoiding external resource configuration.')
+    else:
+        ctx.logger.info("Configure server")
+        server = {'name': ctx.instance.id}
+        server.update(ctx.node.properties.get('server', {}))
+        ctx.logger.info("Server properties: {0}"
+                        .format(str(server)))
+        vapp_name = server['name']
+        config = get_vcloud_config()
+        custom = server.get(GUEST_CUSTOMIZATION, {})
+        public_keys = _get_connected_keypairs()
+        if custom or public_keys:
+            vdc = vca_client.get_vdc(config['vdc'])
+            vapp = vca_client.get_vapp(vdc, vapp_name)
+            if not vapp:
                 raise cfy_exc.NonRecoverableError(
-                    "Customize VM memory failed: '{0}'. {1}".
-                    format(task, error_response(vapp)))
-        if cpu:
-            try:
-                ctx.logger.info("Customize VM cpu: '{0}'.".format(cpu))
-                task = vapp.modify_vm_cpu(vapp_name, cpu)
-                wait_for_task(vca_client, task)
-            except Exception:
+                    "Unable to find vAPP server "
+                    "by its name {0}.".format(vapp_name))
+            ctx.logger.info("Using vAPP {0}".format(str(vapp)))
+            script = _build_script(custom, public_keys)
+            password = custom.get('admin_password')
+            computer_name = custom.get('computer_name')
+            ctx.logger.info("Customizing guest OS.")
+            task = vapp.customize_guest_os(
+                vapp_name,
+                customization_script=script,
+                computer_name=computer_name,
+                admin_password=password
+            )
+            if task is None:
                 raise cfy_exc.NonRecoverableError(
-                    "Customize VM cpu failed: '{0}'. {1}".
-                    format(task, error_response(vapp)))
+                    "Could not set guest customization parameters. {0}".
+                    format(error_response(vapp)))
+            wait_for_task(vca_client, task)
+            if vapp.customize_on_next_poweron():
+                ctx.logger.info("Customizations successful")
+            else:
+                raise cfy_exc.NonRecoverableError(
+                    "Can't run customization in next power on. {0}".
+                    format(error_response(vapp)))
+
+        hardware = server.get('hardware')
+        if hardware:
+            cpu = hardware.get('cpu')
+            memory = hardware.get('memory')
+            _check_hardware(cpu, memory)
+            vapp = vca_client.get_vapp(
+                vca_client.get_vdc(config['vdc']), vapp_name
+            )
+            if memory:
+                try:
+                    ctx.logger.info("Customize VM memory: '{0}'.".format(memory))
+                    task = vapp.modify_vm_memory(vapp_name, memory)
+                    wait_for_task(vca_client, task)
+                except Exception:
+                    raise cfy_exc.NonRecoverableError(
+                        "Customize VM memory failed: '{0}'. {1}".
+                        format(task, error_response(vapp)))
+            if cpu:
+                try:
+                    ctx.logger.info("Customize VM cpu: '{0}'.".format(cpu))
+                    task = vapp.modify_vm_cpu(vapp_name, cpu)
+                    wait_for_task(vca_client, task)
+                except Exception:
+                    raise cfy_exc.NonRecoverableError(
+                        "Customize VM cpu failed: '{0}'. {1}".
+                        format(task, error_response(vapp)))
 
 
 def _get_state(vca_client):

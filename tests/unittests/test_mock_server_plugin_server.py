@@ -422,7 +422,10 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_node_context(
             properties={
                 'use_external_resource': True,
-                'resource_id': 'ServerName'
+                'resource_id': 'ServerName',
+                'vcloud_config': {
+                    'vdc': 'vdc_name'
+                },
             }
         )
 
