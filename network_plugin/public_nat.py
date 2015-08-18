@@ -23,6 +23,7 @@ from network_plugin import (check_ip, save_gateway_configuration,
                             del_ondemand_public_ip, utils, set_retry)
 from network_plugin.network import VCLOUD_NETWORK_NAME
 from IPy import IP
+from cloudify_rest_client import exceptions as rest_exceptions
 
 PORT_REPLACEMENT = 'port_replacement'
 DEFAULT_SSH_PORT = '22'
@@ -182,16 +183,19 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
             retries_update = 3
             update_pending = True
             while retries_update > 0 and update_pending:
-                retries_update = retries_update -1
+                retries_update = retries_update - 1
                 try:
-                    ctx.source.instance.runtime_properties['ssh_port'] = str(new_original_port)
-                    ctx.source.instance.runtime_properties['ssh_public_ip'] = public_ip            
-                    ctx.source.instance.update()        
+                    ctx.source.instance.runtime_properties['ssh_port'] = str(
+                        new_original_port)
+                    ctx.source.instance.runtime_properties['ssh_public_ip'] =\
+                        public_ip
+                    ctx.source.instance.update()
                     update_pending = False
                 except rest_exceptions.CloudifyClientError as e:
                     if 'conflict' in str(e):
                         # cannot 'return' in contextmanager
-                        ctx.logger.info("Conflict in updating backend, retrying")
+                        ctx.logger.info(
+                            "Conflict in updating backend, retrying")
                     else:
                         raise
     elif operation == DELETE:
