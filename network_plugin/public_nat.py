@@ -197,7 +197,7 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
                         ctx.logger.info(
                             "Conflict in updating backend, retrying")
                     else:
-                        raise
+                        raise e
     elif operation == DELETE:
         new_original_port = _get_original_port_for_delete(
             public_ip, original_port)
