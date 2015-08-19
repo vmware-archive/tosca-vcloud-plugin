@@ -27,6 +27,8 @@ from cloudify_rest_client import exceptions as rest_exceptions
 
 PORT_REPLACEMENT = 'port_replacement'
 DEFAULT_SSH_PORT = '22'
+SSH_PORT = 'ssh_port'
+SSH_PUBLIC_IP = 'ssh_public_ip'
 
 
 @operation
@@ -185,9 +187,9 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
             while retries_update > 0 and update_pending:
                 retries_update = retries_update - 1
                 try:
-                    ctx.source.instance.runtime_properties['ssh_port'] = str(
+                    ctx.source.instance.runtime_properties[SSH_PORT] = str(
                         new_original_port)
-                    ctx.source.instance.runtime_properties['ssh_public_ip'] =\
+                    ctx.source.instance.runtime_properties[SSH_PUBLIC_IP] =\
                         public_ip
                     ctx.source.instance.update()
                     update_pending = False
@@ -255,6 +257,10 @@ def _save_configuration(gateway, vca_client, operation, public_ip):
             del ctx.target.instance.runtime_properties[PUBLIC_IP]
         if PORT_REPLACEMENT in ctx.target.instance.runtime_properties:
             del ctx.target.instance.runtime_properties[PORT_REPLACEMENT]
+        if SSH_PORT in ctx.target.instance.runtime_properties:
+            del ctx.target.instance.runtime_properties[SSH_PORT]
+        if SSH_PUBLIC_IP in ctx.target.instance.runtime_properties:
+            del ctx.target.instance.runtime_properties[SSH_PUBLIC_IP]
     return True
 
 
