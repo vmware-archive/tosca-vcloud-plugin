@@ -100,6 +100,9 @@ def _floatingip_operation(operation, vca_client, ctx):
         return False
     if operation == CREATE:
         ctx.target.instance.runtime_properties[PUBLIC_IP] = external_ip
+        ctx.source.instance.runtime_properties['ssh_port'] = str(22)
+        ctx.source.instance.runtime_properties['ssh_public_ip'] = external_ip
+
     else:
         if is_ondemand(service_type):
             if not ctx.target.node.properties['floatingip'].get(PUBLIC_IP):
@@ -109,6 +112,8 @@ def _floatingip_operation(operation, vca_client, ctx):
                     ctx.target.instance.runtime_properties[PUBLIC_IP],
                     ctx)
         del ctx.target.instance.runtime_properties[PUBLIC_IP]
+        del ctx.source.instance.runtime_properties['ssh_port']
+        del ctx.source.instance.runtime_properties['ssh_public_ip']
     return True
 
 
