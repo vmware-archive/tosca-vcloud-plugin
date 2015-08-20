@@ -35,7 +35,7 @@ SSH_PUBLIC_IP = 'ssh_public_ip'
 @with_vca_client
 def net_connect_to_nat_preconfigure(vca_client, **kwargs):
     rules = ctx.target.node.properties['rules']
-    if len(rules) != 1:
+    if not rules or len(rules) != 1:
         raise cfy_exc.NonRecoverableError(
             "Rules list must contains only one element")
     if _is_dnat(rules[0]['type']):
@@ -269,8 +269,8 @@ def _create_ip_range(vca_client, gateway):
         return ip range by avaible ranges from gateway and current network
     """
     network_name = ctx.source.instance.runtime_properties[VCLOUD_NETWORK_NAME]
-    org_name = get_vcloud_config()['org']
-    net = _get_network_ip_range(vca_client, org_name, network_name)
+    vdc_name = get_vcloud_config()['vdc']
+    net = _get_network_ip_range(vca_client, vdc_name, network_name)
     gate = _get_gateway_ip_range(gateway, network_name)
     if not net:
         raise cfy_exc.NonRecoverableError(
@@ -281,11 +281,11 @@ def _create_ip_range(vca_client, gateway):
         return "{} - {}".format(min(net), max(net))
 
 
-def _get_network_ip_range(vca_client, org_name, network_name):
+def _get_network_ip_range(vca_client, vdc_name, network_name):
     """
         return ips for network from network configuration ipscopes
     """
-    networks = vca_client.get_networks(org_name)
+    networks = vca_client.get_networks(vdc_name)
     ip_scope = [net.Configuration.IpScopes.IpScope
                 for net in networks if network_name == net.get_name()]
     addresses = []

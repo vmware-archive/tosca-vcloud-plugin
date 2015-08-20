@@ -12,27 +12,3 @@
 #  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  * See the License for the specific language governing permissions and
 #  * limitations under the License.
-
-from setuptools import setup
-
-setup(
-    zip_safe=True,
-    name='cloudify-vcloud-plugin',
-    version='1.3m5',
-    packages=[
-        'vcloud_plugin_common',
-        'server_plugin',
-        'storage_plugin',
-        'network_plugin'
-    ],
-    license='LICENSE',
-    description='Cloudify plugin for vmWare vCloud infrastructure.',
-    install_requires=[
-        'cloudify-plugins-common>=3.3a4',
-        'pyvcloud>=14rc9',
-        'requests>=2.4.0',
-        'IPy==0.81',
-        'PyYAML==3.10',
-        'pycrypto'
-    ]
-)
