@@ -35,7 +35,7 @@ SSH_PUBLIC_IP = 'ssh_public_ip'
 @with_vca_client
 def net_connect_to_nat_preconfigure(vca_client, **kwargs):
     rules = ctx.target.node.properties['rules']
-    if len(rules) != 1:
+    if not rules or len(rules) != 1:
         raise cfy_exc.NonRecoverableError(
             "Rules list must contains only one element")
     if _is_dnat(rules[0]['type']):
