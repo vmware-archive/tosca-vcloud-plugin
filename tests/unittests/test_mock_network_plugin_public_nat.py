@@ -305,7 +305,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         fake_ctx._source.node.properties = {
             'vcloud_config': {
                 'org': 'some_org',
-                'vdc': 'some_org'
+                'vdc': 'some_vdc'
             }
         }
         fake_ctx._target.instance.runtime_properties = {}
@@ -330,7 +330,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                     public_nat._create_ip_range(fake_client, gate),
                     '127.1.1.100 - 127.1.1.200'
                 )
-                fake_client.get_networks.assert_called_with("some_org")
+                fake_client.get_networks.assert_called_with("some_vdc")
                 # network from gate
                 gate.get_dhcp_pools = mock.MagicMock(return_value=[
                     self.genarate_pool(

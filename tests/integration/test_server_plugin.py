@@ -23,9 +23,13 @@ from cloudify import mocks as cfy_mocks
 
 from server_plugin import server
 from server_plugin import volume
+from server_plugin import vdc
 from tests.integration import TestCase
 from cloudify.mocks import MockCloudifyContext
 from server_plugin.server import VCLOUD_VAPP_NAME
+
+from vcloud_plugin_common import VcloudAirClient
+
 
 RANDOM_PREFIX_LENGTH = 5
 
@@ -364,4 +368,40 @@ class VolumeTestCase(TestCase):
             volume.attach_volume()
             self.assertEqual(links_before + 1, links_count())
             volume.detach_volume()
-            self.assertEqual(links_before, links_count())
+
+
+class VdcTestCase(TestCase):
+    def setUp(self):
+        super(VdcTestCase, self).setUp()
+        self.vdc_test_dict = self.test_config['vdc']
+        name = 'vdc'
+        self.properties = {
+            'name': self.vdc_test_dict['name'],
+            'use_external_resource': False,
+            'resource_id': self.vdc_test_dict['name_exists'],
+            'vcloud_config': self.vcloud_config
+        }
+        self.nodectx = cfy_mocks.MockCloudifyContext(
+            node_id=name,
+            node_name=name,
+            properties=self.properties
+        )
+        self.ctx = self.nodectx
+        ctx_patch1 = mock.patch('server_plugin.vdc.ctx', self.nodectx)
+        ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.nodectx)
+        ctx_patch1.start()
+        ctx_patch2.start()
+        self.addCleanup(ctx_patch1.stop)
+        self.addCleanup(ctx_patch2.stop)
+
+    def test_vdc_create_delete(self):
+        name = self.properties['name']
+        self.assertFalse(name in self._get_vdc_names())
+        vdc.create()
+        self.assertTrue(name in self._get_vdc_names())
+        vdc.delete()
+        self.assertFalse(name in self._get_vdc_names())
+
+    def _get_vdc_names(self):
+        vca_client = VcloudAirClient().get(config=self.vcloud_config)
+        return vca_client.get_vdc_names()
