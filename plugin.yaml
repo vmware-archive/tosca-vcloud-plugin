@@ -167,7 +167,7 @@ relationships:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
-                establish:
+                postconfigure:
                     implementation: vcloud.network_plugin.floatingip.connect_floatingip
                     inputs: {}
                 unlink:
@@ -183,7 +183,7 @@ relationships:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
-                establish:
+                postconfigure:
                     implementation: vcloud.network_plugin.security_group.create
                     inputs: {}
                 unlink:
@@ -196,7 +196,7 @@ relationships:
                 preconfigure:
                     implementation: vcloud.network_plugin.public_nat.net_connect_to_nat_preconfigure
                     inputs: {}
-                establish:
+                postconfigure:
                     implementation: vcloud.network_plugin.public_nat.net_connect_to_nat
                     inputs: {}
                 unlink:
@@ -206,7 +206,7 @@ relationships:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
-                establish:
+                postconfigure:
                     implementation: vcloud.network_plugin.public_nat.server_connect_to_nat
                     inputs: {}
                 unlink:
