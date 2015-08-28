@@ -450,6 +450,17 @@ node_templates:
                                   key_filename: { get_input: manager_private_key_path }
                                   host_string: { get_attribute: [management_server_nat, public_ip] }
                                   port: { get_input: manager_server_ssh_port }
+                      postconfigure:
+                          implementation: fabric.fabric_plugin.tasks.run_script
+                          inputs:
+                              script_path: scripts/setup_grub.sh
+                              device_name: { get_attribute: [TARGET, device_name] }
+                              fabric_env:
+                                  user: { get_input: manager_server_user }
+                                  key_filename: { get_input: manager_private_key_path }
+                                  host_string: { get_attribute: [management_server_nat, public_ip] }
+                                  port: { get_input: manager_server_ssh_port }
+
 
             - type: cloudify.relationships.file_system_contained_in_compute
               target: manager_server
