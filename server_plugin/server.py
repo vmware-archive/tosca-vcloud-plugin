@@ -290,7 +290,7 @@ def configure(vca_client, **kwargs):
                 raise cfy_exc.NonRecoverableError(
                     "Unable to find vAPP server "
                     "by its name {0}.".format(vapp_name))
-            ctx.logger.info("Using vAPP {0}".format(str(vapp)))
+            ctx.logger.info("Using vAPP {0}".format(str(vapp_name)))
             script = _build_script(custom, public_keys)
             password = custom.get('admin_password')
             computer_name = custom.get('computer_name')
