@@ -217,10 +217,10 @@ relationships:
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
                 establish:
-                    implementation: vcloud.server_plugin.volume.attach_volume
+                    implementation: vcloud.storage_plugin.volume.attach_volume
                     inputs: {}
                 unlink:
-                    implementation: vcloud.server_plugin.volume.detach_volume
+                    implementation: vcloud.storage_plugin.volume.detach_volume
                     inputs: {}
     cloudify.vcloud.server_connected_to_keypair:
         derived_from: cloudify.relationships.connected_to
