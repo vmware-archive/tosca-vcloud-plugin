@@ -104,6 +104,7 @@ def attach_volume(vca_client, **kwargs):
     """
         attach volume
     """
+    _wait_for_boot()
     _volume_operation(vca_client, "ATTACH")
 
 
@@ -157,3 +158,22 @@ def _volume_operation(vca_client, operation):
             else:
                 raise cfy_exc.NonRecoverableError(
                     "Unknown operation '{0}'".format(operation))
+
+
+def _wait_for_boot():
+    from fabric import api as fabric_api
+    ip = ctx.target.instance.runtime_properties.get('ssh_public_ip')
+    if not ip:
+        ip = ctx.target.instance.runtime_properties['ip']
+    ctx.logger.info("Usig ip '{0}'.".format(ip))
+    for i in range(30):
+        ctx.logger.info("Wait for boot '{0}'.".format(i))
+        try:
+            with fabric_api.settings(host_string=ip, warn_only=True,
+                                     abort_on_prompts=True):
+                fabric_api.run('ls')
+        except SystemExit:
+            return
+        except Exception:
+            pass
+    raise cfy_exc.NonRecoverableError("Can't wait for boot")
