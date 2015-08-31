@@ -96,7 +96,7 @@ def _floatingip_operation(operation, vca_client, ctx):
 
     nat_operation(gateway, "SNAT", internal_ip, external_ip)
     nat_operation(gateway, "DNAT", external_ip, internal_ip)
-    success = save_gateway_configuration(gateway, vca_client)
+    success = save_gateway_configuration(gateway, vca_client, ctx)
     if not success:
         return False
     if operation == CREATE:

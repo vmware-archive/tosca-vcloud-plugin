@@ -19,7 +19,7 @@ from vcloud_plugin_common import (wait_for_task, with_vca_client,
                                   get_vcloud_config, get_mandatory,
                                   error_response)
 from network_plugin import get_vapp_name
-
+import time
 
 @operation
 @with_vca_client
@@ -161,17 +161,24 @@ def _volume_operation(vca_client, operation):
 
 
 def _wait_for_boot():
+    """
+    Whait for loading os.
+    This function just check if sshd is available.
+    After attaching disk system may be unbootable,
+    therefore user can do some manipulation for setup boot sequence.
+    """
     from fabric import api as fabric_api
     ip = ctx.target.instance.runtime_properties.get('ssh_public_ip')
     if not ip:
         ip = ctx.target.instance.runtime_properties['ip']
-    ctx.logger.info("Usig ip '{0}'.".format(ip))
+    ctx.logger.info("Using ip '{0}'.".format(ip))
     for i in range(30):
         ctx.logger.info("Wait for boot '{0}'.".format(i))
         try:
             with fabric_api.settings(host_string=ip, warn_only=True,
                                      abort_on_prompts=True):
-                fabric_api.run('ls')
+                fabric_api.run('id')
+                time.sleep(5)
         except SystemExit:
             return
         except Exception:

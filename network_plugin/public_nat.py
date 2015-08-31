@@ -219,7 +219,7 @@ def _save_configuration(gateway, vca_client, operation, public_ip):
         save/refresh nat rules on gateway
     """
     ctx.logger.info("Save NAT configuration.")
-    success = save_gateway_configuration(gateway, vca_client)
+    success = save_gateway_configuration(gateway, vca_client, ctx)
     if not success:
         return False
     ctx.logger.info("NAT configuration has been saved.")

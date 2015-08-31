@@ -125,7 +125,8 @@ def _rule_operation(operation, vca_client):
             ctx.logger.info(
                 "Firewall rule has been deleted: {0}".format(description))
 
-    return save_gateway_configuration(gateway, vca_client)
+    ctx.logger.info("Saving security group configuration")
+    return save_gateway_configuration(gateway, vca_client, ctx)
 
 
 def _get_gateway_name(properties):

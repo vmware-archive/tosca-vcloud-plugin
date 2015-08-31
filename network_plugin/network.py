@@ -201,14 +201,14 @@ def _dhcp_operation(vca_client, network_name, operation):
         max_lease = dhcp_settings.get('max_lease')
         gateway.add_dhcp_pool(network_name, low_ip_address, hight_ip_address,
                               default_lease, max_lease)
-        if save_gateway_configuration(gateway, vca_client):
+        if save_gateway_configuration(gateway, vca_client, ctx):
             ctx.logger.info("DHCP rule successful created for network {0}"
                             .format(network_name))
             return True
 
     if operation == DELETE_POOL:
         gateway.delete_dhcp_pool(network_name)
-        if save_gateway_configuration(gateway, vca_client):
+        if save_gateway_configuration(gateway, vca_client, ctx):
             ctx.logger.info("DHCP rule successful deleted for network {0}"
                             .format(network_name))
             return True

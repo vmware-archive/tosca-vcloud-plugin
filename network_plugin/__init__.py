@@ -5,6 +5,8 @@ from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType
 from vcloud_plugin_common import (wait_for_task, get_vcloud_config,
                                   is_subscription, error_response)
 from cloudify_rest_client import exceptions as rest_exceptions
+import time
+
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 PUBLIC_IP = 'public_ip'
@@ -136,12 +138,13 @@ def get_vapp_name(runtime_properties):
     return vapp_name
 
 
-def save_gateway_configuration(gateway, vca_client):
+def save_gateway_configuration(gateway, vca_client, ctx):
     """
         save gateway configuration,
         return everything successfully finished
         raise NonRecoverableError - can't get task description
     """
+    wait_for_gateway(vca_client, gateway.get_name(), ctx)
     task = gateway.save_services_configuration()
     if task:
         wait_for_task(vca_client, task)
@@ -232,6 +235,7 @@ def get_ondemand_public_ip(vca_client, gateway, ctx):
     """
     old_public_ips = set(gateway.get_public_ips())
     ctx.logger.info("Try to allocate public IP")
+    wait_for_gateway(vca_client, gateway.get_name(), ctx)
     task = gateway.allocate_public_ip()
     if task:
         wait_for_task(vca_client, task)
@@ -256,6 +260,7 @@ def del_ondemand_public_ip(vca_client, gateway, ip, ctx):
         try to deallocate public ip
     """
     ctx.logger.info("Try to deallocate public IP {0}".format(ip))
+    wait_for_gateway(vca_client, gateway.get_name(), ctx)
     task = gateway.deallocate_public_ip(ip)
     if task:
         wait_for_task(vca_client, task)
@@ -313,3 +318,16 @@ def save_ssh_parameters(ctx, port, ip):
                     "Conflict in updating backend, retrying")
             else:
                 raise e
+
+
+def wait_for_gateway(vca_client, gateway_name, ctx):
+    for i in range(10):
+        time.sleep(10)
+        gateway = get_gateway(vca_client, gateway_name)
+        ctx.logger.info("Gateway busy status '{0}. Try {1}'".format(gateway.is_busy(), i))
+        if gateway.is_busy():
+            continue
+        else:
+            return
+    raise cfy_exc.NonRecoverableError(
+        "Can't wait gateway {0}".format(gateway_name))
