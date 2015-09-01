@@ -329,6 +329,8 @@ def save_ssh_parameters(ctx, port, ip):
 
 
 def wait_for_gateway(vca_client, gateway_name, ctx):
+    #  protection against simultaneous reading from several tasks
+    #  status of the gateway
     time.sleep(random.randint(1, 20))
     for i in range(10):
         gateway = get_gateway(vca_client, gateway_name)
