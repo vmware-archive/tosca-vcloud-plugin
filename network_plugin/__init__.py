@@ -6,6 +6,7 @@ from vcloud_plugin_common import (wait_for_task, get_vcloud_config,
                                   is_subscription, error_response)
 from cloudify_rest_client import exceptions as rest_exceptions
 import time
+import random
 
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
@@ -148,10 +149,12 @@ def save_gateway_configuration(gateway, vca_client, ctx):
     task = gateway.save_services_configuration()
     if task:
         wait_for_task(vca_client, task)
+        ctx.logger.info("Gateway parameters has been saved.")
         return True
     else:
         error = taskType.parseString(gateway.response.content, True)
         if BUSY_MESSAGE in error.message:
+            ctx.logger.info("Gateway is busy.")
             return False
         else:
             raise cfy_exc.NonRecoverableError(error.message)
@@ -234,8 +237,8 @@ def get_ondemand_public_ip(vca_client, gateway, ctx):
         try to allocate new public ip for ondemand service
     """
     old_public_ips = set(gateway.get_public_ips())
-    ctx.logger.info("Try to allocate public IP")
     for i in range(5):
+        ctx.logger.info("Try to allocate public IP")
         wait_for_gateway(vca_client, gateway.get_name(), ctx)
         task = gateway.allocate_public_ip()
         if task:
@@ -326,13 +329,12 @@ def save_ssh_parameters(ctx, port, ip):
 
 
 def wait_for_gateway(vca_client, gateway_name, ctx):
+    time.sleep(random.randint(1, 20))
     for i in range(10):
-        time.sleep(10)
         gateway = get_gateway(vca_client, gateway_name)
-        ctx.logger.info("Gateway busy status '{0}. Try {1}'".format(gateway.is_busy(), i))
-        if gateway.is_busy():
-            continue
-        else:
+        if not gateway.is_busy():
             return
+        ctx.logger.info("Check {0}. Gateway is busy.".format(i))
+        time.sleep(10)
     raise cfy_exc.NonRecoverableError(
         "Can't wait gateway {0}".format(gateway_name))
