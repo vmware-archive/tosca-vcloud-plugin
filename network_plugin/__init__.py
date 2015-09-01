@@ -235,14 +235,19 @@ def get_ondemand_public_ip(vca_client, gateway, ctx):
     """
     old_public_ips = set(gateway.get_public_ips())
     ctx.logger.info("Try to allocate public IP")
-    wait_for_gateway(vca_client, gateway.get_name(), ctx)
-    task = gateway.allocate_public_ip()
-    if task:
-        wait_for_task(vca_client, task)
-    else:
-        raise cfy_exc.NonRecoverableError(
-            "Can't get public ip for ondemand service {0}".
-            format(error_response(gateway)))
+    for i in range(5):
+        wait_for_gateway(vca_client, gateway.get_name(), ctx)
+        task = gateway.allocate_public_ip()
+        if task:
+            try:
+                wait_for_task(vca_client, task)
+                break
+            except cfy_exc.NonRecoverableError:
+                continue
+        else:
+            raise cfy_exc.NonRecoverableError(
+                "Can't get public ip for ondemand service {0}".
+                format(error_response(gateway)))
     # update gateway for new IP address
     gateway = vca_client.get_gateways(get_vcloud_config()['vdc'])[0]
     new_public_ips = set(gateway.get_public_ips())
