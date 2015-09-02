@@ -79,20 +79,22 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             self.assertNotEqual(None, server._build_script(custom, []))
 
     def test_build_public_keys_script(self):
-        self.assertEqual('', server._build_public_keys_script([]))
+        def script_fun(a, b, c, d, e):
+            return a.append("{}{}{}{}".format(b, c, d, e))
+        self.assertEqual('', server._build_public_keys_script([], script_fun))
         self.assertEqual('', server._build_public_keys_script([
             {'key': False}
-        ]))
+        ], script_fun))
         self.assertNotEqual('', server._build_public_keys_script([
             {'key': True}
-        ]))
+        ], script_fun))
         self.assertNotEqual('', server._build_public_keys_script([
             {
                 'key': True,
                 'user': 'test',
                 'home': 'home'
             }
-        ]))
+        ], script_fun))
 
     def test_creation_validation_empty_settings(self):
         fake_ctx = cfy_mocks.MockCloudifyContext(
