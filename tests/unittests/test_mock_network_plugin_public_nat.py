@@ -304,7 +304,8 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         }
         fake_ctx._source.node.properties = {
             'vcloud_config': {
-                'org': 'some_org'
+                'org': 'some_org',
+                'vdc': 'some_org'
             }
         }
         fake_ctx._target.instance.runtime_properties = {}

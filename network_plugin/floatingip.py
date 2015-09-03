@@ -108,8 +108,8 @@ def _floatingip_operation(operation, vca_client, ctx):
                     gateway,
                     ctx.target.instance.runtime_properties[PUBLIC_IP],
                     ctx)
-            if PUBLIC_IP in ctx.target.instance.runtime_properties:
-                del ctx.target.instance.runtime_properties[PUBLIC_IP]
+        if PUBLIC_IP in ctx.target.instance.runtime_properties:
+            del ctx.target.instance.runtime_properties[PUBLIC_IP]
     return True
 
 
