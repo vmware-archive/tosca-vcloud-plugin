@@ -161,10 +161,10 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_node_context()
         # can't deallocate ip
         gateway.deallocate_public_ip = mock.MagicMock(return_value=None)
-        with self.assertRaises(cfy_exc.NonRecoverableError):
-            network_plugin.del_ondemand_public_ip(
-                fake_client, gateway, '127.0.0.1', fake_ctx
-            )
+        with mock.patch('network_plugin.wait_for_gateway', mock.MagicMock()):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                network_plugin.del_ondemand_public_ip(
+                    fake_client, gateway, '127.0.0.1', fake_ctx)
         gateway.deallocate_public_ip.assert_called_with('127.0.0.1')
         # successfully dropped public ip
         gateway.deallocate_public_ip = mock.MagicMock(
@@ -173,8 +173,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             )
         )
         with mock.patch('vcloud_plugin_common.ctx', mock.MagicMock()):
-            network_plugin.del_ondemand_public_ip(
-                fake_client, gateway, '127.0.0.1', fake_ctx)
+            with mock.patch('network_plugin.wait_for_gateway', mock.MagicMock()):
+                network_plugin.del_ondemand_public_ip(
+                    fake_client, gateway, '127.0.0.1', fake_ctx)
 
     def test_save_gateway_configuration(self):
         """

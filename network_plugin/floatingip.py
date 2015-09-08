@@ -23,11 +23,12 @@ from network_plugin import (check_ip, CheckAssignedExternalIp,
                             CREATE, DELETE, PUBLIC_IP, get_gateway,
                             SSH_PUBLIC_IP, SSH_PORT, save_ssh_parameters,
                             get_public_ip, del_ondemand_public_ip,
-                            set_retry)
+                            set_retry, lock_gateway)
 
 
 @operation
 @with_vca_client
+@lock_gateway
 def connect_floatingip(vca_client, **kwargs):
     """
         create new floating ip for node
@@ -38,6 +39,7 @@ def connect_floatingip(vca_client, **kwargs):
 
 @operation
 @with_vca_client
+@lock_gateway
 def disconnect_floatingip(vca_client, **kwargs):
     """
         release floating ip
@@ -81,8 +83,6 @@ def _floatingip_operation(operation, vca_client, ctx):
     service_type = get_vcloud_config().get('service_type')
     gateway = get_gateway(
         vca_client, ctx.target.node.properties['floatingip']['edge_gateway'])
-    if gateway.is_busy():
-        return False
     internal_ip = get_vm_ip(vca_client, ctx, gateway)
 
     nat_operation = None

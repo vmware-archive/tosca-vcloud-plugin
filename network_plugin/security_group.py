@@ -18,7 +18,7 @@ from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, get_mandatory,
                                   get_vcloud_config)
 from network_plugin import (check_ip, get_vm_ip, save_gateway_configuration,
-                            get_gateway, utils, set_retry)
+                            get_gateway, utils, set_retry, lock_gateway)
 
 
 CREATE_RULE = 1
@@ -30,6 +30,7 @@ ACTIONS = ("allow", "deny")
 
 @operation
 @with_vca_client
+@lock_gateway
 def create(vca_client, **kwargs):
     """
         create firewall rules for node
@@ -40,6 +41,7 @@ def create(vca_client, **kwargs):
 
 @operation
 @with_vca_client
+@lock_gateway
 def delete(vca_client, **kwargs):
     """
         drop firewall rules for node
@@ -105,10 +107,8 @@ def _rule_operation(operation, vca_client):
     """
         create/delete firewall rules in gateway for current node
     """
-    gateway = get_gateway(
-        vca_client, _get_gateway_name(ctx.target.node.properties))
-    if gateway.is_busy():
-        return False
+    gateway_name = _get_gateway_name(ctx.target.node.properties)
+    gateway = get_gateway(vca_client, gateway_name)
     for rule in ctx.target.node.properties['rules']:
         description = rule.get('description', "Rule added by pyvcloud").strip()
         source_ip = rule.get("source", "external")
