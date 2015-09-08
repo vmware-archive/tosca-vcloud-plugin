@@ -162,6 +162,29 @@ node_types:
                 creation:
                     implementation: vcloud.storage_plugin.volume.creation_validation
 
+    cloudify.vcloud.nodes.VDC:
+        derived_from: cloudify.nodes.Root
+        properties:
+            name:
+                default: ''
+            use_external_resource:
+                default: false
+            resource_id:
+                default: ''
+            vcloud_config:
+                default: {}
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                create:
+                    implementation: vcloud.server_plugin.vdc.create
+                    inputs: {}
+                delete:
+                    implementation: vcloud.server_plugin.vdc.delete
+                    inputs: {}
+            cloudify.interfaces.validation:
+                creation:
+                    implementation: vcloud.server_plugin.vdc.creation_validation
+
 relationships:
     cloudify.vcloud.server_connected_to_floating_ip:
         derived_from: cloudify.relationships.connected_to
@@ -232,6 +255,8 @@ relationships:
                 unlink:
                     implementation: vcloud.network_plugin.keypair.server_disconnect_from_keypair
                     inputs: {}
+    cloudify.vcloud.server_connected_to_vdc:
+        derived_from: cloudify.relationships.connected_to
 
 workflows:
     scoreinstall: vcloud.vcloud_plugin_common.workflows.install

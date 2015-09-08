@@ -17,7 +17,7 @@ import unittest
 
 from cloudify import exceptions as cfy_exc
 from cloudify import mocks as cfy_mocks
-from server_plugin import volume
+from storage_plugin import volume
 import vcloud_plugin_common
 from tests.unittests import test_mock_base
 import network_plugin
@@ -289,7 +289,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
                 'vcloud_plugin_common.ctx', fake_ctx
             ):
                 with mock.patch(
-                    'server_plugin.volume.ctx', fake_ctx
+                    'storage_plugin.volume.ctx', fake_ctx
                 ):
                     volume._volume_operation(fake_client, operation)
         # use external resource, no disks
