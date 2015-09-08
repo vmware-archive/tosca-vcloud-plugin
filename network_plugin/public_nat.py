@@ -21,7 +21,7 @@ from network_plugin import (check_ip, save_gateway_configuration,
                             get_vm_ip, get_public_ip,
                             get_gateway, getFreeIP, CREATE, DELETE, PUBLIC_IP,
                             SSH_PUBLIC_IP, SSH_PORT, save_ssh_parameters,
-                            del_ondemand_public_ip, utils, set_retry)
+                            del_ondemand_public_ip, utils, set_retry, lock_gateway)
 from network_plugin.network import VCLOUD_NETWORK_NAME
 from IPy import IP
 
@@ -44,6 +44,7 @@ def net_connect_to_nat_preconfigure(vca_client, **kwargs):
 
 @operation
 @with_vca_client
+@lock_gateway
 def net_connect_to_nat(vca_client, **kwargs):
     """
         create nat rule for current node
@@ -57,6 +58,7 @@ def net_connect_to_nat(vca_client, **kwargs):
 
 @operation
 @with_vca_client
+@lock_gateway
 def net_disconnect_from_nat(vca_client, **kwargs):
     """
         drop nat rule for current node
@@ -70,6 +72,7 @@ def net_disconnect_from_nat(vca_client, **kwargs):
 
 @operation
 @with_vca_client
+@lock_gateway
 def server_connect_to_nat(vca_client, **kwargs):
     """
         create nat rules for server
@@ -80,6 +83,7 @@ def server_connect_to_nat(vca_client, **kwargs):
 
 @operation
 @with_vca_client
+@lock_gateway
 def server_disconnect_from_nat(vca_client, **kwargs):
     """
         drop nat rules for server

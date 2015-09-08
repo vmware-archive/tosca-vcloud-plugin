@@ -6,7 +6,7 @@ from vcloud_plugin_common import (wait_for_task, get_vcloud_config,
                                   is_subscription, error_response)
 from cloudify_rest_client import exceptions as rest_exceptions
 import time
-import random
+from functools import wraps
 
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
@@ -14,6 +14,7 @@ PUBLIC_IP = 'public_ip'
 SSH_PUBLIC_IP = 'ssh_public_ip'
 SSH_PORT = 'ssh_port'
 NAT_ROUTED = 'natRouted'
+GATEWAY_LOCK = 'gateway_lock'
 CREATE = 1
 DELETE = 2
 
@@ -145,7 +146,6 @@ def save_gateway_configuration(gateway, vca_client, ctx):
         return everything successfully finished
         raise NonRecoverableError - can't get task description
     """
-    wait_for_gateway(vca_client, gateway.get_name(), ctx)
     task = gateway.save_services_configuration()
     if task:
         wait_for_task(vca_client, task)
@@ -237,6 +237,13 @@ def get_ondemand_public_ip(vca_client, gateway, ctx):
         try to allocate new public ip for ondemand service
     """
     old_public_ips = set(gateway.get_public_ips())
+    allocated_ips = set([address.external
+                         for address in collectAssignedIps(gateway)])
+    available_ips = old_public_ips - allocated_ips
+    if available_ips:
+        new_ip = list(available_ips)[0]
+        ctx.logger.info("Public IP {0} was reused.".format(new_ip))
+        return new_ip
     for i in range(5):
         ctx.logger.info("Try to allocate public IP")
         wait_for_gateway(vca_client, gateway.get_name(), ctx)
@@ -329,9 +336,6 @@ def save_ssh_parameters(ctx, port, ip):
 
 
 def wait_for_gateway(vca_client, gateway_name, ctx):
-    #  protection against simultaneous reading from several tasks
-    #  status of the gateway
-    time.sleep(random.randint(1, 20))
     for i in range(10):
         gateway = get_gateway(vca_client, gateway_name)
         if not gateway.is_busy():
@@ -340,3 +344,31 @@ def wait_for_gateway(vca_client, gateway_name, ctx):
         time.sleep(10)
     raise cfy_exc.NonRecoverableError(
         "Can't wait gateway {0}".format(gateway_name))
+
+
+def lock_gateway(f):
+    def update_parameters(ctx, value):
+        ctx.source.instance.runtime_properties[GATEWAY_LOCK] = value
+        ctx.source.instance.update()
+
+    @wraps(f)
+    def wrapper(*args, **kw):
+        ctx = kw['ctx']
+        #  Reset for getting last version of runtime_properties
+        ctx.source.instance._node_instance = None
+        if ctx.source.instance.runtime_properties.get(GATEWAY_LOCK):
+            ctx.logger.info("Gateway locked.")
+            return set_retry(ctx)
+        ctx.logger.info("Lock gateway.")
+        update_parameters(ctx, True)
+        vca_client = kw['vca_client']
+        gateway_name = get_vcloud_config()['edge_gateway']
+        wait_for_gateway(vca_client, gateway_name, ctx)
+        try:
+            result = f(*args, **kw)
+        finally:
+            ctx.logger.info("Unlock gateway.")
+            ctx.source.instance._node_instance = None
+            update_parameters(ctx, False)
+        return result
+    return wrapper

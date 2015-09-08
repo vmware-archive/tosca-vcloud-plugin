@@ -366,7 +366,9 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             }
             properties = {
                 'vcloud_config': {
-                    'org': 'some_org',
+                    'edge_gateway': 'gateway',
+                    'vdc': 'vdc',
+                    'org': 'some_org'
                 }
             }
             if service_type:
@@ -480,6 +482,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             with mock.patch(
                 'vcloud_plugin_common.ctx', fake_ctx
             ):
+                # import pdb;pdb.set_trace()
                 public_nat._save_configuration(
                     gateway, fake_client, network_plugin.DELETE, "1.2.3.4"
                 )
@@ -917,6 +920,17 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 'type': 'DNAT'
             }]
         }
+        fake_ctx._source.node.properties = {
+            'vcloud_config':
+            {
+                'edge_gateway': 'gateway',
+                'vdc': 'vdc'
+            }
+        }
+        fake_ctx._source.instance.runtime_properties = {
+            'gateway_lock': False,
+            'vcloud_vapp_name': 'vapp'
+        }
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -931,6 +945,17 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         fake_ctx._target.instance.runtime_properties = {
             network_plugin.PUBLIC_IP: '192.168.1.1'
         }
+        fake_ctx._source.instance.runtime_properties = {
+            'gateway_lock': False,
+            'vcloud_vapp_name': 'vapp'
+        }
+        fake_ctx._source.node.properties = {
+            'vcloud_config':
+            {
+                'edge_gateway': 'gateway',
+                'vdc': 'vdc'
+            }
+        }
         fake_ctx._target.node.properties = {
             'nat': {
                 'edge_gateway': 'gateway'
@@ -939,6 +964,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 'type': 'DNAT'
             }]
         }
+
         fake_client._vdc_gateway.get_public_ips = mock.MagicMock(
             return_value=['10.18.1.1']
         )
@@ -957,6 +983,18 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         fake_ctx._target.node.properties = {
             'use_external_resource': True
         }
+        fake_ctx._source.node.properties = {
+            'vcloud_config':
+            {
+                'edge_gateway': 'gateway',
+                'vdc': 'vdc'
+            }
+        }
+        fake_ctx._source.instance.runtime_properties = {
+            'gateway_lock': False,
+            'vcloud_vapp_name': 'vapp'
+        }
+
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -972,6 +1010,14 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 'type': 'DNAT'
             }]
         }
+        fake_ctx._source.node.properties = {
+            'vcloud_config':
+            {
+                'edge_gateway': 'gateway',
+                'vdc': 'vdc'
+            }
+        }
+
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -988,6 +1034,14 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         fake_ctx._target.node.properties = {
             'use_external_resource': True
         }
+        fake_ctx._source.node.properties = {
+            'vcloud_config':
+            {
+                'edge_gateway': 'gateway',
+                'vdc': 'vdc'
+            }
+        }
+
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -1003,6 +1057,14 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 'type': 'DNAT'
             }]
         }
+        fake_ctx._source.node.properties = {
+            'vcloud_config':
+            {
+                'edge_gateway': 'gateway',
+                'vdc': 'vdc'
+            }
+        }
+
         fake_client._vdc_gateway.get_public_ips = mock.MagicMock(return_value=[
             '10.18.1.1'
         ])
