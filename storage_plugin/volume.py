@@ -8,9 +8,9 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
@@ -19,7 +19,7 @@ from vcloud_plugin_common import (wait_for_task, with_vca_client,
                                   get_vcloud_config, get_mandatory,
                                   error_response)
 from network_plugin import get_vapp_name
-
+import time
 
 @operation
 @with_vca_client
@@ -101,9 +101,7 @@ def creation_validation(vca_client, **kwargs):
 @operation
 @with_vca_client
 def attach_volume(vca_client, **kwargs):
-    """
-        attach volume
-    """
+    """attach volume"""
     _volume_operation(vca_client, "ATTACH")
 
 

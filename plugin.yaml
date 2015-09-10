@@ -153,14 +153,14 @@ node_types:
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
-                    implementation: vcloud.server_plugin.volume.create_volume
+                    implementation: vcloud.storage_plugin.volume.create_volume
                     inputs: {}
                 delete:
-                    implementation: vcloud.server_plugin.volume.delete_volume
+                    implementation: vcloud.storage_plugin.volume.delete_volume
                     inputs: {}
             cloudify.interfaces.validation:
                 creation:
-                    implementation: vcloud.server_plugin.volume.creation_validation
+                    implementation: vcloud.storage_plugin.volume.creation_validation
 
 relationships:
     cloudify.vcloud.server_connected_to_floating_ip:
@@ -217,10 +217,10 @@ relationships:
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
                 establish:
-                    implementation: vcloud.server_plugin.volume.attach_volume
+                    implementation: vcloud.storage_plugin.volume.attach_volume
                     inputs: {}
                 unlink:
-                    implementation: vcloud.server_plugin.volume.detach_volume
+                    implementation: vcloud.storage_plugin.volume.detach_volume
                     inputs: {}
     cloudify.vcloud.server_connected_to_keypair:
         derived_from: cloudify.relationships.connected_to
