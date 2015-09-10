@@ -19,7 +19,7 @@ from vcloud_plugin_common import (wait_for_task, with_vca_client,
                                   get_vcloud_config, get_mandatory,
                                   error_response)
 from network_plugin import get_vapp_name
-import time
+
 
 @operation
 @with_vca_client
