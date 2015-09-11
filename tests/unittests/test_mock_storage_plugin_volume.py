@@ -371,7 +371,8 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
             'resource_id': 'some'
         }
         fake_ctx._target.instance.runtime_properties = {
-            network_plugin.VCLOUD_VAPP_NAME: self.VAPPNAME
+            network_plugin.VCLOUD_VAPP_NAME: self.VAPPNAME,
+            'ip': "1.2.3.4"
         }
         return fake_ctx, fake_client
 
@@ -380,11 +381,11 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
             use external resource, try to attach but no disks
         """
         fake_ctx, fake_client = self._gen_volume_context_and_client()
-        with mock.patch(
-            'vcloud_plugin_common.VcloudAirClient.get',
-            mock.MagicMock(return_value=fake_client)
-        ):
-            volume.attach_volume(ctx=fake_ctx)
+        with mock.patch('vcloud_plugin_common.VcloudAirClient.get',
+                        mock.MagicMock(return_value=fake_client)):
+            with mock.patch(
+                    'storage_plugin.volume._wait_for_boot', mock.MagicMock()):
+                volume.attach_volume(ctx=fake_ctx)
 
     def test_detach_volume(self):
         """

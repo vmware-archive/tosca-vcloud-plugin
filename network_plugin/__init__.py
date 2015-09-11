@@ -18,10 +18,14 @@ import collections
 from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType
 from vcloud_plugin_common import (wait_for_task, get_vcloud_config,
                                   is_subscription, error_response)
+from cloudify_rest_client import exceptions as rest_exceptions
+import time
 
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 PUBLIC_IP = 'public_ip'
+SSH_PUBLIC_IP = 'ssh_public_ip'
+SSH_PORT = 'ssh_port'
 NAT_ROUTED = 'natRouted'
 CREATE = 1
 DELETE = 2
@@ -148,7 +152,7 @@ def get_vapp_name(runtime_properties):
     return vapp_name
 
 
-def save_gateway_configuration(gateway, vca_client):
+def save_gateway_configuration(gateway, vca_client, ctx):
     """
         save gateway configuration,
         return everything successfully finished
@@ -157,10 +161,12 @@ def save_gateway_configuration(gateway, vca_client):
     task = gateway.save_services_configuration()
     if task:
         wait_for_task(vca_client, task)
+        ctx.logger.info("Gateway parameters has been saved.")
         return True
     else:
         error = taskType.parseString(gateway.response.content, True)
         if BUSY_MESSAGE in error.message:
+            ctx.logger.info("Gateway is busy.")
             return False
         else:
             raise cfy_exc.NonRecoverableError(error.message)
@@ -305,3 +311,22 @@ def set_retry(ctx):
     return ctx.operation.retry(
         message='Waiting for gateway.',
         retry_after=GATEWAY_TIMEOUT)
+
+
+def save_ssh_parameters(ctx, port, ip):
+    retries_update = 3
+    update_pending = True
+    while retries_update > 0 and update_pending:
+        retries_update = retries_update - 1
+        try:
+            ctx.source.instance.runtime_properties[SSH_PORT] = port
+            ctx.source.instance.runtime_properties[SSH_PUBLIC_IP] = ip
+            ctx.source.instance.update()
+            update_pending = False
+        except rest_exceptions.CloudifyClientError as e:
+            if 'conflict' in str(e):
+                # cannot 'return' in contextmanager
+                ctx.logger.info(
+                    "Conflict in updating backend, retrying")
+            else:
+                raise e

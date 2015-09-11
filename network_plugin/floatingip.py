@@ -21,6 +21,7 @@ from network_plugin import (check_ip, CheckAssignedExternalIp,
                             CheckAssignedInternalIp, get_vm_ip,
                             save_gateway_configuration, getFreeIP,
                             CREATE, DELETE, PUBLIC_IP, get_gateway,
+                            SSH_PUBLIC_IP, SSH_PORT, save_ssh_parameters,
                             get_public_ip, del_ondemand_public_ip,
                             set_retry)
 
@@ -109,11 +110,12 @@ def _floatingip_operation(operation, vca_client, ctx):
 
     nat_operation(gateway, "SNAT", internal_ip, external_ip)
     nat_operation(gateway, "DNAT", external_ip, internal_ip)
-    success = save_gateway_configuration(gateway, vca_client)
+    success = save_gateway_configuration(gateway, vca_client, ctx)
     if not success:
         return False
     if operation == CREATE:
         ctx.target.instance.runtime_properties[PUBLIC_IP] = external_ip
+        save_ssh_parameters(ctx, '22', external_ip)
     else:
         if is_ondemand(service_type):
             if not ctx.target.node.properties['floatingip'].get(PUBLIC_IP):
@@ -124,6 +126,10 @@ def _floatingip_operation(operation, vca_client, ctx):
                     ctx)
         if PUBLIC_IP in ctx.target.instance.runtime_properties:
             del ctx.target.instance.runtime_properties[PUBLIC_IP]
+        if SSH_PUBLIC_IP in ctx.source.instance.runtime_properties:
+            del ctx.source.instance.runtime_properties[SSH_PUBLIC_IP]
+        if SSH_PORT in ctx.target.instance.runtime_properties:
+            del ctx.source.instance.runtime_properties[SSH_PORT]
     return True
 
 
