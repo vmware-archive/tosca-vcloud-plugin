@@ -40,7 +40,7 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
                 }
             }
         )
-        # use external without resorse_id
+        # use external without resource_id
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
