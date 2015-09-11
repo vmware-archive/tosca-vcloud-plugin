@@ -8,22 +8,22 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import mock
 import unittest
 
 from cloudify import exceptions as cfy_exc
 from cloudify import mocks as cfy_mocks
-from server_plugin import volume
+from storage_plugin import volume
 import vcloud_plugin_common
 from tests.unittests import test_mock_base
 import network_plugin
 
 
-class ServerPluginServerMockTestCase(test_mock_base.TestBase):
+class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
 
     # vapp name used for tests
     VAPPNAME = "some_other"
@@ -40,7 +40,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
                 }
             }
         )
-        # use external without resorse_id
+        # use external without resource_id
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -289,7 +289,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
                 'vcloud_plugin_common.ctx', fake_ctx
             ):
                 with mock.patch(
-                    'server_plugin.volume.ctx', fake_ctx
+                    'storage_plugin.volume.ctx', fake_ctx
                 ):
                     volume._volume_operation(fake_client, operation)
         # use external resource, no disks

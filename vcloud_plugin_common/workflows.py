@@ -1,29 +1,31 @@
-########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#       http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from cloudify.decorators import workflow
-import cloudify.plugins.workflows as default_workflow
 from cloudify.manager import update_node_instance
-from vcloud_plugin_common import (SESSION_TOKEN, ORG_URL, VCLOUD_CONFIG)
+import cloudify.plugins.workflows as default_workflow
+import vcloud_plugin_common
 
 
 def update(ctx, instance, token, org_url):
+    """updete token and url in instance"""
     node_instance = instance._node_instance
     rt_properties = node_instance['runtime_properties']
-    rt_properties.update({SESSION_TOKEN: token,
-                          ORG_URL: org_url})
+    rt_properties.update({
+        vcloud_plugin_common.SESSION_TOKEN: token,
+        vcloud_plugin_common.ORG_URL: org_url
+    })
     version = node_instance['version']
     node_instance['version'] = version if version else 0
     if ctx.local:
@@ -37,11 +39,13 @@ def update(ctx, instance, token, org_url):
 
 
 def _get_all_nodes_instances(ctx, token, org_url):
+    """return all instances from context nodes"""
     node_instances = set()
     for node in ctx.nodes:
-        for instance in node.instances:
-            if token and org_url and VCLOUD_CONFIG in node.properties:
-                update(ctx, instance, token, org_url)
+        if vcloud_plugin_common.VCLOUD_CONFIG in node.properties:
+            for instance in node.instances:
+                if token and org_url:
+                    update(ctx, instance, token, org_url)
             node_instances.add(instance)
     return node_instances
 
