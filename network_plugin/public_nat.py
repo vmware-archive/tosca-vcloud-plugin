@@ -20,15 +20,13 @@ from vcloud_plugin_common import (with_vca_client, get_vcloud_config,
 from network_plugin import (check_ip, save_gateway_configuration,
                             get_vm_ip, get_public_ip,
                             get_gateway, getFreeIP, CREATE, DELETE, PUBLIC_IP,
-                            del_ondemand_public_ip, utils, set_retry)
+                            SSH_PUBLIC_IP, SSH_PORT, save_ssh_parameters,
+                            del_ondemand_public_ip, utils, set_retry, lock_gateway)
 from network_plugin.network import VCLOUD_NETWORK_NAME
 from IPy import IP
-from cloudify_rest_client import exceptions as rest_exceptions
 
 PORT_REPLACEMENT = 'port_replacement'
 DEFAULT_SSH_PORT = '22'
-SSH_PORT = 'ssh_port'
-SSH_PUBLIC_IP = 'ssh_public_ip'
 
 
 @operation
@@ -46,6 +44,7 @@ def net_connect_to_nat_preconfigure(vca_client, **kwargs):
 
 @operation
 @with_vca_client
+@lock_gateway
 def net_connect_to_nat(vca_client, **kwargs):
     """
         create nat rule for current node
@@ -59,6 +58,7 @@ def net_connect_to_nat(vca_client, **kwargs):
 
 @operation
 @with_vca_client
+@lock_gateway
 def net_disconnect_from_nat(vca_client, **kwargs):
     """
         drop nat rule for current node
@@ -72,6 +72,7 @@ def net_disconnect_from_nat(vca_client, **kwargs):
 
 @operation
 @with_vca_client
+@lock_gateway
 def server_connect_to_nat(vca_client, **kwargs):
     """
         create nat rules for server
@@ -82,6 +83,7 @@ def server_connect_to_nat(vca_client, **kwargs):
 
 @operation
 @with_vca_client
+@lock_gateway
 def server_disconnect_from_nat(vca_client, **kwargs):
     """
         drop nat rules for server
@@ -182,24 +184,7 @@ def nat_network_operation(vca_client, gateway, operation, rule_type, public_ip,
         function = gateway.add_nat_rule
         message = "Add"
         if _is_dnat(rule_type) and str(translated_port) == DEFAULT_SSH_PORT:
-            retries_update = 3
-            update_pending = True
-            while retries_update > 0 and update_pending:
-                retries_update = retries_update - 1
-                try:
-                    ctx.source.instance.runtime_properties[SSH_PORT] = str(
-                        new_original_port)
-                    ctx.source.instance.runtime_properties[SSH_PUBLIC_IP] =\
-                        public_ip
-                    ctx.source.instance.update()
-                    update_pending = False
-                except rest_exceptions.CloudifyClientError as e:
-                    if 'conflict' in str(e):
-                        # cannot 'return' in contextmanager
-                        ctx.logger.info(
-                            "Conflict in updating backend, retrying")
-                    else:
-                        raise e
+            save_ssh_parameters(ctx, str(new_original_port), public_ip)
     elif operation == DELETE:
         new_original_port = _get_original_port_for_delete(
             public_ip, original_port)
@@ -238,7 +223,7 @@ def _save_configuration(gateway, vca_client, operation, public_ip):
         save/refresh nat rules on gateway
     """
     ctx.logger.info("Save NAT configuration.")
-    success = save_gateway_configuration(gateway, vca_client)
+    success = save_gateway_configuration(gateway, vca_client, ctx)
     if not success:
         return False
     ctx.logger.info("NAT configuration has been saved.")

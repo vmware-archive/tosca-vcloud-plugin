@@ -26,9 +26,10 @@ from cloudify import ctx
 from cloudify import context
 from cloudify import exceptions as cfy_exc
 
-TASK_RECHECK_TIMEOUT = 3
-RELOGIN_TIMEOUT = 3
-LOGIN_RETRY_NUM = 5
+
+TASK_RECHECK_TIMEOUT = 5
+RELOGIN_TIMEOUT = 5
+LOGIN_RETRY_NUM = 15
 TASK_STATUS_SUCCESS = 'success'
 TASK_STATUS_ERROR = 'error'
 

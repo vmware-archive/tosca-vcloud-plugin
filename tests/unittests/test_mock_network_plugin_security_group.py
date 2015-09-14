@@ -337,6 +337,17 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         fake_ctx._target.node.properties = {
             'rules': []
         }
+        fake_ctx._source.node.properties = {
+            'vcloud_config':
+            {
+                'edge_gateway': 'gateway',
+                'vdc': 'vdc'
+            }
+        }
+        fake_ctx._source.instance.runtime_properties = {
+            'gateway_lock': False,
+            'vcloud_vapp_name': 'vapp'
+        }
         self.set_services_conf_result(
             fake_client._vdc_gateway, vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
@@ -352,6 +363,17 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         # empty rules list
         fake_ctx._target.node.properties = {
             'rules': []
+        }
+        fake_ctx._source.node.properties = {
+            'vcloud_config':
+            {
+                'edge_gateway': 'gateway',
+                'vdc': 'vdc'
+            }
+        }
+        fake_ctx._source.instance.runtime_properties = {
+            'gateway_lock': False,
+            'vcloud_vapp_name': 'vapp'
         }
         self.set_services_conf_result(
             fake_client._vdc_gateway, vcloud_plugin_common.TASK_STATUS_SUCCESS

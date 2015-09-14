@@ -369,6 +369,14 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             'ssh_port': 22,
             'ssh_public_ip': '1.2.3.1'
         }
+        fake_ctx._source.node.properties = {
+            'vcloud_config':
+            {
+                'edge_gateway': 'gateway',
+                'vdc': 'vdc'
+            }
+        }
+
         fake_client._vdc_gateway.deallocate_public_ip = mock.MagicMock(
             return_value=self.generate_task(
                 vcloud_plugin_common.TASK_STATUS_SUCCESS
@@ -397,6 +405,12 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             'floatingip': {
                 'edge_gateway': 'gateway',
                 network_plugin.PUBLIC_IP: '10.10.2.3'
+            }}
+        fake_ctx._source.node.properties = {
+            'vcloud_config':
+            {
+                'edge_gateway': 'gateway',
+                'vdc': 'vdc'
             }
         }
         fake_ctx._target.instance.runtime_properties = {}
