@@ -8,9 +8,9 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import mock
 import unittest
@@ -304,7 +304,8 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         }
         fake_ctx._source.node.properties = {
             'vcloud_config': {
-                'vdc': 'some_org'
+                'org': 'some_org',
+                'vdc': 'some_vdc'
             }
         }
         fake_ctx._target.instance.runtime_properties = {}
@@ -329,7 +330,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                     public_nat._create_ip_range(fake_client, gate),
                     '127.1.1.100 - 127.1.1.200'
                 )
-                fake_client.get_networks.assert_called_with("some_org")
+                fake_client.get_networks.assert_called_with("some_vdc")
                 # network from gate
                 gate.get_dhcp_pools = mock.MagicMock(return_value=[
                     self.genarate_pool(

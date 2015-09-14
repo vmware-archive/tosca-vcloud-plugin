@@ -8,17 +8,48 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import mock
 import unittest
 from cloudify import mocks as cfy_mocks
-from network_plugin import BUSY_MESSAGE, NAT_ROUTED
 import network_plugin
 network_plugin.GATEWAY_TRY_COUNT = 2
 network_plugin.GATEWAY_TIMEOUT = 1
+
+
+class MockToscaCloudifyContext(cfy_mocks.MockCloudifyContext):
+    """updated mock for use with tosca"""
+
+    _local = False
+
+    @property
+    def local(self):
+        return self._local
+
+    _internal = None
+
+    @property
+    def internal(self):
+        return self._internal
+
+    _nodes = None
+
+    @property
+    def nodes(self):
+        return self._nodes
+
+
+class MockToscaNodeInstanceContext(cfy_mocks.MockNodeInstanceContext):
+    """node instance mock for use with tosca"""
+
+    _relationships = None
+
+    @property
+    def relationships(self):
+        return self._relationships
 
 
 class TestBase(unittest.TestCase):
@@ -47,7 +78,7 @@ class TestBase(unittest.TestCase):
     def set_gateway_busy(self, gateway):
         message = gateway.response.content
         message = message.replace(
-            self.ERROR_PLACE, BUSY_MESSAGE
+            self.ERROR_PLACE, network_plugin.BUSY_MESSAGE
         )
         gateway.response.content = message
 
@@ -175,7 +206,9 @@ class TestBase(unittest.TestCase):
         """
             set any network as routed
         """
-        network = self.generate_fake_client_network(NAT_ROUTED)
+        network = self.generate_fake_client_network(
+            network_plugin.NAT_ROUTED
+        )
         fake_client.get_network = mock.MagicMock(return_value=network)
 
     def generate_fake_client_disk(self, name="some_disk"):
@@ -328,7 +361,7 @@ class TestBase(unittest.TestCase):
         target = mock.Mock()
         target.node = mock.Mock()
         target.instance.runtime_properties = {}
-        fake_ctx = cfy_mocks.MockCloudifyContext(
+        fake_ctx = MockToscaCloudifyContext(
             source=source, target=target
         )
         return fake_ctx
@@ -337,14 +370,6 @@ class TestBase(unittest.TestCase):
         self, relation_node_properties=None, properties=None,
         runtime_properties=None
     ):
-
-        class MockInstanceContext(cfy_mocks.MockNodeInstanceContext):
-
-            self._relationships = None
-
-            @property
-            def relationships(self):
-                return self._relationships
 
         if not properties:
             properties = {
@@ -357,7 +382,7 @@ class TestBase(unittest.TestCase):
             runtime_properties = {
                 'vcloud_vapp_name': 'vapp_name'
             }
-        fake_ctx = cfy_mocks.MockCloudifyContext(
+        fake_ctx = MockToscaCloudifyContext(
             node_id='test',
             node_name='test',
             properties=properties,
@@ -365,7 +390,7 @@ class TestBase(unittest.TestCase):
             runtime_properties=runtime_properties
         )
 
-        fake_ctx._instance = MockInstanceContext(
+        fake_ctx._instance = MockToscaNodeInstanceContext(
             fake_ctx.instance._id, fake_ctx.instance._runtime_properties
         )
 

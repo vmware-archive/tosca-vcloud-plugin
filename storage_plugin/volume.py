@@ -8,9 +8,10 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import time
 
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
@@ -18,8 +19,8 @@ from cloudify.decorators import operation
 from vcloud_plugin_common import (wait_for_task, with_vca_client,
                                   get_vcloud_config, get_mandatory,
                                   error_response)
-from network_plugin import get_vapp_name
-import time
+from network_plugin import get_vapp_name, SSH_PUBLIC_IP, SSH_PORT
+
 
 @operation
 @with_vca_client
@@ -101,9 +102,7 @@ def creation_validation(vca_client, **kwargs):
 @operation
 @with_vca_client
 def attach_volume(vca_client, **kwargs):
-    """
-        attach volume
-    """
+    """attach volume"""
     _wait_for_boot()
     _volume_operation(vca_client, "ATTACH")
 
@@ -168,15 +167,20 @@ def _wait_for_boot():
     therefore user can do some manipulation for setup boot sequence.
     """
     from fabric import api as fabric_api
-    ip = ctx.target.instance.runtime_properties.get('ssh_public_ip')
+    ip = ctx.target.instance.runtime_properties.get(SSH_PUBLIC_IP)
     if not ip:
+        # private ip will be used in case
+        # when we does not have public ip
         ip = ctx.target.instance.runtime_properties['ip']
+    port = ctx.target.instance.runtime_properties.get(SSH_PORT, 22)
     ctx.logger.info("Using ip '{0}'.".format(ip))
     for i in range(30):
         ctx.logger.info("Wait for boot '{0}'.".format(i))
         try:
-            with fabric_api.settings(host_string=ip, warn_only=True,
-                                     abort_on_prompts=True):
+            with fabric_api.settings(
+                host_string=ip, port=port, warn_only=True,
+                abort_on_prompts=True
+            ):
                 fabric_api.run('id')
                 time.sleep(5)
         except SystemExit:

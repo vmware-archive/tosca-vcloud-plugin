@@ -8,9 +8,9 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
@@ -243,9 +243,9 @@ def _save_configuration(gateway, vca_client, operation, public_ip):
         if PORT_REPLACEMENT in ctx.target.instance.runtime_properties:
             del ctx.target.instance.runtime_properties[PORT_REPLACEMENT]
         if SSH_PORT in ctx.target.instance.runtime_properties:
-            del ctx.source.instance.runtime_properties[SSH_PORT]
+            del ctx.target.instance.runtime_properties[SSH_PORT]
         if SSH_PUBLIC_IP in ctx.target.instance.runtime_properties:
-            del ctx.source.instance.runtime_properties[SSH_PUBLIC_IP]
+            del ctx.target.instance.runtime_properties[SSH_PUBLIC_IP]
     return True
 
 
