@@ -120,6 +120,8 @@ node_types:
         properties:
             auto_generate:
                 default: false
+            create_private_key_file:
+                default: false
             private_key:
                 default: {}
             public_key:
@@ -255,8 +257,13 @@ relationships:
                 unlink:
                     implementation: vcloud.network_plugin.keypair.server_disconnect_from_keypair
                     inputs: {}
-    cloudify.vcloud.server_connected_to_vdc:
+    cloudify.vcloud.delete_public_key_from_server:
         derived_from: cloudify.relationships.connected_to
+        target_interfaces:
+            cloudify.interfaces.relationship_lifecycle:
+                establish:
+                    implementation: vcloud.server_plugin.server.remove_keys
+                    inputs: {}
 
 workflows:
     scoreinstall: vcloud.vcloud_plugin_common.workflows.install

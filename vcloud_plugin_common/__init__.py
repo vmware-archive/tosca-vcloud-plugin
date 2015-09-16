@@ -412,7 +412,11 @@ def with_vca_client(f):
             prop = ctx.instance.runtime_properties
         elif ctx.type == context.RELATIONSHIP_INSTANCE:
             config = ctx.source.node.properties.get(VCLOUD_CONFIG)
-            prop = ctx.source.instance.runtime_properties
+            if config:
+                prop = ctx.source.instance.runtime_properties
+            else:
+                config = ctx.target.node.properties.get(VCLOUD_CONFIG)
+                prop = ctx.target.instance.runtime_properties
         else:
             raise cfy_exc.NonRecoverableError("Unsupported context")
         if config and prop:
@@ -465,6 +469,8 @@ def get_vcloud_config():
         config = ctx.node.properties.get(VCLOUD_CONFIG)
     elif ctx.type == context.RELATIONSHIP_INSTANCE:
         config = ctx.source.node.properties.get(VCLOUD_CONFIG)
+        if not config:
+            config = ctx.target.node.properties.get(VCLOUD_CONFIG)
     else:
         raise cfy_exc.NonRecoverableError("Unsupported context")
     static_config = Config().get()
