@@ -341,6 +341,62 @@ def configure(vca_client, **kwargs):
                         format(task, error_response(vapp)))
 
 
+@operation
+@with_vca_client
+def remove_keys(vca_client, **kwargs):
+    ctx.logger.info("Remove public keys from VM.")
+    relationships = getattr(ctx.target.instance, 'relationships', None)
+    if relationships:
+        public_keys = [relationship.target.instance.runtime_properties['public_key']
+                       for relationship in relationships
+                       if 'public_key' in
+                       relationship.target.instance.runtime_properties]
+    else:
+        return
+    vdc = vca_client.get_vdc(get_vcloud_config()['vdc'])
+    vapp_name = ctx.target.instance.id
+    vapp = vca_client.get_vapp(vdc, vapp_name)
+    if not vapp:
+        raise cfy_exc.NonRecoverableError(
+            "Unable to find vAPP server "
+            "by its name {0}.".format(vapp_name))
+    ctx.logger.info("Using vAPP {0}".format(str(vapp_name)))
+    script = "#!/bin/sh\n" + _build_public_keys_script(public_keys,
+                                                       _remove_key_script)
+    task = vapp.undeploy()
+    if not task:
+        raise cfy_exc.NonRecoverableError(
+            "Can't power off VM. {0}".format(vapp_name))
+    wait_for_task(vca_client, task)
+    task = vapp.customize_guest_os(
+        vapp_name,
+        customization_script=script)
+    if not task:
+        raise cfy_exc.NonRecoverableError(
+            "Could not set guest customization parameters. {0}.".
+            format(error_response(vapp)))
+    wait_for_task(vca_client, task)
+    if vapp.customize_on_next_poweron():
+        ctx.logger.info("Customizations successful.")
+    else:
+        raise cfy_exc.NonRecoverableError(
+            "Can't run customization on next power on. {0}.".
+            format(error_response(vapp)))
+    vapp = vca_client.get_vapp(vdc, vapp_name)
+    task = vapp.poweron()
+    if not task:
+        raise cfy_exc.NonRecoverableError(
+            "Can't poweron VM. {0}".format(vapp_name))
+    wait_for_task(vca_client, task)
+    ctx.logger.info("Power on after deleting public key successful.")
+
+
+def _remove_key_script(commands, user, ssh_dir, keys_file, public_key):
+    sed_template = " sed -i /{0}/d {1}"
+    commands.append(sed_template.format(public_key.split()[1].replace('/', '[/]'),
+                                        keys_file))
+
+
 def _get_state(vca_client):
     """
         check network connection availability for host
@@ -408,8 +464,9 @@ def _build_script(custom, public_keys):
     post_script = custom.get('post_script', "")
     if not pre_script and not post_script and not public_keys:
         return None
-    script_executor = custom.get('script_executor', DEFAULT_EXECUTOR)
-    public_keys_script = _build_public_keys_script(public_keys)
+    script_executor = DEFAULT_EXECUTOR
+    public_keys_script = _build_public_keys_script(public_keys,
+                                                   _add_key_script)
     script_template = """#!{0}
 echo performing customization tasks with param $1 \
 at `date "+DATE: %Y-%m-%d - TIME: %H:%M:%S"` >> /root/customization.log
@@ -443,13 +500,7 @@ def _get_connected_keypairs():
         return []
 
 
-def _build_public_keys_script(public_keys):
-    """
-        create script for update ssh keys
-    """
-    key_commands = []
-    ssh_dir_template = "{0}/{1}/.ssh"
-    authorized_keys_template = "{0}/authorized_keys"
+def _add_key_script(commands, user, ssh_dir, keys_file, public_key):
     add_key_template = "echo '{0}\n' >> {1}"
     test_ssh_dir_template = """
     if [ ! -d {1} ];then
@@ -461,6 +512,18 @@ def _build_public_keys_script(public_keys):
       chmod 600 {2}
     fi
     """
+    test_ssh_dir = test_ssh_dir_template.format(user, ssh_dir, keys_file)
+    commands.append(test_ssh_dir)
+    commands.append(add_key_template.format(public_key, keys_file))
+
+
+def _build_public_keys_script(public_keys, script_function):
+    """
+        create script for update ssh keys
+    """
+    key_commands = []
+    ssh_dir_template = "{0}/{1}/.ssh"
+    authorized_keys_template = "{0}/authorized_keys"
     for key in public_keys:
         public_key = key.get('key')
         if not public_key:
@@ -473,11 +536,7 @@ def _build_public_keys_script(public_keys):
             home = '' if user == 'root' else DEFAULT_HOME
         ssh_dir = ssh_dir_template.format(home, user)
         authorized_keys = authorized_keys_template.format(ssh_dir)
-        test_ssh_dir = test_ssh_dir_template.format(
-            user, ssh_dir, authorized_keys)
-        key_commands.append(test_ssh_dir)
-        key_commands.append(
-            add_key_template.format(public_key, authorized_keys))
+        script_function(key_commands, user, ssh_dir, authorized_keys, public_key)
     return "\n".join(key_commands)
 
 
