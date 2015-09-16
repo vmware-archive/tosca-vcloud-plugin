@@ -31,6 +31,19 @@ USE_EXTERNAL_RESOURCE = 'use_external_resource'
 @operation
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
+    """check params
+
+        e.g.:
+            {
+                'name': 'not_existed'
+            }
+        or:
+            {
+                'use_external_resource': True,
+                'resource_id': 'not_existed'
+            }
+
+    """
     if ctx.node.properties.get(USE_EXTERNAL_RESOURCE):
         if not ctx.node.properties.get(RESOURCE_ID):
             raise cfy_exc.NonRecoverableError(
@@ -49,17 +62,21 @@ def creation_validation(vca_client, **kwargs):
         if vdc:
             raise cfy_exc.NonRecoverableError(
                 "VDC '{0}' already exists."
-                .format(res_id))
+                .format(vdc_name))
 
 
 @operation
 @with_vca_client
 def create(vca_client, **kwargs):
+    """create vdc"""
     config = get_vcloud_config()
+    # Subscription service does not support vdc create,
+    # you must use predefined vdc only
     if is_subscription(config['service_type']):
             raise cfy_exc.NonRecoverableError(
                 "Unable create VDC on subscription service.")
     if ctx.node.properties.get(USE_EXTERNAL_RESOURCE):
+        # use external resource, does not create anything
         res_id = ctx.node.properties[RESOURCE_ID]
         ctx.instance.runtime_properties[VDC_NAME] = res_id
         vdc = vca_client.get_vdc(res_id)
@@ -70,6 +87,7 @@ def create(vca_client, **kwargs):
         ctx.logger.info(
             "External resource {0} has been used".format(res_id))
     else:
+        # create new vdc
         vdc_name = ctx.node.properties.get('name')
         if not vdc_name:
             raise cfy_exc.NonRecoverableError("'vdc_name' not specified.")
@@ -83,15 +101,19 @@ def create(vca_client, **kwargs):
 @operation
 @with_vca_client
 def delete(vca_client, **kwargs):
+    """delete vdc"""
+    # external resource - no actions
     if ctx.node.properties.get(USE_EXTERNAL_RESOURCE):
         ctx.logger.info('Not deleting VDC since an external VDC is '
                         'being used')
     else:
+        # created in our workflow
         vdc_name = ctx.node.properties.get('name')
         status, task = vca_client.delete_vdc(vdc_name)
         if not status:
             raise cfy_exc.NonRecoverableError("Could not delete VDC: {0}"
                                               .format(error_response(vca_client)))
         wait_for_task(vca_client, task)
+    # clean up runtime_properties
     if VDC_NAME in ctx.instance.runtime_properties:
         del ctx.instance.runtime_properties[VDC_NAME]

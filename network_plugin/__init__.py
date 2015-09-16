@@ -289,6 +289,7 @@ def del_ondemand_public_ip(vca_client, gateway, ip, ctx):
         try to deallocate public ip
     """
     ctx.logger.info("Try to deallocate public IP {0}".format(ip))
+    wait_for_gateway(vca_client, gateway.get_name(), ctx)
     task = gateway.deallocate_public_ip(ip)
     if task:
         wait_for_task(vca_client, task)
@@ -375,8 +376,15 @@ def lock_gateway(f):
         ctx.logger.info("Lock gateway.")
         update_parameters(ctx, True)
         vca_client = kw['vca_client']
-        gateway_name = get_vcloud_config()['edge_gateway']
-        wait_for_gateway(vca_client, gateway_name, ctx)
+        gateway_name = get_vcloud_config().get('edge_gateway')
+        if gateway_name:
+            wait_for_gateway(vca_client, gateway_name, ctx)
+        else:
+            # we need gateway_name from vcloud for use this functionality
+            ctx.logger.info(
+                "'edge_gateway' in vcloud_config is empty." +
+                " Can't check state of gateway correctly."
+            )
         try:
             result = f(*args, **kw)
         finally:
