@@ -19,7 +19,7 @@ import vcloud_plugin_common
 
 
 def update(ctx, instance, token, org_url):
-    """updete token and url in instance"""
+    """update token and url in instance"""
     node_instance = instance._node_instance
     rt_properties = node_instance['runtime_properties']
     rt_properties.update({
