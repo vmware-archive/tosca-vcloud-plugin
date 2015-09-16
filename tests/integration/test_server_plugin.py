@@ -22,7 +22,7 @@ from cloudify import exceptions as cfy_exc
 from cloudify import mocks as cfy_mocks
 
 from server_plugin import server
-from server_plugin import volume
+from storage_plugin import volume
 from server_plugin import vdc
 from tests.integration import TestCase
 from cloudify.mocks import MockCloudifyContext

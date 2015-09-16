@@ -53,9 +53,14 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                     with mock.patch(
                         'vcloud_plugin_common.ctx', fake_ctx
                     ):
-                        return client._subscription_login(
-                            url, username, password, token, service,
-                            org_name)
+                        with mock.patch(
+                                'pyvcloud.vcloudair.VCS',
+                                mock.MagicMock()):
+                            with mock.patch('vcloud_plugin_common.local_session_token',
+                                            None):
+                                return client._subscription_login(
+                                    url, username, password, token, service,
+                                    org_name)
         # can't login with token
         with self.assertRaises(cfy_exc.NonRecoverableError):
             _run(
@@ -123,9 +128,13 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                     with mock.patch(
                         'vcloud_plugin_common.ctx', fake_ctx
                     ):
-                        return client._ondemand_login(
-                            url, username, password, token, instance_id)
-
+                        with mock.patch(
+                                'pyvcloud.vcloudair.VCS',
+                                mock.MagicMock()):
+                            with mock.patch('vcloud_plugin_common.local_session_token',
+                                            None):
+                                return client._ondemand_login(
+                                    url, username, password, token, instance_id)
         # bad case without instance
         with self.assertRaises(cfy_exc.NonRecoverableError):
             _run(
@@ -375,7 +384,6 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                 'url': 'url',
                 'username': 'username'
             })
-
         with mock.patch(
             'time.sleep',
             mock.MagicMock(return_value=None)
@@ -387,7 +395,10 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                 with mock.patch(
                     'vcloud_plugin_common.ctx', fake_ctx
                 ):
-                    loginc_check(fake_client)
+                    with mock.patch(
+                            'pyvcloud.vcloudair.VCS',
+                            mock.MagicMock()):
+                        loginc_check(fake_client)
 
     def test_get(self):
         client = vcloud_plugin_common.VcloudAirClient()
