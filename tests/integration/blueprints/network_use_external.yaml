@@ -1,0 +1,6 @@
+    test_network:
+        type: cloudify.vcloud.nodes.Network
+        properties:
+            use_external_resource: true
+            resource_id: { get_input: network_name }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }

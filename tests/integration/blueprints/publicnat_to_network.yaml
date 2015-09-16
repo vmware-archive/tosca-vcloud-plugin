@@ -1,0 +1,18 @@
+    test_nat:
+        type: cloudify.vcloud.nodes.PublicNAT
+        properties:
+            nat:
+                edge_gateway: { get_input: edge_gateway }
+            rules:
+                - type: SNAT
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+
+    test_network:
+        type: cloudify.vcloud.nodes.Network
+        properties:
+            use_external_resource: true
+            resource_id: { get_input: network_name }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+        relationships:
+            - target: test_nat
+              type: cloudify.vcloud.net_connected_to_public_nat

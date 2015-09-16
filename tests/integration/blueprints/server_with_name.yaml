@@ -1,0 +1,15 @@
+    example_server:
+        type: cloudify.vcloud.nodes.Server
+        properties:
+            server:
+                name: { get_input: server_name }
+                catalog: { get_input: catalog }
+                template: { get_input: template }
+                hardware:
+                    cpu: { get_input: server_cpu }
+                    memory: { get_input: server_memory }
+                guest_customization:
+                    computer_name: { get_input: server_name }
+            install_agent: false
+            management_network: { get_input: network_name }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }

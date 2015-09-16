@@ -41,10 +41,10 @@ def create_volume(vca_client, **kwargs):
     vdc_name = get_vcloud_config()['vdc']
     name = ctx.node.properties['volume']['name']
     size = ctx.node.properties['volume']['size']
-    size_in_Mb = size * 1024 * 1024
+    size_in_bytes = size * 1024 * 1024
     ctx.logger.info("Create volume '{0}' to '{1}' with size {2}Mb."
-                    .format(name, vdc_name, size_in_Mb))
-    success, disk = vca_client.add_disk(vdc_name, name, size_in_Mb)
+                    .format(name, vdc_name, size))
+    success, disk = vca_client.add_disk(vdc_name, name, size_in_bytes)
     if success:
         wait_for_task(vca_client, disk.get_Tasks()[0])
         ctx.logger.info("Volume node '{0}' has been created".format(name))

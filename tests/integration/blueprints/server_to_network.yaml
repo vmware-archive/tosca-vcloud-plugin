@@ -1,0 +1,20 @@
+    test_network:
+        type: cloudify.vcloud.nodes.Network
+        properties:
+            use_external_resource: true
+            resource_id: { get_input: network_name }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+
+
+    test_server:
+        type: cloudify.vcloud.nodes.Server
+        properties:
+            server:
+                catalog: { get_input: catalog }
+                template: { get_input: template }
+            install_agent: false
+            management_network: { get_input: network_name }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+        relationships:
+            - target: test_network
+              type: cloudify.vcloud.server_connected_to_network

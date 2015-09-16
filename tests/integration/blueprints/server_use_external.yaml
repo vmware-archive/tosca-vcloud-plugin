@@ -1,0 +1,8 @@
+    test_server:
+        type: cloudify.vcloud.nodes.Server
+        properties:
+            use_external_resource: true
+            resource_id: { get_input: server_name }
+            install_agent: false
+            management_network: { get_input: network_name }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }

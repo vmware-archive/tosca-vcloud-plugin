@@ -1,0 +1,5 @@
+test_vdc:
+    type: cloudify.vcloud.nodes.VDC
+    properties:
+         name: { get_input: test_vdc_name }
+         vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
