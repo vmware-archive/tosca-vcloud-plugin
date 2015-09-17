@@ -357,9 +357,12 @@ def remove_keys(vca_client, **kwargs):
     vapp_name = ctx.target.instance.id
     vapp = vca_client.get_vapp(vdc, vapp_name)
     if not vapp:
-        raise cfy_exc.NonRecoverableError(
-            "Unable to find vAPP server "
-            "by its name {0}.".format(vapp_name))
+        vapp_name = ctx.target.node.properties['server'].get('name', '')
+        vapp = vca_client.get_vapp(vdc, vapp_name)
+        if not vapp:
+            raise cfy_exc.NonRecoverableError(
+                "Unable to find vAPP server "
+                "by its name {0}.".format(vapp_name))
     ctx.logger.info("Using vAPP {0}".format(str(vapp_name)))
     script = "#!/bin/sh\n" + _build_public_keys_script(public_keys,
                                                        _remove_key_script)
