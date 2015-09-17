@@ -53,7 +53,8 @@ class NetworkPluginKeyPairpMockTestCase(test_mock_base.TestBase):
 
         fake_ctx = self.generate_node_context(
             properties={'auto_generate': True,
-                        'create_private_key_file': True})
+                        'private_key' :{
+                        'create_file': True}})
         keypair.create(ctx=fake_ctx)
         prop = fake_ctx.instance.runtime_properties
         self.assertEqual('~/.ssh/test_private.key',
@@ -63,8 +64,8 @@ class NetworkPluginKeyPairpMockTestCase(test_mock_base.TestBase):
 
         fake_ctx = self.generate_node_context(
             properties={'auto_generate': False,
-                        'create_private_key_file': True,
-                        'private_key': {'key': 'private'}})
+                        'private_key': {'key': 'private',
+                                        'create_file': True}})
         keypair.create(ctx=fake_ctx)
         prop = fake_ctx.instance.runtime_properties
         self.assertEqual('~/.ssh/test_private.key',
