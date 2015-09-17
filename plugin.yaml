@@ -257,8 +257,14 @@ relationships:
                     inputs: {}
     cloudify.vcloud.server_connected_to_vdc:
         derived_from: cloudify.relationships.connected_to
+    cloudify.vcloud.delete_public_key_from_server:
+        derived_from: cloudify.relationships.connected_to
+        target_interfaces:
+            cloudify.interfaces.relationship_lifecycle:
+                establish:
+                    implementation: vcloud.server_plugin.server.remove_keys
+                    inputs: {}
 
 workflows:
     scoreinstall: vcloud.vcloud_plugin_common.workflows.install
-
     scoreuninstall: vcloud.vcloud_plugin_common.workflows.uninstall
