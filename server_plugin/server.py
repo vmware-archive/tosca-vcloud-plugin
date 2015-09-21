@@ -22,9 +22,9 @@ from vcloud_plugin_common import (get_vcloud_config,
                                   with_vca_client,
                                   error_response,
                                   STATUS_POWERED_ON)
-
 from network_plugin import (get_network_name, get_network, is_network_exists,
                             get_vapp_name)
+from network_plugin.keypair import PUBLIC_KEY, SSH_KEY
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 GUEST_CUSTOMIZATION = 'guest_customization'
@@ -393,6 +393,11 @@ def remove_keys(vca_client, **kwargs):
     wait_for_task(vca_client, task)
     ctx.logger.info("Power on after deleting public key successful.")
 
+    ctx.logger.info("Remove keys from properties.")
+    host_rt_properties = ctx.target.instance.runtime_properties
+    if SSH_KEY in host_rt_properties:
+        del host_rt_properties[SSH_KEY]
+
 
 def _remove_key_script(commands, user, ssh_dir, keys_file, public_key):
     sed_template = " sed -i /{0}/d {1}"
@@ -495,7 +500,7 @@ fi
 def _get_connected_keypairs():
     relationships = getattr(ctx.instance, 'relationships', None)
     if relationships:
-        return [relationship.target.instance.runtime_properties['public_key']
+        return [relationship.target.instance.runtime_properties[PUBLIC_KEY]
                 for relationship in relationships
                 if 'public_key' in
                 relationship.target.instance.runtime_properties]
