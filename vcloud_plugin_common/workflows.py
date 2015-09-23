@@ -42,10 +42,11 @@ def _get_all_nodes_instances(ctx, token, org_url):
     """return all instances from context nodes"""
     node_instances = set()
     for node in ctx.nodes:
-        if vcloud_plugin_common.VCLOUD_CONFIG in node.properties:
-            for instance in node.instances:
-                if token and org_url:
-                    update(ctx, instance, token, org_url)
+        for instance in node.instances:
+            if (vcloud_plugin_common.VCLOUD_CONFIG in node.properties
+               and token
+               and org_url):
+                update(ctx, instance, token, org_url)
             node_instances.add(instance)
     return node_instances
 
