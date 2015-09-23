@@ -518,6 +518,8 @@ def _add_key_script(commands, user, ssh_dir, keys_file, public_key):
       touch {2}
       chown {0}:{0} {2}
       chmod 600 {2}
+      # make centos with selinux happy
+      which restorecon && restorecon -Rv {1}
     fi
     """
     test_ssh_dir = test_ssh_dir_template.format(user, ssh_dir, keys_file)
