@@ -12,396 +12,86 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import mock
-import random
-import socket
-import string
-import time
-
-from cloudify import exceptions as cfy_exc
-from cloudify import mocks as cfy_mocks
-
-from server_plugin import server
-from storage_plugin import volume
-from server_plugin import vdc
-from tests.integration import TestCase
-from cloudify.mocks import MockCloudifyContext
-from server_plugin.server import VCLOUD_VAPP_NAME
-
-from vcloud_plugin_common import VcloudAirClient
+from tests.integration import TestCase, wait_for_task, fail_guard
 
 
-RANDOM_PREFIX_LENGTH = 5
-
-
-class ServerNoNetworkTestCase(TestCase):
+class ServerTestCase(TestCase):
     def setUp(self):
-        super(ServerNoNetworkTestCase, self).setUp()
-        chars = string.ascii_uppercase + string.digits
-        self.name_prefix = ('plugin_test_{0}_'
-                            .format(''.join(
-                                random.choice(chars)
-                                for _ in range(RANDOM_PREFIX_LENGTH)))
-                            )
-        server_test_dict = self.test_config['server']
-        name = self.name_prefix + 'server'
+        super(ServerTestCase, self).setUp()
 
-        self.ctx = cfy_mocks.MockCloudifyContext(
-            node_id=name,
-            node_name=name,
-            properties={
-                'server':
-                {
-                    'name': name,
-                    'catalog': server_test_dict['catalog'],
-                    'template': server_test_dict['template'],
-                    'hardware': server_test_dict['hardware'],
-                    'guest_customization':
-                    server_test_dict.get('guest_customization')
-                },
-                'management_network': self.test_config['management_network'],
-                'vcloud_config': self.vcloud_config
-            }
-        )
-        self.ctx.node.properties['server']['guest_customization'][
-            'public_keys'] = [self.test_config['manager_keypair'],
-                              self.test_config['agent_keypair']]
-        self.ctx.instance.relationships = []
-        ctx_patch1 = mock.patch('server_plugin.server.ctx', self.ctx)
-        ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
-        ctx_patch1.start()
-        ctx_patch2.start()
-        self.addCleanup(ctx_patch1.stop)
-        self.addCleanup(ctx_patch2.stop)
+    @fail_guard
+    def test_with_name(self):
+        self.init('server_with_name.yaml')
+        self.install()
+        self.uninstall()
 
-    def tearDown(self):
-        try:
-            server.stop()
-        except Exception:
-            pass
-        try:
-            server.delete()
-        except Exception:
-            pass
-        super(ServerNoNetworkTestCase, self).tearDown()
+    @fail_guard
+    def test_without_name(self):
+        self.init('server_without_name.yaml')
+        self.install()
+        self.uninstall()
 
-    def test_server_creation_validation(self):
-        success = True
-        msg = None
-        try:
-            server.creation_validation()
-        except cfy_exc.NonRecoverableError as e:
-            success = False
-            msg = e.message
-        self.assertTrue(success, msg)
-
-    def test_server_creation_validation_catalog_not_found(self):
-        self.ctx.node.properties['server']['catalog'] = 'fake-catalog'
-        self.assertRaises(cfy_exc.NonRecoverableError,
-                          server.creation_validation)
-
-    def test_server_creation_validation_template_not_found(self):
-        self.ctx.node.properties['server']['template'] = 'fake-template'
-        self.assertRaises(cfy_exc.NonRecoverableError,
-                          server.creation_validation)
-
-    def test_server_creation_validation_parameter_missing(self):
-        del self.ctx.node.properties['server']['template']
-        self.assertRaises(cfy_exc.NonRecoverableError,
-                          server.creation_validation)
-
-    def test_server_create_delete(self):
-        server.create()
-        server.configure()
-        vdc = self.vca_client.get_vdc(self.vcloud_config['org'])
-        vapp = self.vca_client.get_vapp(
-            vdc,
-            self.ctx.node.properties['server']['name'])
-        self.assertFalse(vapp is None)
-        self.assertFalse(server._vapp_is_on(vapp))
-        self.check_hardware(vapp)
-        server.delete()
-        vapp = self.vca_client.get_vapp(
-            vdc,
-            self.ctx.node.properties['server']['name'])
-        self.assertTrue(vapp is None)
-
-    def test_server_stop_start(self):
-        server.create()
-        vdc = self.vca_client.get_vdc(self.vcloud_config['org'])
-        vapp = self.vca_client.get_vapp(
-            vdc,
-            self.ctx.node.properties['server']['name'])
-        self.assertFalse(vapp is None)
-        self.assertFalse(server._vapp_is_on(vapp))
-
-        self._run_with_retry(server.start, self.ctx)
-        vapp = self.vca_client.get_vapp(
-            vdc,
-            self.ctx.node.properties['server']['name'])
-        self.assertTrue(server._vapp_is_on(vapp))
-
-        server.stop()
-        vapp = self.vca_client.get_vapp(
-            vdc,
-            self.ctx.node.properties['server']['name'])
-        self.assertFalse(server._vapp_is_on(vapp))
-
-        self._run_with_retry(server.start, self.ctx)
-        vapp = self.vca_client.get_vapp(
-            vdc,
-            self.ctx.node.properties['server']['name'])
-        self.assertTrue(server._vapp_is_on(vapp))
-
-    def check_hardware(self, vapp):
-        data = vapp.get_vms_details()[0]
-        hardware = self.test_config['server']['hardware']
-        if hardware:
-            self.assertEqual(data['cpus'], hardware['cpu'])
-            self.assertEqual(data['memory'] * 1024, hardware['memory'])
-
-
-class ServerWithNetworkTestCase(TestCase):
-    def setUp(self):
-        super(ServerWithNetworkTestCase, self).setUp()
-        chars = string.ascii_uppercase + string.digits
-        self.name_prefix = ('plugin_test_{0}_'
-                            .format(''.join(
-                                random.choice(chars)
-                                for _ in range(RANDOM_PREFIX_LENGTH)))
-                            )
-
-        server_test_dict = self.test_config['server']
-        name = self.name_prefix + 'server'
-        self.network_name = self.test_config['management_network']
-
-        port_node_context = cfy_mocks.MockNodeContext(
-            properties={
-                'port':
-                {
-                    'network': self.network_name,
-                    'ip_allocation_mode': 'pool',
-                    'primary_interface': True
-                }
-            }
-        )
-
-        network_node_context = cfy_mocks.MockNodeContext(
-            properties={
-                'network':
-                {
-                    'name': self.network_name
-                }
-            }
-        )
-
-        self.port_relationship = mock.Mock()
-        self.port_relationship.target = mock.Mock()
-        self.port_relationship.target.node = port_node_context
-
-        self.network_relationship = mock.Mock()
-        self.network_relationship.target = mock.Mock()
-        self.network_relationship.target.node = network_node_context
-        self.properties = {
-            'server':
-            {
-                'name': name,
-                'catalog': server_test_dict['catalog'],
-                'template': server_test_dict['template']
-            },
-            'management_network': self.network_name,
-            'vcloud_config': self.vcloud_config
-        }
-        self.ctx = cfy_mocks.MockCloudifyContext(
-            node_id=name,
-            node_name=name,
-            properties=self.properties
-        )
-        self.ctx.instance.relationships = []
-        ctx_patch1 = mock.patch('server_plugin.server.ctx', self.ctx)
-        ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.ctx)
-        ctx_patch1.start()
-        ctx_patch2.start()
-        self.addCleanup(ctx_patch1.stop)
-        self.addCleanup(ctx_patch2.stop)
-
-    def tearDown(self):
-        try:
-            server.stop()
-        except Exception:
-            pass
-        try:
-            server.delete()
-        except Exception:
-            pass
-        super(ServerWithNetworkTestCase, self).tearDown()
-
-    def test_create_with_port_connection(self):
-        self.ctx.instance.relationships = [self.port_relationship]
-        self._create_test()
-
-    def test_create_with_network_connection(self):
-        self.ctx.instance.relationships = [self.network_relationship]
-        self._create_test()
-
-    def test_create_without_connections(self):
-        self.ctx.instance.relationships = []
-        self._create_test()
-
-    def _create_test(self):
-        server.create()
-        self._run_with_retry(server.start, self.ctx)
-        vdc = self.vca_client.get_vdc(self.vcloud_config['org'])
-        vapp = self.vca_client.get_vapp(
-            vdc,
-            self.ctx.node.properties['server']['name'])
-        self.assertFalse(vapp is None)
-        networks = server._get_vm_network_connections(vapp)
-        self.assertEqual(1, len(networks))
-        self.assertEqual(self.network_name, networks[0]['network_name'])
-
-    def test_get_state(self):
-        num_tries = 5
-        verified = False
-        server.create()
-        self._run_with_retry(server.start, self.ctx)
-        for _ in range(num_tries):
-            result = server._get_state(self.vca_client)
-            if result is True:
-                self.assertTrue('ip' in self.ctx.instance.runtime_properties)
-                self.assertTrue('networks'
-                                in self.ctx.instance.runtime_properties)
-                self.assertEqual(1,
-                                 len(self.ctx.instance.
-                                     runtime_properties['networks'].keys()))
-                self.assertEqual(self.network_name,
-                                 self.ctx.instance.
-                                 runtime_properties['networks'].keys()[0])
-                ip_valid = True
-                try:
-                    socket.inet_aton(
-                        self.ctx.instance.runtime_properties['ip'])
-                except socket.error:
-                    ip_valid = False
-                self.assertTrue(ip_valid)
-                verified = True
-                break
-            time.sleep(2)
-        self.assertTrue(verified)
-
-
-class VolumeTestCase(TestCase):
-    def setUp(self):
-        super(VolumeTestCase, self).setUp()
-        self.volume_test_dict = self.test_config['volume']
-        name = 'volume'
-        self.properties = {
-            'volume':
-            {
-                'name': self.volume_test_dict['name'],
-                'size': self.volume_test_dict['size']
-            },
-            'use_external_resource': True,
-            'resource_id': self.volume_test_dict['name_exists'],
-            'vcloud_config': self.vcloud_config
-        }
-        self.target = MockCloudifyContext(
-            node_id="target",
-            properties={'vcloud_config': self.vcloud_config},
-            runtime_properties={
-                VCLOUD_VAPP_NAME: self.test_config['test_vm']
-            }
-        )
-        self.source = MockCloudifyContext(
-            node_id="source", properties=self.properties
-        )
-        self.nodectx = cfy_mocks.MockCloudifyContext(
-            node_id=name,
-            node_name=name,
-            properties=self.properties
-        )
-        self.relationctx = cfy_mocks.MockCloudifyContext(
-            node_id=name,
-            node_name=name,
-            target=self.target,
-            source=self.source
-        )
-        self.ctx = self.nodectx
-        ctx_patch1 = mock.patch('server_plugin.volume.ctx', self.nodectx)
-        ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.nodectx)
-        ctx_patch1.start()
-        ctx_patch2.start()
-        self.addCleanup(ctx_patch1.stop)
-        self.addCleanup(ctx_patch2.stop)
-
-    def test_volume(self):
-        disks_count = lambda: len(
-            self.vca_client.get_disks(self.vcloud_config['vdc']))
-        volume.creation_validation()
-        disks_before = disks_count()
-        volume.create_volume()
-        if self.relationctx.source.node.properties['use_external_resource']:
-            self.assertEqual(disks_before, disks_count())
+    @fail_guard
+    def test_use_external(self):
+        task = self.vca_client.create_vapp(self.conf.vdc, self.conf.server_name, self.conf.template,
+                                           self.conf.catalog, network_name=self.conf.network_name,
+                                           vm_name=self.conf.server_name, deploy='false', poweron='false')
+        if task:
+            wait_for_task(self.vca_client, task)
         else:
-            self.assertEqual(disks_before + 1, disks_count())
-        self._attach_detach()
-        volume.delete_volume()
-        self.assertEqual(disks_before, disks_count())
+            raise Exception("Can't create vm")
+        try:
+            self.init('server_use_external.yaml')
+            self.install()
+            self.uninstall()
+        finally:
+            self.vca_client.delete_vapp(self.conf.vdc, self.conf.server_name)
+        self.failed = False
 
-    def _attach_detach(self):
-        def links_count():
-            node_properties = self.relationctx.source.node.properties
-            if node_properties['use_external_resource']:
-                return [
-                    len(d[1]) for d in self.vca_client.get_disks(
-                        self.vcloud_config['vdc']
-                    ) if d[0].name == node_properties['resource_id']
-                ][0]
-            else:
-                return [
-                    len(d[1]) for d in self.vca_client.get_disks(
-                        self.vcloud_config['vdc']
-                    ) if d[0].name == node_properties['volume']['name']
-                ][0]
-        with mock.patch('server_plugin.volume.ctx', self.relationctx):
-            links_before = links_count()
-            volume.attach_volume()
-            self.assertEqual(links_before + 1, links_count())
-            volume.detach_volume()
+    @fail_guard
+    def test_connect_to_network(self):
+        self.init('server_to_network.yaml')
+        self.install()
+        self.uninstall()
+
+    @fail_guard
+    def test_connect_to_port(self):
+        self.init('server_to_port.yaml')
+        self.install()
+        self.uninstall()
+
+    @fail_guard
+    def test_remove_keys(self):
+        self.init('server_remove_keys.yaml')
+        self.install()
+        self.uninstall()
 
 
 class VdcTestCase(TestCase):
     def setUp(self):
         super(VdcTestCase, self).setUp()
-        self.vdc_test_dict = self.test_config['vdc']
-        name = 'vdc'
-        self.properties = {
-            'name': self.vdc_test_dict['name'],
-            'use_external_resource': False,
-            'resource_id': self.vdc_test_dict['name_exists'],
-            'vcloud_config': self.vcloud_config
-        }
-        self.nodectx = cfy_mocks.MockCloudifyContext(
-            node_id=name,
-            node_name=name,
-            properties=self.properties
-        )
-        self.ctx = self.nodectx
-        ctx_patch1 = mock.patch('server_plugin.vdc.ctx', self.nodectx)
-        ctx_patch2 = mock.patch('vcloud_plugin_common.ctx', self.nodectx)
-        ctx_patch1.start()
-        ctx_patch2.start()
-        self.addCleanup(ctx_patch1.stop)
-        self.addCleanup(ctx_patch2.stop)
 
-    def test_vdc_create_delete(self):
-        name = self.properties['name']
-        self.assertFalse(name in self._get_vdc_names())
-        vdc.create()
-        self.assertTrue(name in self._get_vdc_names())
-        vdc.delete()
-        self.assertFalse(name in self._get_vdc_names())
+    @fail_guard
+    def test_new(self):
+        if self.service_type == 'subscription':
+            print 'Testing only in ondemand service'
+            return
+        self.init('vdc_new.yaml')
+        self.install()
+        self.uninstall()
 
-    def _get_vdc_names(self):
-        vca_client = VcloudAirClient().get(config=self.vcloud_config)
-        return vca_client.get_vdc_names()
+    @fail_guard
+    def test_use_external(self):
+        task = self.vca_client.create_vdc(self.conf.test_vdc_name)
+        if task:
+            wait_for_task(self.vca_client, task)
+        else:
+            raise Exception("Can't create vdc")
+        self.init('vdc_use_external.yaml')
+        self.install()
+        self.uninstall()
+        self.vca_client = self.get_client()
+        result, task = self.vca_client.delete_vdc(self.conf.test_vdc_name)
+        if not result:
+            raise Exception(task)
+        wait_for_task(self.vca_client, task)

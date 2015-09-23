@@ -1,0 +1,18 @@
+    test_network:
+        type: cloudify.vcloud.nodes.Network
+        properties:
+            network:
+                edge_gateway: { get_input: edge_gateway }
+                name: { get_input: test_network_name }
+                static_range: 10.10.199.2-10.10.199.128
+                netmask: 255.255.255.0
+                gateway_ip: 10.10.199.1
+                dns:
+                    - 8.8.8.8
+                    - 10.10.199.1
+                dns_suffix: testnet
+                dhcp:
+                    dhcp_range: 10.10.199.129-10.10.199.254
+                    default_lease: 3600
+                    max_lease: 7200
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }

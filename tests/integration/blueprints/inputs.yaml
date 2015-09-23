@@ -1,0 +1,5 @@
+volume_name: test_volume
+volume_size_Mb: 1024
+server_name: testserver
+test_vdc_name: testvdc
+test_network_name: newtestnetwork

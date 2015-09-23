@@ -1,0 +1,6 @@
+    test_keypair:
+        type: cloudify.vcloud.nodes.KeyPair
+        properties:
+            auto_generate: true
+            private_key:
+                create_file: true

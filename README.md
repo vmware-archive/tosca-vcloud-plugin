@@ -4,6 +4,11 @@ tosca-vcloud-plugin
 
 ## Running Integration Tests
 
+First, you must prepare vCloud enviroment.
+Integration tests uses ondemand and subscription services.
+On each service must be at least one existent network.
+Firewall must be disabled, or allow by default.
+
 Create virtual environment and install plugin in dev-mode
 ```
 virtualenv venv && source venv/bin/activate
