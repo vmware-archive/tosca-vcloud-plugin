@@ -334,7 +334,10 @@ class TestBase(unittest.TestCase):
     def generate_vapp(self, vms_networks=None):
 
         def _get_vms_network_info():
-            return [vms_networks]
+            if vms_networks:
+                return [vms_networks]
+            else:
+                return [[]]
 
         vapp = mock.Mock()
         vapp.me = mock.Mock()

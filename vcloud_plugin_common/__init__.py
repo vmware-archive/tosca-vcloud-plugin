@@ -340,7 +340,7 @@ class VcloudAirClient(object):
             version=api_version)
 
         if logined is False and password:
-            for _ in range(LOGIN_RETRY_NUM):
+            for _ in xrange(LOGIN_RETRY_NUM):
                 logined = vca.login(password, org=org_name)
                 if logined is False:
                     ctx.logger.info("Login using password failed. Retrying...")
@@ -358,7 +358,7 @@ class VcloudAirClient(object):
         # Private mode requires being logged in with a token otherwise you
         # don't seem to be able to retrieve any VDCs
         if token:
-            for _ in range(LOGIN_RETRY_NUM):
+            for _ in xrange(LOGIN_RETRY_NUM):
                 logined = vca.login(token=token, org_url=org_url)
                 if logined is False:
                     ctx.logger.info("Login using token failed.")
@@ -417,7 +417,7 @@ def wait_for_task(vca_client, task):
     ctx.logger.debug('Task recheck after {0} seconds.'
                      .format(TASK_RECHECK_TIMEOUT))
     status = task.get_status()
-    for attempt in range(MAX_ATTEMPTS):
+    for attempt in xrange(MAX_ATTEMPTS):
         ctx.logger.debug('Attempt: {0}/{1}.'.format(attempt + 1, MAX_ATTEMPTS))
         if status == TASK_STATUS_SUCCESS:
             ctx.logger.debug('Task completed in {0} seconds'
@@ -493,7 +493,7 @@ def error_response(obj):
 
 def session_login(vca, org_url, session_token, version):
     vcs = vcloudair.VCS(org_url, None, None, None, org_url, org_url, version)
-    for _ in range(LOGIN_RETRY_NUM):
+    for _ in xrange(LOGIN_RETRY_NUM):
         if not vcs.login(token=session_token):
             ctx.logger.info("Login using session token failed.")
             time.sleep(RELOGIN_TIMEOUT)
@@ -506,7 +506,7 @@ def session_login(vca, org_url, session_token, version):
 
 
 def login_to_vca_with_token(vca, org_url, session_token, version):
-    for _ in range(LOGIN_RETRY_NUM):
+    for _ in xrange(LOGIN_RETRY_NUM):
         logined = session_login(vca, org_url, session_token, version)
         if logined is False:
             ctx.logger.info("Login using session token failed.")
@@ -517,7 +517,7 @@ def login_to_vca_with_token(vca, org_url, session_token, version):
 
 
 def login_with_retry(function, arguments, message):
-    for _ in range(LOGIN_RETRY_NUM):
+    for _ in xrange(LOGIN_RETRY_NUM):
         logined = function(*arguments)
         if logined is False:
             ctx.logger.info("{0} failed. Retrying...".format(message))

@@ -37,11 +37,15 @@ AssignedIPs = collections.namedtuple('AssignedIPs', 'external internal')
 BUSY_MESSAGE = "is busy completing an operation"
 
 GATEWAY_TIMEOUT = 30
+# try n times before fail
+RETRY_COUNT = 10
+# sleep n seconds before retry
+RETRY_SLEEP = 10
 
 
 def check_ip(address):
     """
-        check ip
+        check ip format
     """
     try:
         IP(address)
@@ -258,7 +262,7 @@ def get_ondemand_public_ip(vca_client, gateway, ctx):
         new_ip = list(available_ips)[0]
         ctx.logger.info("Public IP {0} was reused.".format(new_ip))
         return new_ip
-    for i in range(5):
+    for i in xrange(RETRY_COUNT):
         ctx.logger.info("Try to allocate public IP")
         wait_for_gateway(vca_client, gateway.get_name(), ctx)
         task = gateway.allocate_public_ip()
@@ -325,12 +329,16 @@ def get_gateway(vca_client, gateway_name):
 
 
 def set_retry(ctx):
+    """
+        set retry on cloudify level
+    """
     return ctx.operation.retry(
         message='Waiting for gateway.',
         retry_after=GATEWAY_TIMEOUT)
 
 
 def save_ssh_parameters(ctx, port, ip):
+    """save port and ip for ssh to context"""
     retries_update = 3
     update_pending = True
     while retries_update > 0 and update_pending:
@@ -350,17 +358,19 @@ def save_ssh_parameters(ctx, port, ip):
 
 
 def wait_for_gateway(vca_client, gateway_name, ctx):
-    for i in range(10):
+    """try ten times to wait 10 seconds for gateway"""
+    for i in xrange(RETRY_COUNT):
         gateway = get_gateway(vca_client, gateway_name)
         if not gateway.is_busy():
             return
         ctx.logger.info("Check {0}. Gateway is busy.".format(i))
-        time.sleep(10)
+        time.sleep(RETRY_SLEEP)
     raise cfy_exc.NonRecoverableError(
         "Can't wait gateway {0}".format(gateway_name))
 
 
 def lock_gateway(f):
+    """loc gateway before operation"""
     def update_parameters(ctx, value):
         ctx.source.instance.runtime_properties[GATEWAY_LOCK] = value
         ctx.source.instance.update()
