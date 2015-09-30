@@ -25,7 +25,7 @@ from vcloud_plugin_common import (get_vcloud_config,
                                   error_response,
                                   STATUS_POWERED_ON)
 from network_plugin import (get_network_name, get_network, is_network_exists,
-                            get_vapp_name, GATEWAY_TIMEOUT)
+                            get_vapp_name, GATEWAY_TIMEOUT, RETRY_COUNT)
 from network_plugin.keypair import PUBLIC_KEY, SSH_KEY
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
@@ -274,8 +274,8 @@ def delete(vca_client, **kwargs):
     del ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
 
 
-def _all_primary_connections_have_ip(vapp):
-    """Return True in case when all primary interfaces have some ip"""
+def _is_primary_connection_has_ip(vapp):
+    """Return True in case when primary interface has some ip"""
     network_info = vapp.get_vms_network_info()
     # we dont have any network, skip checks
     if not network_info:
@@ -365,20 +365,20 @@ def configure(vca_client, **kwargs):
                         "Customize VM cpu failed: '{0}'. {1}".
                         format(task, error_response(vapp)))
 
-        if not _all_primary_connections_have_ip(vapp):
+        if not _is_primary_connection_has_ip(vapp):
             ctx.logger.info("Power on server for get dhcp ip.")
             # we have to start vapp before continue
             _power_on_vm(vca_client, vapp, vapp_name)
-            for attempt in xrange(20):
+            for attempt in xrange(RETRY_COUNT):
                 vapp = vca_client.get_vapp(vdc, vapp_name)
-                if _all_primary_connections_have_ip(vapp):
+                if _is_primary_connection_has_ip(vapp):
                     return
                 ctx.logger.info(
-                    "No ip assigned. Retrying... {}/20 attempt."
-                    .format(attempt + 1)
+                    "No ip assigned. Retrying... {}/{} attempt."
+                    .format(attempt + 1, RETRY_COUNT)
                 )
                 time.sleep(GATEWAY_TIMEOUT)
-            ctx.logger.info("We dont recieve ip for 10 minutes")
+            ctx.logger.info("We dont recieve ip, try next time...")
 
 
 @operation

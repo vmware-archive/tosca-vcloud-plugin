@@ -23,7 +23,7 @@ from network_plugin import (check_ip, CheckAssignedExternalIp,
                             CREATE, DELETE, PUBLIC_IP, get_gateway,
                             SSH_PUBLIC_IP, SSH_PORT, save_ssh_parameters,
                             get_public_ip, del_ondemand_public_ip,
-                            set_retry, lock_gateway, retry_operation)
+                            set_retry, lock_gateway)
 
 
 @operation
@@ -74,7 +74,6 @@ def creation_validation(vca_client, **kwargs):
             getFreeIP(gateway)
 
 
-@retry_operation
 def _floatingip_operation(operation, vca_client, ctx):
     """
         create/release floating ip by nat rules for this ip with
