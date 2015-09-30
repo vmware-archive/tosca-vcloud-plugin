@@ -21,7 +21,8 @@ from network_plugin import (check_ip, save_gateway_configuration,
                             get_vm_ip, get_public_ip,
                             get_gateway, getFreeIP, CREATE, DELETE, PUBLIC_IP,
                             SSH_PUBLIC_IP, SSH_PORT, save_ssh_parameters,
-                            del_ondemand_public_ip, utils, set_retry, lock_gateway)
+                            del_ondemand_public_ip, utils, set_retry, lock_gateway,
+                            retry_operation)
 from network_plugin.network import VCLOUD_NETWORK_NAME
 from IPy import IP
 
@@ -120,6 +121,7 @@ def creation_validation(vca_client, **kwargs):
                     "Parameter 'translated_port' must be integer")
 
 
+@retry_operation
 def prepare_network_operation(vca_client, operation):
     """
         create nat rules by rules from network node
@@ -128,7 +130,13 @@ def prepare_network_operation(vca_client, operation):
         gateway = get_gateway(
             vca_client, ctx.target.node.properties['nat']['edge_gateway'])
         public_ip = _obtain_public_ip(vca_client, ctx, gateway, operation)
+        if not public_ip:
+            ctx.logger.info("We dont have public ip. Retrying...")
+            return False
         private_ip = _create_ip_range(vca_client, gateway)
+        if not private_ip:
+            ctx.logger.info("We dont have private ip. Retrying...")
+            return False
         for rule in ctx.target.node.properties['rules']:
             rule_type = rule['type']
             nat_network_operation(
@@ -142,6 +150,7 @@ def prepare_network_operation(vca_client, operation):
     return _save_configuration(gateway, vca_client, operation, public_ip)
 
 
+@retry_operation
 def prepare_server_operation(vca_client, operation):
     """
         generate nat rules by current list of rules in node
@@ -150,7 +159,13 @@ def prepare_server_operation(vca_client, operation):
         gateway = get_gateway(
             vca_client, ctx.target.node.properties['nat']['edge_gateway'])
         public_ip = _obtain_public_ip(vca_client, ctx, gateway, operation)
+        if not public_ip:
+            ctx.logger.info("We dont have public ip. Retrying...")
+            return False
         private_ip = get_vm_ip(vca_client, ctx, gateway)
+        if not private_ip:
+            ctx.logger.info("We dont have private ip. Retrying...")
+            return False
         has_snat = False
         for rule in ctx.target.node.properties['rules']:
             rule_type = rule['type']
