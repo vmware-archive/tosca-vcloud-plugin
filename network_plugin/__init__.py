@@ -383,19 +383,19 @@ def lock_gateway(f):
         if ctx.source.instance.runtime_properties.get(GATEWAY_LOCK):
             ctx.logger.info("Gateway locked.")
             return set_retry(ctx)
-        ctx.logger.info("Lock gateway.")
-        update_parameters(ctx, True)
-        vca_client = kw['vca_client']
-        gateway_name = get_vcloud_config().get('edge_gateway')
-        if gateway_name:
-            wait_for_gateway(vca_client, gateway_name, ctx)
-        else:
-            # we need gateway_name from vcloud for use this functionality
-            ctx.logger.info(
-                "'edge_gateway' in vcloud_config is empty." +
-                " Can't check state of gateway correctly."
-            )
         try:
+            ctx.logger.info("Lock gateway.")
+            update_parameters(ctx, True)
+            vca_client = kw['vca_client']
+            gateway_name = get_vcloud_config().get('edge_gateway')
+            if gateway_name:
+                wait_for_gateway(vca_client, gateway_name, ctx)
+            else:
+                # we need gateway_name from vcloud for use this functionality
+                ctx.logger.info(
+                    "'edge_gateway' in vcloud_config is empty." +
+                    " Can't check state of gateway correctly."
+                )
             result = f(*args, **kw)
         finally:
             ctx.logger.info("Unlock gateway.")
