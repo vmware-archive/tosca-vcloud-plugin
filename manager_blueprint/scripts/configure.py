@@ -57,6 +57,7 @@ def _install_docker():
     if kernel_version.startswith("3.13") and 'Ubuntu' in distro:
         fabric.api.run("curl -sSL https://get.docker.com/ | sudo sh")
 
+
 def _save_context():
     """
         save current managment network for use as default network for
