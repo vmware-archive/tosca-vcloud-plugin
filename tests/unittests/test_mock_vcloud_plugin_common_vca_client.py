@@ -255,7 +255,7 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
 
         fake_vca_client.assert_called_with(
             service_type='vcd', username='root', host='some_url',
-            version='upstream'
+            version='upstream', verify=True
         )
         fake_client.login.assert_called_with(
             token='secret_token', org_url='org_url'
@@ -270,7 +270,7 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
 
         fake_vca_client.assert_called_with(
             service_type='vcd', username='root', host='some_url',
-            version='upstream'
+            version='upstream', verify=True
         )
         fake_client.login.assert_called_with(
             'secret_password', org='org_name'

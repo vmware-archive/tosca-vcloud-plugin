@@ -17,7 +17,7 @@ from cloudify import exceptions as cfy_exc
 import collections
 from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType
 from vcloud_plugin_common import (wait_for_task, get_vcloud_config,
-                                  is_subscription, error_response)
+                                  is_ondemand, error_response)
 from cloudify_rest_client import exceptions as rest_exceptions
 import time
 from functools import wraps
@@ -308,7 +308,7 @@ def get_public_ip(vca_client, gateway, service_type, ctx):
     """
         return new public ip
     """
-    if is_subscription(service_type):
+    if not is_ondemand(service_type):
         public_ip = getFreeIP(gateway)
         ctx.logger.info("Assign external IP {0}".format(public_ip))
     else:

@@ -22,8 +22,14 @@ class VcloudCleanupContext(BaseHandler.CleanupContext):
     def __init__(self, context_name, env):
         super(VcloudCleanupContext, self).__init__(context_name, env)
 
-    def cleanup(self):
-        super(VcloudCleanupContext, self).cleanup()
+    @classmethod
+    def clean_all(cls, env):
+        """
+        Cleans *all* resources, including resources that were not
+        created by the test
+        """
+        super(OpenstackCleanupContext, cls).clean_all(env)
+        #delete test VDC
 
 
 class CloudifyVcloudInputsConfigReader(BaseCloudifyInputsConfigReader):
@@ -115,15 +121,11 @@ class CloudifyVcloudInputsConfigReader(BaseCloudifyInputsConfigReader):
 
 
 class VcloudHandler(BaseHandler):
-
     CleanupContext = VcloudCleanupContext
     CloudifyConfigReader = CloudifyVcloudInputsConfigReader
 
     def before_bootstrap(self):
         super(VcloudHandler, self).before_bootstrap()
-
-    def after_bootstrap(self, provider_context):
-        super(VcloudHandler, self).after_bootstrap(provider_context)
-
+        #create test VDC
 
 handler = VcloudHandler

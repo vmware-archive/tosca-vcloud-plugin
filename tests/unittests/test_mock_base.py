@@ -356,13 +356,19 @@ class TestBase(unittest.TestCase):
         vapp.modify_vm_cpu = mock.MagicMock(
             return_value=None
         )
+        vapp.modify_vm_name = mock.MagicMock(
+            return_value=None
+        )
+
         return vapp
 
     def generate_relation_context(self):
         source = mock.Mock()
         source.node = mock.Mock()
+        source.node.properties = {}
         target = mock.Mock()
         target.node = mock.Mock()
+        target.node.properties = {}
         target.instance.runtime_properties = {}
         fake_ctx = MockToscaCloudifyContext(
             source=source, target=target
