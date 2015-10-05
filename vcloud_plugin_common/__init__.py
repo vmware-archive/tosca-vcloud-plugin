@@ -160,6 +160,7 @@ class VcloudAirClient(object):
         service_type = cfg.get('service_type', SUBSCRIPTION_SERVICE_TYPE)
         instance = cfg.get('instance')
         org_url = cfg.get(ORG_URL, None)
+        verify = cfg.get('ssl_verify', True)
         api_version = cfg.get('api_version', '5.6')
         session_token = cfg.get(SESSION_TOKEN)
         org_url = cfg.get(ORG_URL)
@@ -184,7 +185,8 @@ class VcloudAirClient(object):
         # 'private' as well, for user friendliness of inputs
         elif service_type in (PRIVATE_SERVICE_TYPE, 'private'):
             vcloud_air = self._private_login(
-                url, username, password, token, org_name, org_url, api_version)
+                url, username, password, token, org_name, org_url,
+                api_version, verify)
         else:
             raise cfy_exc.NonRecoverableError(
                 "Unrecognized service type: {0}".format(service_type))
@@ -327,7 +329,7 @@ class VcloudAirClient(object):
         return vca
 
     def _private_login(self, url, username, password, token, org_name,
-                       org_url=None, api_version='5.6'):
+                       org_url=None, api_version='5.6', verify=True):
         """
             login to private instance
         """
@@ -337,7 +339,8 @@ class VcloudAirClient(object):
             host=url,
             username=username,
             service_type=PRIVATE_SERVICE_TYPE,
-            version=api_version)
+            version=api_version,
+            verify=verify)
 
         if logined is False and password:
             for _ in xrange(LOGIN_RETRY_NUM):
