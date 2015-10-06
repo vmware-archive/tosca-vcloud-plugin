@@ -21,7 +21,7 @@ from vcloud_plugin_common import (wait_for_task, get_vcloud_config,
 from cloudify_rest_client import exceptions as rest_exceptions
 import time
 from functools import wraps
-
+from cloudify.manager import get_rest_client
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 PUBLIC_IP = 'public_ip'
@@ -369,6 +369,20 @@ def wait_for_gateway(vca_client, gateway_name, ctx):
         "Can't wait gateway {0}".format(gateway_name))
 
 
+def _is_gateway_locked(ctx):
+    if ctx.deployment.id == 'local':
+        storage = ctx.internal.handler.storage
+        node_instances = storage.get_node_instances()
+    else:
+        rest = get_rest_client()
+        node_instances = rest.node_instances.list(ctx.deployment.id)
+    for instance in node_instances:
+            rt_properties = instance['runtime_properties']
+            if rt_properties.get(GATEWAY_LOCK):
+                return True
+    return False
+
+
 def lock_gateway(f):
     """loc gateway before operation"""
     def update_parameters(ctx, value):
@@ -379,8 +393,8 @@ def lock_gateway(f):
     def wrapper(*args, **kw):
         ctx = kw['ctx']
         #  Reset for getting last version of runtime_properties
-        ctx.source.instance._node_instance = None
-        if ctx.source.instance.runtime_properties.get(GATEWAY_LOCK):
+        #ctx.source.instance._node_instance = None
+        if _is_gateway_locked(ctx):
             ctx.logger.info("Gateway locked.")
             return set_retry(ctx)
         try:
