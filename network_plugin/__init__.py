@@ -370,12 +370,18 @@ def wait_for_gateway(vca_client, gateway_name, ctx):
 
 
 def _is_gateway_locked(ctx):
-    if ctx.deployment.id == 'local':
+    rest = None
+    try:
+        rest = get_rest_client()
+    except KeyError:
+        pass
+    if rest:
+        node_instances = rest.node_instances.list(ctx.deployment.id)
+    elif ctx.deployment.id == 'local':
         storage = ctx.internal.handler.storage
         node_instances = storage.get_node_instances()
     else:
-        rest = get_rest_client()
-        node_instances = rest.node_instances.list(ctx.deployment.id)
+        return False
     for instance in node_instances:
             rt_properties = instance['runtime_properties']
             if rt_properties.get(GATEWAY_LOCK):
@@ -392,8 +398,6 @@ def lock_gateway(f):
     @wraps(f)
     def wrapper(*args, **kw):
         ctx = kw['ctx']
-        #  Reset for getting last version of runtime_properties
-        #ctx.source.instance._node_instance = None
         if _is_gateway_locked(ctx):
             ctx.logger.info("Gateway locked.")
             return set_retry(ctx)
