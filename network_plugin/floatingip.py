@@ -99,7 +99,7 @@ def _floatingip_operation(operation, vca_client, ctx):
     elif operation == DELETE:
         if not public_ip:
             ctx.logger.info("Can't get external IP".format(public_ip))
-            return
+            return True
         nat_operation = _del_nat_rule
     else:
         raise cfy_exc.NonRecoverableError(
