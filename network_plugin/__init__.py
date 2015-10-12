@@ -36,8 +36,7 @@ DELETE = 2
 AssignedIPs = collections.namedtuple('AssignedIPs', 'external internal')
 BUSY_MESSAGE = "is busy completing an operation"
 
-GATEWAY_TIMEOUT = 30
-# try n times before fail
+GATEWAY_TIMEOUT = 30# try n times before fail
 RETRY_COUNT = 10
 # sleep n seconds before retry
 RETRY_SLEEP = 10
@@ -378,7 +377,7 @@ def _is_gateway_locked(ctx):
     if rest:
         node_instances = rest.node_instances.list(ctx.deployment.id)
     elif ctx.deployment.id == 'local':
-        storage = ctx.internal.handler.storage
+        storage = ctx._endpoint.storage
         node_instances = storage.get_node_instances()
     else:
         return False
