@@ -249,7 +249,7 @@ relationships:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
-                establish:
+                postconfigure:
                     implementation: vcloud.network_plugin.keypair.server_connect_to_keypair
                     inputs: {}
                 unlink:

@@ -36,7 +36,8 @@ DELETE = 2
 AssignedIPs = collections.namedtuple('AssignedIPs', 'external internal')
 BUSY_MESSAGE = "is busy completing an operation"
 
-GATEWAY_TIMEOUT = 30# try n times before fail
+GATEWAY_TIMEOUT = 30
+# try n times before fail
 RETRY_COUNT = 10
 # sleep n seconds before retry
 RETRY_SLEEP = 10
