@@ -269,9 +269,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             fake_ctx.instance._relationships = None
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 server.create(ctx=fake_ctx)
-            fake_client.create_vapp.assert_called_with(
-                'vdc_name', 'test', 'template', 'catalog',
-                vm_name='test')
+            self.check_create_call(fake_client, fake_ctx)
 
     def test_create_cpu_mem_values(self):
         """
@@ -330,14 +328,24 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
                     vcloud_plugin_common.TASK_STATUS_SUCCESS
                 )
             )
+            fake_client._vapp.modify_vm_name = mock.MagicMock(
+                return_value=self.generate_task(
+                    vcloud_plugin_common.TASK_STATUS_SUCCESS
+                )
+            )
             # everything fine
             server.create(ctx=fake_ctx)
+            fake_client._vapp.modify_vm_name.assert_called_with(
+                1, 'test'
+            )
 
-    def check_create_call(self, fake_client, fake_ctx):
+    def check_create_call(self, fake_client, fake_ctx, positive=True):
         fake_client.create_vapp.assert_called_with(
-            'vdc_name', 'test', 'template', 'catalog',
-            vm_name='test')
-        self.assertTrue(
+            'vdc_name', 'test', 'template', 'catalog'
+        )
+
+        self.assertEqual(
+            positive,
             server.VCLOUD_VAPP_NAME in fake_ctx.instance.runtime_properties
         )
 
@@ -558,8 +566,16 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            server.create(ctx=fake_ctx)
+            # can't change vapp_name
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                server.create(ctx=fake_ctx)
             self.check_create_call(fake_client, fake_ctx)
+            fake_client._vapp.modify_vm_name = mock.MagicMock(
+                return_value=self.generate_task(
+                    vcloud_plugin_common.TASK_STATUS_SUCCESS
+                )
+            )
+            server.create(ctx=fake_ctx)
 
     def test_create_customization(self):
         """
@@ -614,6 +630,9 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
         fake_client._vapp.customize_on_next_poweron = mock.MagicMock(
+            return_value=None
+        )
+        fake_client._vapp.force_customization = mock.MagicMock(
             return_value=None
         )
         with mock.patch(
