@@ -420,6 +420,7 @@ def wait_for_task(vca_client, task):
     ctx.logger.debug('Task recheck after {0} seconds.'
                      .format(TASK_RECHECK_TIMEOUT))
     status = task.get_status()
+    config = get_vcloud_config()
     for attempt in xrange(MAX_ATTEMPTS):
         ctx.logger.debug('Attempt: {0}/{1}.'.format(attempt + 1, MAX_ATTEMPTS))
         if status == TASK_STATUS_SUCCESS:
@@ -433,7 +434,8 @@ def wait_for_task(vca_client, task):
         time.sleep(TASK_RECHECK_TIMEOUT)
         response = requests.get(
             task.get_href(),
-            headers=vca_client.vcloud_session.get_vcloud_headers())
+            headers=vca_client.vcloud_session.get_vcloud_headers(),
+            verify=config.get('ssl_verify', True))
         task = taskType.parseString(response.content, True)
         status = task.get_status()
     raise cfy_exc.NonRecoverableError("Wait for task timeout.")

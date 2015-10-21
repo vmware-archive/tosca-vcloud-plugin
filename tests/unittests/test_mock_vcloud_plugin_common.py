@@ -178,18 +178,19 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
 
     def test_wait_for_task(self):
         fake_client = self.generate_client()
+        fake_ctx = self.generate_node_context()
         # error in task
         fake_task = self.generate_task(
             vcloud_plugin_common.TASK_STATUS_ERROR
         )
-        with mock.patch('vcloud_plugin_common.ctx', mock.MagicMock()):
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 vcloud_plugin_common.wait_for_task(fake_client, fake_task)
         # success in task
         fake_task = self.generate_task(
             vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
-        with mock.patch('vcloud_plugin_common.ctx', mock.MagicMock()):
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             vcloud_plugin_common.wait_for_task(fake_client, fake_task)
         # success after wait
         fake_task = self.generate_task(
@@ -213,7 +214,7 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
                     sleep
                 ):
                     with mock.patch('vcloud_plugin_common.ctx',
-                                    mock.MagicMock()):
+                                    fake_ctx):
                         vcloud_plugin_common.wait_for_task(
                             fake_client, fake_task)
 

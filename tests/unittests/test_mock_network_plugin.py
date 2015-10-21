@@ -172,7 +172,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
                 vcloud_plugin_common.TASK_STATUS_SUCCESS
             )
         )
-        with mock.patch('vcloud_plugin_common.ctx', mock.MagicMock()):
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             with mock.patch('network_plugin.wait_for_gateway', mock.MagicMock()):
                 network_plugin.del_ondemand_public_ip(
                     fake_client, gateway, '127.0.0.1', fake_ctx)
@@ -184,6 +184,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         """
         gateway = self.generate_gateway()
         fake_client = self.generate_client()
+        fake_ctx = self.generate_node_context()
         # cant save configuration - error in first call
         self.set_services_conf_result(
             gateway, None
@@ -197,14 +198,14 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             gateway, vcloud_plugin_common.TASK_STATUS_ERROR
         )
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            with mock.patch('vcloud_plugin_common.ctx', mock.MagicMock()):
+            with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 network_plugin.save_gateway_configuration(
                     gateway, fake_client, fake_ctx)
         # everything fine
         self.set_services_conf_result(
             gateway, vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
-        with mock.patch('vcloud_plugin_common.ctx', mock.MagicMock()):
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             self.assertTrue(
                 network_plugin.save_gateway_configuration(
                     gateway, fake_client, fake_ctx))
