@@ -159,6 +159,8 @@ def _create(vca_client, config, server):
     wait_for_task(vca_client, task)
     ctx.logger.info("VM '{0}' has been renamed.".format(vapp_name))
 
+    # reread vapp
+    vapp = vca_client.get_vapp(vdc, vapp_name)
     ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = vapp_name
 
     # we allways have connection to management_network_name
