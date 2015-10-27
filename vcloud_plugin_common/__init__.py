@@ -292,7 +292,7 @@ class VcloudAirClient(object):
         # outdated token, try login by password
         if logined is False and password:
             logined = login_with_retry(vca.login, [password, None],
-                                       "Login using token")
+                                       "Login using password")
 
         # can't login to system at all
         if logined is False:
