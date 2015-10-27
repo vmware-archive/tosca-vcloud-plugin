@@ -15,7 +15,13 @@
 from cosmo_tester.framework.handlers import (
     BaseHandler,
     BaseCloudifyInputsConfigReader)
+from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType
+from pyvcloud import vcloudair
+import time
+import requests
 
+
+TEST_VDC = "systest"
 
 class VcloudCleanupContext(BaseHandler.CleanupContext):
 
@@ -28,6 +34,7 @@ class VcloudCleanupContext(BaseHandler.CleanupContext):
         Cleans *all* resources, including resources that were not
         created by the test
         """
+        import pdb; pdb.set_trace()
         super(OpenstackCleanupContext, cls).clean_all(env)
         #delete test VDC
 
@@ -65,15 +72,15 @@ class CloudifyVcloudInputsConfigReader(BaseCloudifyInputsConfigReader):
 
     @property
     def manager_server_name(self):
-        return self.config['manager_server_name']
+        return self.config['server_name']
 
     @property
     def manager_server_catalog(self):
-        return self.config['manager_server_catalog']
+        return self.config['catalog']
 
     @property
     def manager_server_template(self):
-        return self.config['manager_server_template']
+        return self.config['template']
 
     @property
     def management_network_use_existing(self):
@@ -105,7 +112,7 @@ class CloudifyVcloudInputsConfigReader(BaseCloudifyInputsConfigReader):
 
     @property
     def agent_public_key(self):
-        return self.config['agent_public_key']
+        return self.config['user_public_key']
 
     @property
     def management_port_ip_allocation_mode(self):
@@ -126,6 +133,55 @@ class VcloudHandler(BaseHandler):
 
     def before_bootstrap(self):
         super(VcloudHandler, self).before_bootstrap()
-        #create test VDC
+        vca = login(self.env.cloudify_config)
+        if vca.get_vdc(TEST_VDC):
+            task = vca.delete_vdc(TEST_VDC)
+            wait_for_task(vca, task)
+        if vca:
+            task = vca.create_vdc(TEST_VDC)
+            wait_for_task(vca, task)
+        else:
+            raise RuntimeError("Can't create test VDC")
 
 handler = VcloudHandler
+
+
+def login(env):
+    vca = vcloudair.VCA(
+            host=env['vcloud_url'],
+            username=env['vcloud_username'],
+            service_type=env['vcloud_service_type'],
+            version="5.7",
+            verify=False)
+    logined = (vca.login(env['vcloud_password']) and
+               vca.login_to_instance(env['vcloud_instance'], env['vcloud_password']) and
+               vca.login_to_instance(env['vcloud_instance'], None, vca.vcloud_session.token, vca.vcloud_session.org_url))
+    if logined:
+        return vca
+    else:
+        return None
+
+def wait_for_task(vca_client, task):
+    TASK_RECHECK_TIMEOUT = 5
+    TASK_STATUS_SUCCESS = 'success'
+    TASK_STATUS_ERROR = 'error'
+
+    WAIT_TIME_MAX_MINUTES = 30
+    MAX_ATTEMPTS = WAIT_TIME_MAX_MINUTES * 60 / TASK_RECHECK_TIMEOUT
+    status = task.get_status()
+    for attempt in xrange(MAX_ATTEMPTS):
+        if status == TASK_STATUS_SUCCESS:
+            return
+        if status == TASK_STATUS_ERROR:
+            error = task.get_Error()
+            raise RuntimeError(
+                "Error during task execution: {0}".format(error.get_message()))
+        time.sleep(TASK_RECHECK_TIMEOUT)
+        response = requests.get(
+            task.get_href(),
+            headers=vca_client.vcloud_session.get_vcloud_headers(),
+            verify=False)
+        task = taskType.parseString(response.content, True)
+        status = task.get_status()
+    raise RuntimeError("Wait for task timeout.")
+

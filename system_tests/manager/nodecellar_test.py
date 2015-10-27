@@ -23,8 +23,8 @@ class VcloudNodeCellarTest(nodecellar_test.NodecellarAppTest):
 
     def get_inputs(self):
         return {
-            'catalog':  self.env.manager_server_catalog,
-            'template': self.env.manager_server_template,
+            'catalog':  'Public Catalog',
+            'template': 'Ubuntu Server 12.04 LTS (amd64 20150127)',
             'edge_gateway': self.env.edge_gateway,
             'management_network_name': self.env.management_network_name,
             'agent_public_key': self.env.agent_public_key
@@ -37,3 +37,12 @@ class VcloudNodeCellarTest(nodecellar_test.NodecellarAppTest):
     @property
     def expected_nodes_count(self):
         return 9
+
+    @property
+    def repo_url(self):
+        return 'https://github.com/kostya13/cloudify-nodecellar-example.git'
+
+    @property
+    def repo_branch(self):
+        return 'vcloud-example'
+
