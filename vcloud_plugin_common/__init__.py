@@ -21,6 +21,7 @@ import time
 
 from pyvcloud import vcloudair
 from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType
+from cloudify.context import ImmutableProperties
 
 from cloudify import ctx
 from cloudify import context
@@ -378,6 +379,14 @@ class VcloudAirClient(object):
         return vca
 
 
+def _update_static_properties(node, kw, element):
+    if element in kw:
+        node._node = node._endpoint.get_node(node.id)
+        props = node._node.get('properties', {})
+        props.update(kw[element])
+        node._node['properties'] = ImmutableProperties(props)
+
+
 def with_vca_client(f):
     """
         add vca client to function params
@@ -387,9 +396,12 @@ def with_vca_client(f):
         config = None
         prop = None
         if ctx.type == context.NODE_INSTANCE:
+            _update_static_properties(ctx.node, kw, 'properties')
             config = ctx.node.properties.get(VCLOUD_CONFIG)
             prop = ctx.instance.runtime_properties
         elif ctx.type == context.RELATIONSHIP_INSTANCE:
+            _update_static_properties(ctx.source.node, kw, 'source')
+            _update_static_properties(ctx.target.node, kw, 'target')
             config = ctx.source.node.properties.get(VCLOUD_CONFIG)
             if config:
                 prop = ctx.source.instance.runtime_properties
