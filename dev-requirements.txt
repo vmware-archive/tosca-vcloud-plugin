@@ -1,6 +1,6 @@
--e git+https://github.com/cloudify-cosmo/cloudify-dsl-parser@3.3m7#egg=cloudify-dsl-parser==3.3a7
--e git+https://github.com/cloudify-cosmo/cloudify-rest-client@3.3m7#egg=cloudify-rest-client==3.3a7
--e git+https://github.com/cloudify-cosmo/cloudify-plugins-common@3.3m7#egg=cloudify-plugins-common==3.3a7
+-e git+https://github.com/cloudify-cosmo/cloudify-dsl-parser@3.3rc1#egg=cloudify-dsl-parser==3.3rc1
+-e git+https://github.com/cloudify-cosmo/cloudify-rest-client@3.3rc1#egg=cloudify-rest-client==3.3rc1
+-e git+https://github.com/cloudify-cosmo/cloudify-plugins-common@3.3rc1#egg=cloudify-plugins-common==3.3rc1
 IPy
 pyvcloud>=14rc6
 pycrypto
