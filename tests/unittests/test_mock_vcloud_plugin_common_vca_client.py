@@ -8,9 +8,9 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import mock
 import unittest
@@ -53,10 +53,14 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                     with mock.patch(
                         'vcloud_plugin_common.ctx', fake_ctx
                     ):
-                        return client._subscription_login(
-                            url, username, password, token, service,
-                            org_name
-                        )
+                        with mock.patch(
+                                'pyvcloud.vcloudair.VCS',
+                                mock.MagicMock()):
+                            with mock.patch('vcloud_plugin_common.local_session_token',
+                                            None):
+                                return client._subscription_login(
+                                    url, username, password, token, service,
+                                    org_name)
         # can't login with token
         with self.assertRaises(cfy_exc.NonRecoverableError):
             _run(
@@ -124,10 +128,13 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                     with mock.patch(
                         'vcloud_plugin_common.ctx', fake_ctx
                     ):
-                        return client._ondemand_login(
-                            url, username, password, token, instance_id
-                        )
-
+                        with mock.patch(
+                                'pyvcloud.vcloudair.VCS',
+                                mock.MagicMock()):
+                            with mock.patch('vcloud_plugin_common.local_session_token',
+                                            None):
+                                return client._ondemand_login(
+                                    url, username, password, token, instance_id)
         # bad case without instance
         with self.assertRaises(cfy_exc.NonRecoverableError):
             _run(
@@ -248,7 +255,7 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
 
         fake_vca_client.assert_called_with(
             service_type='vcd', username='root', host='some_url',
-            version='upstream'
+            version='upstream', verify=True
         )
         fake_client.login.assert_called_with(
             token='secret_token', org_url='org_url'
@@ -263,7 +270,7 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
 
         fake_vca_client.assert_called_with(
             service_type='vcd', username='root', host='some_url',
-            version='upstream'
+            version='upstream', verify=True
         )
         fake_client.login.assert_called_with(
             'secret_password', org='org_name'
@@ -377,7 +384,6 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                 'url': 'url',
                 'username': 'username'
             })
-
         with mock.patch(
             'time.sleep',
             mock.MagicMock(return_value=None)
@@ -389,7 +395,10 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                 with mock.patch(
                     'vcloud_plugin_common.ctx', fake_ctx
                 ):
-                    loginc_check(fake_client)
+                    with mock.patch(
+                            'pyvcloud.vcloudair.VCS',
+                            mock.MagicMock()):
+                        loginc_check(fake_client)
 
     def test_get(self):
         client = vcloud_plugin_common.VcloudAirClient()

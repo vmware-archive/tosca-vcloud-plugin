@@ -1,0 +1,7 @@
+    volume:
+        type: cloudify.vcloud.nodes.Volume
+        properties:
+            volume:
+                name: { get_input: volume_name }
+                size: { get_input: volume_size_Mb }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }

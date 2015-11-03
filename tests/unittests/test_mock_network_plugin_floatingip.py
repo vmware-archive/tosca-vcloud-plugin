@@ -8,9 +8,9 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import mock
 import unittest
@@ -239,10 +239,9 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             with mock.patch(
                 'network_plugin.floatingip.ctx', fake_ctx
             ):
-                floatingip._floatingip_operation(
+                self.assertFalse(floatingip._floatingip_operation(
                     network_plugin.DELETE, fake_client, fake_ctx
-                )
-        self.check_retry_realy_called(fake_ctx)
+                ))
         # busy in save with ip in runtime_properties
         fake_client, fake_ctx = self.generate_client_and_context_floating_ip()
         self.set_services_conf_result(
@@ -264,10 +263,9 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             with mock.patch(
                 'network_plugin.floatingip.ctx', fake_ctx
             ):
-                floatingip._floatingip_operation(
+                self.assertFalse(floatingip._floatingip_operation(
                     network_plugin.DELETE, fake_client, fake_ctx
-                )
-        self.check_retry_realy_called(fake_ctx)
+                ))
         # unknow operation
         fake_client, fake_ctx = self.generate_client_and_context_floating_ip()
         fake_ctx._target.node.properties = {
@@ -295,6 +293,12 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
         }
         fake_ctx._target.instance.runtime_properties = {
             network_plugin.PUBLIC_IP: '10.10.1.2'
+
+        }
+        fake_ctx._source.instance.runtime_properties = {
+            'vcloud_vapp_name': 'vapp',
+            'ssh_port': 22,
+            'ssh_public_ip': '1.2.3.1'
         }
         fake_client._vdc_gateway.deallocate_public_ip = mock.MagicMock(
             return_value=self.generate_task(
@@ -326,6 +330,11 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
         fake_ctx._target.instance.runtime_properties = {
             network_plugin.PUBLIC_IP: '10.10.1.2'
         }
+        fake_ctx._source.instance.runtime_properties = {
+            'vcloud_vapp_name': 'vapp',
+            'ssh_port': 22,
+            'ssh_public_ip': '1.2.3.1'
+        }
         fake_client._vdc_gateway.deallocate_public_ip = mock.MagicMock(
             return_value=self.generate_task(
                 vcloud_plugin_common.TASK_STATUS_SUCCESS
@@ -355,6 +364,19 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
         fake_ctx._target.instance.runtime_properties = {
             network_plugin.PUBLIC_IP: '10.10.1.2'
         }
+        fake_ctx._source.instance.runtime_properties = {
+            'vcloud_vapp_name': 'vapp',
+            'ssh_port': 22,
+            'ssh_public_ip': '1.2.3.1'
+        }
+        fake_ctx._source.node.properties = {
+            'vcloud_config':
+            {
+                'edge_gateway': 'gateway',
+                'vdc': 'vdc'
+            }
+        }
+
         fake_client._vdc_gateway.deallocate_public_ip = mock.MagicMock(
             return_value=self.generate_task(
                 vcloud_plugin_common.TASK_STATUS_SUCCESS
@@ -383,9 +405,18 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             'floatingip': {
                 'edge_gateway': 'gateway',
                 network_plugin.PUBLIC_IP: '10.10.2.3'
+            }}
+        fake_ctx._source.node.properties = {
+            'vcloud_config':
+            {
+                'edge_gateway': 'gateway',
+                'vdc': 'vdc'
             }
         }
         fake_ctx._target.instance.runtime_properties = {}
+        fake_ctx._source.instance.runtime_properties = {
+            'vcloud_vapp_name': 'vapp'
+        }
         fake_client._vdc_gateway.get_public_ips = mock.MagicMock(return_value=[
             '10.18.1.1', '10.10.2.3'
         ])
@@ -422,6 +453,9 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             }
         }
         fake_ctx._target.instance.runtime_properties = {}
+        fake_ctx._source.instance.runtime_properties = {
+            'vcloud_vapp_name': 'vapp'
+        }
         fake_client._vdc_gateway.get_public_ips = mock.MagicMock(return_value=[
             '10.18.1.1'
         ])
@@ -456,6 +490,9 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             }
         }
         fake_ctx._target.instance.runtime_properties = {}
+        fake_ctx._source.instance.runtime_properties = {
+            'vcloud_vapp_name': 'vapp'
+        }
         fake_client._vdc_gateway.get_public_ips = mock.MagicMock(return_value=[
             '10.18.1.1', '10.10.2.3'
         ])

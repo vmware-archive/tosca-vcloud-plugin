@@ -1,0 +1,6 @@
+test_vdc:
+    type: cloudify.vcloud.nodes.VDC
+    properties:
+        use_external_resource: true
+        resource_id: { get_input: test_vdc_name }
+        vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }

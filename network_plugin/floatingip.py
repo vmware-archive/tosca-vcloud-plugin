@@ -1,3 +1,17 @@
+# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
@@ -7,25 +21,31 @@ from network_plugin import (check_ip, CheckAssignedExternalIp,
                             CheckAssignedInternalIp, get_vm_ip,
                             save_gateway_configuration, getFreeIP,
                             CREATE, DELETE, PUBLIC_IP, get_gateway,
-                            get_public_ip, del_ondemand_public_ip)
+                            SSH_PUBLIC_IP, SSH_PORT, save_ssh_parameters,
+                            get_public_ip, del_ondemand_public_ip,
+                            set_retry, lock_gateway)
 
 
 @operation
 @with_vca_client
+@lock_gateway
 def connect_floatingip(vca_client, **kwargs):
     """
         create new floating ip for node
     """
-    _floatingip_operation(CREATE, vca_client, ctx)
+    if not _floatingip_operation(CREATE, vca_client, ctx):
+        return set_retry(ctx)
 
 
 @operation
 @with_vca_client
+@lock_gateway
 def disconnect_floatingip(vca_client, **kwargs):
     """
         release floating ip
     """
-    _floatingip_operation(DELETE, vca_client, ctx)
+    if not _floatingip_operation(DELETE, vca_client, ctx):
+        return set_retry(ctx)
 
 
 @operation
@@ -79,7 +99,7 @@ def _floatingip_operation(operation, vca_client, ctx):
     elif operation == DELETE:
         if not public_ip:
             ctx.logger.info("Can't get external IP".format(public_ip))
-            return
+            return True
         nat_operation = _del_nat_rule
     else:
         raise cfy_exc.NonRecoverableError(
@@ -90,12 +110,12 @@ def _floatingip_operation(operation, vca_client, ctx):
 
     nat_operation(gateway, "SNAT", internal_ip, external_ip)
     nat_operation(gateway, "DNAT", external_ip, internal_ip)
-    if not save_gateway_configuration(gateway, vca_client):
-        return ctx.operation.retry(message='Waiting for gateway.',
-                                   retry_after=10)
-
+    success = save_gateway_configuration(gateway, vca_client, ctx)
+    if not success:
+        return False
     if operation == CREATE:
         ctx.target.instance.runtime_properties[PUBLIC_IP] = external_ip
+        save_ssh_parameters(ctx, '22', external_ip)
     else:
         if is_ondemand(service_type):
             if not ctx.target.node.properties['floatingip'].get(PUBLIC_IP):
@@ -104,7 +124,13 @@ def _floatingip_operation(operation, vca_client, ctx):
                     gateway,
                     ctx.target.instance.runtime_properties[PUBLIC_IP],
                     ctx)
-        del ctx.target.instance.runtime_properties[PUBLIC_IP]
+        if PUBLIC_IP in ctx.target.instance.runtime_properties:
+            del ctx.target.instance.runtime_properties[PUBLIC_IP]
+        if SSH_PUBLIC_IP in ctx.source.instance.runtime_properties:
+            del ctx.source.instance.runtime_properties[SSH_PUBLIC_IP]
+        if SSH_PORT in ctx.target.instance.runtime_properties:
+            del ctx.source.instance.runtime_properties[SSH_PORT]
+    return True
 
 
 def _add_nat_rule(gateway, rule_type, original_ip, translated_ip):

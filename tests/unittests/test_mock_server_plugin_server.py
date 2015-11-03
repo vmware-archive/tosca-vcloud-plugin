@@ -8,9 +8,9 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import mock
 import unittest
@@ -142,6 +142,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_node_context()
         fake_client = self.generate_client([{
             'is_connected': True,
+            'is_primary': True,
             'network_name': 'network_name',
             'ip': '1.1.1.1'
         }])
@@ -174,6 +175,16 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 server.start(ctx=fake_ctx)
 
+        fake_client = self.generate_client([{
+            'is_connected': False,
+            'is_primary': False,
+            'network_name': 'network_name',
+            'ip': '1.1.1.1'
+        }])
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
             # poweroff with success in task but not connected
             fake_client._vapp.me.get_status = mock.MagicMock(
                 return_value=vcloud_plugin_common.STATUS_POWERED_OFF
@@ -184,18 +195,17 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             fake_client._vapp.poweron = mock.MagicMock(
                 return_value=fake_task
             )
-            with self.assertRaises(cfy_exc.OperationRetry):
-                server.start(ctx=fake_ctx)
+            self.assertEquals(server.start(ctx=fake_ctx), None)
 
             # poweron with success in task but not connected
             fake_client._vapp.me.get_status = mock.MagicMock(
                 return_value=vcloud_plugin_common.STATUS_POWERED_OFF
             )
-            with self.assertRaises(cfy_exc.OperationRetry):
-                server.start(ctx=fake_ctx)
+            self.assertEquals(server.start(ctx=fake_ctx), None)
 
         fake_client = self.generate_client([{
             'is_connected': True,
+            'is_primary': True,
             'network_name': '_management_network',
             'ip': '1.1.1.1'
         }])
@@ -207,8 +217,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             fake_client._vapp.me.get_status = mock.MagicMock(
                 return_value=vcloud_plugin_common.STATUS_POWERED_ON
             )
-            with self.assertRaises(cfy_exc.OperationRetry):
-                server.start(ctx=fake_ctx)
+            self.assertEquals(server.start(ctx=fake_ctx), None)
 
     def test_start_external_resource(self):
         """
@@ -225,6 +234,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         )
         fake_client = self.generate_client([{
             'is_connected': True,
+            'is_primary': True,
             'network_name': 'network_name',
             'ip': '1.1.1.1'
         }])
@@ -232,8 +242,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            with self.assertRaises(cfy_exc.OperationRetry):
-                server.start(ctx=fake_ctx)
+            self.assertEquals(server.start(ctx=fake_ctx), None)
 
     def test_create_default_values(self):
         """
@@ -257,11 +266,10 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             self.run_with_statuses(
                 fake_client, fake_ctx
             )
+            fake_ctx.instance._relationships = None
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 server.create(ctx=fake_ctx)
-            fake_client.create_vapp.assert_called_with(
-                'vdc_name', 'test', 'template', 'catalog',
-                vm_name='test')
+            self.check_create_call(fake_client, fake_ctx)
 
     def test_create_cpu_mem_values(self):
         """
@@ -300,10 +308,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         ):
             # can't customize memory
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                server.create(ctx=fake_ctx)
-            fake_client.create_vapp.assert_called_with(
-                'vdc_name', 'test', 'ubuntu', 'public',
-                vm_name='test')
+                server.configure(ctx=fake_ctx)
             fake_client._vapp.modify_vm_memory.assert_called_with(
                 'test', 512
             )
@@ -314,7 +319,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             )
             # can't customize cpu
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                server.create(ctx=fake_ctx)
+                server.configure(ctx=fake_ctx)
             fake_client._vapp.modify_vm_cpu.assert_called_with(
                 'test', 1
             )
@@ -323,14 +328,24 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
                     vcloud_plugin_common.TASK_STATUS_SUCCESS
                 )
             )
+            fake_client._vapp.modify_vm_name = mock.MagicMock(
+                return_value=self.generate_task(
+                    vcloud_plugin_common.TASK_STATUS_SUCCESS
+                )
+            )
             # everything fine
             server.create(ctx=fake_ctx)
+            fake_client._vapp.modify_vm_name.assert_called_with(
+                1, 'test'
+            )
 
-    def check_create_call(self, fake_client, fake_ctx):
+    def check_create_call(self, fake_client, fake_ctx, positive=True):
         fake_client.create_vapp.assert_called_with(
-            'vdc_name', 'test', 'template', 'catalog',
-            vm_name='test')
-        self.assertTrue(
+            'vdc_name', 'test', 'template', 'catalog'
+        )
+
+        self.assertEqual(
+            positive,
             server.VCLOUD_VAPP_NAME in fake_ctx.instance.runtime_properties
         )
 
@@ -415,7 +430,10 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_node_context(
             properties={
                 'use_external_resource': True,
-                'resource_id': 'ServerName'
+                'resource_id': 'ServerName',
+                'vcloud_config': {
+                    'vdc': 'vdc_name'
+                },
             }
         )
 
@@ -548,8 +566,16 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            server.create(ctx=fake_ctx)
+            # can't change vapp_name
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                server.create(ctx=fake_ctx)
             self.check_create_call(fake_client, fake_ctx)
+            fake_client._vapp.modify_vm_name = mock.MagicMock(
+                return_value=self.generate_task(
+                    vcloud_plugin_common.TASK_STATUS_SUCCESS
+                )
+            )
+            server.create(ctx=fake_ctx)
 
     def test_create_customization(self):
         """
@@ -568,8 +594,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                server.create(ctx=fake_ctx)
-            self.check_create_call(fake_client, fake_ctx)
+                server.configure(ctx=fake_ctx)
 
     def test_create_customization_error(self):
         """
@@ -589,8 +614,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                server.create(ctx=fake_ctx)
-            self.check_create_call(fake_client, fake_ctx)
+                server.configure(ctx=fake_ctx)
 
     def test_create_customization_un_customized(self):
         """
@@ -608,13 +632,15 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         fake_client._vapp.customize_on_next_poweron = mock.MagicMock(
             return_value=None
         )
+        fake_client._vapp.force_customization = mock.MagicMock(
+            return_value=None
+        )
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                server.create(ctx=fake_ctx)
-            self.check_create_call(fake_client, fake_ctx)
+                server.configure(ctx=fake_ctx)
 
     def test_create_customization_customized(self):
         """
@@ -636,9 +662,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            server.create(ctx=fake_ctx)
-            self.check_create_call(fake_client, fake_ctx)
-            self.check_get_vapp(fake_client, 'test')
+            server.configure(ctx=fake_ctx)
 
 if __name__ == '__main__':
     unittest.main()

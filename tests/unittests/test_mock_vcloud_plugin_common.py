@@ -8,9 +8,9 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import mock
 import unittest
@@ -178,17 +178,20 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
 
     def test_wait_for_task(self):
         fake_client = self.generate_client()
+        fake_ctx = self.generate_node_context()
         # error in task
         fake_task = self.generate_task(
             vcloud_plugin_common.TASK_STATUS_ERROR
         )
-        with self.assertRaises(cfy_exc.NonRecoverableError):
-            vcloud_plugin_common.wait_for_task(fake_client, fake_task)
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                vcloud_plugin_common.wait_for_task(fake_client, fake_task)
         # success in task
         fake_task = self.generate_task(
             vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
-        vcloud_plugin_common.wait_for_task(fake_client, fake_task)
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            vcloud_plugin_common.wait_for_task(fake_client, fake_task)
         # success after wait
         fake_task = self.generate_task(
             None
@@ -210,9 +213,10 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
                     'time.sleep',
                     sleep
                 ):
-                    vcloud_plugin_common.wait_for_task(
-                        fake_client, fake_task
-                    )
+                    with mock.patch('vcloud_plugin_common.ctx',
+                                    fake_ctx):
+                        vcloud_plugin_common.wait_for_task(
+                            fake_client, fake_task)
 
     def test_with_vca_client(self):
         # context.NODE_INSTANCE
@@ -281,10 +285,7 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
             '__builtin__.open', fake_file
         ):
             config = vcloud_plugin_common.Config()
-            self.assertEqual(
-                config.get(),
-                {}
-            )
+            self.assertFalse(config.get())
 
 if __name__ == '__main__':
     unittest.main()

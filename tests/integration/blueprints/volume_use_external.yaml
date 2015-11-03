@@ -1,0 +1,6 @@
+    volume:
+        type: cloudify.vcloud.nodes.Volume
+        properties:
+            use_external_resource: true
+            resource_id: { get_input: volume_name }
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }

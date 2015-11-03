@@ -8,9 +8,9 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import mock
 import unittest
@@ -93,17 +93,14 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         # check busy
         gateway = fake_client._vdc_gateway
         self.set_gateway_busy(gateway)
-        self.prepare_retry(fake_ctx)
         self.set_services_conf_result(
             fake_client._vdc_gateway, None
         )
         with mock.patch('network_plugin.security_group.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
-                security_group._rule_operation(
+                self.assertFalse(security_group._rule_operation(
                     rule_type, fake_client
-                )
-
-        self.check_retry_realy_called(fake_ctx)
+                ))
 
     def test_rule_operation_empty_rule(self):
         for rule_type in [
@@ -340,6 +337,17 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         fake_ctx._target.node.properties = {
             'rules': []
         }
+        fake_ctx._source.node.properties = {
+            'vcloud_config':
+            {
+                'edge_gateway': 'gateway',
+                'vdc': 'vdc'
+            }
+        }
+        fake_ctx._source.instance.runtime_properties = {
+            'gateway_lock': False,
+            'vcloud_vapp_name': 'vapp'
+        }
         self.set_services_conf_result(
             fake_client._vdc_gateway, vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
@@ -355,6 +363,17 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         # empty rules list
         fake_ctx._target.node.properties = {
             'rules': []
+        }
+        fake_ctx._source.node.properties = {
+            'vcloud_config':
+            {
+                'edge_gateway': 'gateway',
+                'vdc': 'vdc'
+            }
+        }
+        fake_ctx._source.instance.runtime_properties = {
+            'gateway_lock': False,
+            'vcloud_vapp_name': 'vapp'
         }
         self.set_services_conf_result(
             fake_client._vdc_gateway, vcloud_plugin_common.TASK_STATUS_SUCCESS

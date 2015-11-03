@@ -1,24 +1,51 @@
+# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from IPy import IP
 from cloudify import exceptions as cfy_exc
 import collections
 from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType
 from vcloud_plugin_common import (wait_for_task, get_vcloud_config,
-                                  is_subscription)
+                                  is_ondemand, error_response)
+from cloudify_rest_client import exceptions as rest_exceptions
+import time
+from functools import wraps
+from cloudify.manager import get_rest_client
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 PUBLIC_IP = 'public_ip'
+SSH_PUBLIC_IP = 'ssh_public_ip'
+SSH_PORT = 'ssh_port'
 NAT_ROUTED = 'natRouted'
+GATEWAY_LOCK = 'gateway_lock'
 CREATE = 1
 DELETE = 2
 
 
 AssignedIPs = collections.namedtuple('AssignedIPs', 'external internal')
-BUSY_MESSAGE = "The entity gateway is busy completing an operation."
+BUSY_MESSAGE = "is busy completing an operation"
+
+GATEWAY_TIMEOUT = 30
+# try n times before fail
+RETRY_COUNT = 10
+# sleep n seconds before retry
+RETRY_SLEEP = 10
 
 
 def check_ip(address):
     """
-        check ip
+        check ip format
     """
     try:
         IP(address)
@@ -131,21 +158,21 @@ def get_vapp_name(runtime_properties):
     return vapp_name
 
 
-def save_gateway_configuration(gateway, vca_client):
+def save_gateway_configuration(gateway, vca_client, ctx):
     """
         save gateway configuration,
-        return
-            True - everything successfully finished
-            False - gateway busy
-            raise NonRecoverableError - can't get task description
+        return everything successfully finished
+        raise NonRecoverableError - can't get task description
     """
     task = gateway.save_services_configuration()
     if task:
         wait_for_task(vca_client, task)
+        ctx.logger.info("Gateway parameters has been saved.")
         return True
     else:
         error = taskType.parseString(gateway.response.content, True)
         if BUSY_MESSAGE in error.message:
+            ctx.logger.info("Gateway is busy.")
             return False
         else:
             raise cfy_exc.NonRecoverableError(error.message)
@@ -228,18 +255,33 @@ def get_ondemand_public_ip(vca_client, gateway, ctx):
         try to allocate new public ip for ondemand service
     """
     old_public_ips = set(gateway.get_public_ips())
-    task = gateway.allocate_public_ip()
-    if task:
-        wait_for_task(vca_client, task)
-    else:
-        raise cfy_exc.NonRecoverableError(
-            "Can't get public ip for ondemand service")
+    allocated_ips = set([address.external
+                         for address in collectAssignedIps(gateway)])
+    available_ips = old_public_ips - allocated_ips
+    if available_ips:
+        new_ip = list(available_ips)[0]
+        ctx.logger.info("Public IP {0} was reused.".format(new_ip))
+        return new_ip
+    for i in xrange(RETRY_COUNT):
+        ctx.logger.info("Try to allocate public IP")
+        wait_for_gateway(vca_client, gateway.get_name(), ctx)
+        task = gateway.allocate_public_ip()
+        if task:
+            try:
+                wait_for_task(vca_client, task)
+                break
+            except cfy_exc.NonRecoverableError:
+                continue
+        else:
+            raise cfy_exc.NonRecoverableError(
+                "Can't get public ip for ondemand service {0}".
+                format(error_response(gateway)))
     # update gateway for new IP address
     gateway = vca_client.get_gateways(get_vcloud_config()['vdc'])[0]
     new_public_ips = set(gateway.get_public_ips())
     new_ip = new_public_ips - old_public_ips
     if new_ip:
-        ctx.logger.info("Assign public IP {0}".format(new_ip))
+        ctx.logger.info("Public IP {0} was asigned.".format(new_ip))
     else:
         raise cfy_exc.NonRecoverableError(
             "Can't get new public IP address")
@@ -250,20 +292,23 @@ def del_ondemand_public_ip(vca_client, gateway, ip, ctx):
     """
         try to deallocate public ip
     """
+    ctx.logger.info("Try to deallocate public IP {0}".format(ip))
+    wait_for_gateway(vca_client, gateway.get_name(), ctx)
     task = gateway.deallocate_public_ip(ip)
     if task:
         wait_for_task(vca_client, task)
-        ctx.logger.info("Public IP {0} deallocated".format(ip))
+        ctx.logger.info("Public IP {0} was deallocated".format(ip))
     else:
         raise cfy_exc.NonRecoverableError(
-            "Can't deallocate public ip {0} for ondemand service".format(ip))
+            "Can't deallocate public ip {0}. {1} for ondemand service".
+            format(ip, error_response(gateway)))
 
 
 def get_public_ip(vca_client, gateway, service_type, ctx):
     """
         return new public ip
     """
-    if is_subscription(service_type):
+    if not is_ondemand(service_type):
         public_ip = getFreeIP(gateway)
         ctx.logger.info("Assign external IP {0}".format(public_ip))
     else:
@@ -281,3 +326,98 @@ def get_gateway(vca_client, gateway_name):
         raise cfy_exc.NonRecoverableError(
             "Gateway {0}  not found".format(gateway_name))
     return gateway
+
+
+def set_retry(ctx):
+    """
+        set retry on cloudify level
+    """
+    return ctx.operation.retry(
+        message='Waiting for gateway.',
+        retry_after=GATEWAY_TIMEOUT)
+
+
+def save_ssh_parameters(ctx, port, ip):
+    """save port and ip for ssh to context"""
+    retries_update = 3
+    update_pending = True
+    while retries_update > 0 and update_pending:
+        retries_update = retries_update - 1
+        try:
+            ctx.source.instance.runtime_properties[SSH_PORT] = port
+            ctx.source.instance.runtime_properties[SSH_PUBLIC_IP] = ip
+            ctx.source.instance.update()
+            update_pending = False
+        except rest_exceptions.CloudifyClientError as e:
+            if 'conflict' in str(e):
+                # cannot 'return' in contextmanager
+                ctx.logger.info(
+                    "Conflict in updating backend, retrying")
+            else:
+                raise e
+
+
+def wait_for_gateway(vca_client, gateway_name, ctx):
+    """try ten times to wait 10 seconds for gateway"""
+    for i in xrange(RETRY_COUNT):
+        gateway = get_gateway(vca_client, gateway_name)
+        if not gateway.is_busy():
+            return
+        ctx.logger.info("Check {0}. Gateway is busy.".format(i))
+        time.sleep(RETRY_SLEEP)
+    raise cfy_exc.NonRecoverableError(
+        "Can't wait gateway {0}".format(gateway_name))
+
+
+def _is_gateway_locked(ctx):
+    rest = None
+    try:
+        rest = get_rest_client()
+    except KeyError:
+        pass
+    if rest:
+        node_instances = rest.node_instances.list(ctx.deployment.id)
+    elif ctx.deployment.id == 'local':
+        storage = ctx._endpoint.storage
+        node_instances = storage.get_node_instances()
+    else:
+        return False
+    for instance in node_instances:
+            rt_properties = instance['runtime_properties']
+            if rt_properties.get(GATEWAY_LOCK):
+                return True
+    return False
+
+
+def lock_gateway(f):
+    """loc gateway before operation"""
+    def update_parameters(ctx, value):
+        ctx.source.instance.runtime_properties[GATEWAY_LOCK] = value
+        ctx.source.instance.update()
+
+    @wraps(f)
+    def wrapper(*args, **kw):
+        ctx = kw['ctx']
+        if _is_gateway_locked(ctx):
+            ctx.logger.info("Gateway locked.")
+            return set_retry(ctx)
+        try:
+            ctx.logger.info("Lock gateway.")
+            update_parameters(ctx, True)
+            vca_client = kw['vca_client']
+            gateway_name = get_vcloud_config().get('edge_gateway')
+            if gateway_name:
+                wait_for_gateway(vca_client, gateway_name, ctx)
+            else:
+                # we need gateway_name from vcloud for use this functionality
+                ctx.logger.info(
+                    "'edge_gateway' in vcloud_config is empty." +
+                    " Can't check state of gateway correctly."
+                )
+            result = f(*args, **kw)
+        finally:
+            ctx.logger.info("Unlock gateway.")
+            ctx.source.instance._node_instance = None
+            update_parameters(ctx, False)
+        return result
+    return wrapper

@@ -8,9 +8,9 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import mock
 import unittest
@@ -161,10 +161,10 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_node_context()
         # can't deallocate ip
         gateway.deallocate_public_ip = mock.MagicMock(return_value=None)
-        with self.assertRaises(cfy_exc.NonRecoverableError):
-            network_plugin.del_ondemand_public_ip(
-                fake_client, gateway, '127.0.0.1', fake_ctx
-            )
+        with mock.patch('network_plugin.wait_for_gateway', mock.MagicMock()):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                network_plugin.del_ondemand_public_ip(
+                    fake_client, gateway, '127.0.0.1', fake_ctx)
         gateway.deallocate_public_ip.assert_called_with('127.0.0.1')
         # successfully dropped public ip
         gateway.deallocate_public_ip = mock.MagicMock(
@@ -172,9 +172,10 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
                 vcloud_plugin_common.TASK_STATUS_SUCCESS
             )
         )
-        network_plugin.del_ondemand_public_ip(
-            fake_client, gateway, '127.0.0.1', fake_ctx
-        )
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            with mock.patch('network_plugin.wait_for_gateway', mock.MagicMock()):
+                network_plugin.del_ondemand_public_ip(
+                    fake_client, gateway, '127.0.0.1', fake_ctx)
 
     def test_save_gateway_configuration(self):
         """
@@ -183,31 +184,31 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         """
         gateway = self.generate_gateway()
         fake_client = self.generate_client()
+        fake_ctx = self.generate_node_context()
         # cant save configuration - error in first call
         self.set_services_conf_result(
             gateway, None
         )
+        fake_ctx = self.generate_node_context()
         with self.assertRaises(cfy_exc.NonRecoverableError):
             network_plugin.save_gateway_configuration(
-                gateway, fake_client
-            )
+                gateway, fake_client, fake_ctx)
         # error in status
         self.set_services_conf_result(
             gateway, vcloud_plugin_common.TASK_STATUS_ERROR
         )
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            network_plugin.save_gateway_configuration(
-                gateway, fake_client
-            )
+            with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+                network_plugin.save_gateway_configuration(
+                    gateway, fake_client, fake_ctx)
         # everything fine
         self.set_services_conf_result(
             gateway, vcloud_plugin_common.TASK_STATUS_SUCCESS
         )
-        self.assertTrue(
-            network_plugin.save_gateway_configuration(
-                gateway, fake_client
-            )
-        )
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            self.assertTrue(
+                network_plugin.save_gateway_configuration(
+                    gateway, fake_client, fake_ctx))
         # server busy
         self.set_services_conf_result(
             gateway, None
@@ -215,9 +216,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         self.set_gateway_busy(gateway)
         self.assertFalse(
             network_plugin.save_gateway_configuration(
-                gateway, fake_client
-            )
-        )
+                gateway, fake_client, fake_ctx))
 
     def test_is_network_routed(self):
         """
@@ -281,7 +280,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         utils.check_port(10)
         # port int to big
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            utils.check_port(utils.MAX_PORT_NUMBER+1)
+            utils.check_port(utils.MAX_PORT_NUMBER + 1)
         # port any
         utils.check_port('any')
         # port not any and not int

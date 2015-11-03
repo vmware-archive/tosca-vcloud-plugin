@@ -8,21 +8,34 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from testconfig import config
 import mock
-import time
 import unittest
-
+import shutil
+import os
+import yaml
+import tempfile
+import requests
+import time
+from functools import wraps
+from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType
 from cloudify import mocks as cfy_mocks
-from cloudify.exceptions import OperationRetry
 from vcloud_plugin_common import Config, VcloudAirClient
-
+import cloudify_cli.commands.local as local_command
+import cloudify_cli.logger as logger
+from cloudify import exceptions as cfy_exc
 SUBSCRIPTION = 'subscription'
 ONDEMAND = 'ondemand'
+RANDOM_PREFIX_LENGTH = 5
+
+
+class Objectview(object):
+    def __init__(self, d):
+        self.__dict__ = d
 
 
 class IntegrationSubscriptionTestConfig(Config):
@@ -79,22 +92,93 @@ class TestCase(unittest.TestCase):
             raise RuntimeError("vcloud_config empty")
         if not self.test_config:
             raise RuntimeError("test_config empty")
-
-    def setUp(self):
         print "\nUsed config: {0}".format(self.service_type)
+        self.vca_client = self.get_client()
+
+    def get_client(self):
         fake_ctx = cfy_mocks.MockCloudifyContext(
             node_id='test',
             node_name='test',
             properties={})
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
-            self.vca_client = VcloudAirClient().get(config=self.vcloud_config)
+            vca_client = VcloudAirClient().get(config=self.vcloud_config)
+        return vca_client
 
-    def _run_with_retry(self, func, ctx):
+    def setUp(self):
+        self.inputs = yaml.load(open('blueprints/inputs.yaml'))
+        self.inputs.update(self.vcloud_config)
+        self.tempdir = tempfile.mkdtemp()
+        self.workdir = os.getcwd()
+        logger.configure_loggers()
+        self.failed = True
+        self.conf = Objectview(self.inputs)
 
-        while True:
-            try:
-                return func(ctx=ctx)
-            except OperationRetry as e:
-                ctx.operation._operation_retry = None
-                ctx.logger.info(format(str(e)))
-                time.sleep(e.retry_after)
+    def tearDown(self):
+        try:
+            if self.failed:
+                self.uninstall()
+        except Exception as e:
+            print e
+        os.chdir(self.workdir)
+        shutil.rmtree(self.tempdir, True)
+
+    def init(self, blueprint_file):
+        blueprint = yaml.load(open('blueprints/header.yaml'))
+        nodes = yaml.load(open('blueprints/{}'.format(blueprint_file)))
+        blueprint['node_templates'].update(nodes)
+        with open(os.path.join(self.tempdir, 'inputs.yaml'), 'w') as f:
+            yaml.dump(self.inputs, f)
+        with open(os.path.join(self.tempdir, 'blueprint.yaml'), 'w') as f:
+            yaml.dump(blueprint, f)
+        os.chdir(self.tempdir)
+        local_command.init('blueprint.yaml', 'inputs.yaml', False)
+
+    def install(self):
+        self._execute_command('install')
+
+    def uninstall(self):
+        self._execute_command('uninstall')
+
+    def _execute_command(self, command):
+        local_command.execute(command, {}, False, 5, 5, 1)
+
+
+def fail_guard(f):
+    @wraps(f)
+    def wrapper(*args, **kargs):
+            args[0].failed = True
+            f(*args, **kargs)
+            args[0].failed = False
+    return wrapper
+
+
+def wait_for_task(vca_client, task):
+    """
+        check status of current task and make request for recheck
+        task status in case when we have not well defined state
+        (not error and not success or by timeout)
+    """
+    WAIT_TIME_MAX_MINUTES = 30
+    TASK_RECHECK_TIMEOUT = 5
+    TASK_STATUS_SUCCESS = 'success'
+    TASK_STATUS_ERROR = 'error'
+    MAX_ATTEMPTS = WAIT_TIME_MAX_MINUTES * 60 / TASK_RECHECK_TIMEOUT
+    print('Maximun task wait time {0} minutes.'.format(WAIT_TIME_MAX_MINUTES))
+    print('Task recheck after {0} seconds.'.format(TASK_RECHECK_TIMEOUT))
+    status = task.get_status()
+    for attempt in range(MAX_ATTEMPTS):
+        print('Attempt: {0}/{1}.'.format(attempt + 1, MAX_ATTEMPTS))
+        if status == TASK_STATUS_SUCCESS:
+            print('Task completed in {0} seconds'.format(attempt * TASK_RECHECK_TIMEOUT))
+            return
+        if status == TASK_STATUS_ERROR:
+            error = task.get_Error()
+            raise cfy_exc.NonRecoverableError(
+                "Error during task execution: {0}".format(error.get_message()))
+        time.sleep(TASK_RECHECK_TIMEOUT)
+        response = requests.get(
+            task.get_href(),
+            headers=vca_client.vcloud_session.get_vcloud_headers())
+        task = taskType.parseString(response.content, True)
+        status = task.get_status()
+    raise cfy_exc.NonRecoverableError("Wait for task timeout.")

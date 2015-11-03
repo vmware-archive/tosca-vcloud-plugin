@@ -8,9 +8,11 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import time
 
 from cloudify import ctx
 from cloudify.decorators import operation
@@ -20,10 +22,11 @@ from vcloud_plugin_common import (get_vcloud_config,
                                   transform_resource_name,
                                   wait_for_task,
                                   with_vca_client,
+                                  error_response,
                                   STATUS_POWERED_ON)
-
 from network_plugin import (get_network_name, get_network, is_network_exists,
-                            get_vapp_name)
+                            get_vapp_name, GATEWAY_TIMEOUT, RETRY_COUNT)
+from network_plugin.keypair import PUBLIC_KEY, SSH_KEY
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 GUEST_CUSTOMIZATION = 'guest_customization'
@@ -68,12 +71,13 @@ def creation_validation(vca_client, **kwargs):
     catalog = get_catalog(server_dict['catalog'])
     if catalog is None:
         raise cfy_exc.NonRecoverableError(
-            "Catalog {0} could not be found".format(server_dict['catalog']))
+            "Catalog '{0}' could not be found".format(server_dict['catalog']))
 
     template = get_template(catalog, server_dict['template'])
     if template is None:
         raise cfy_exc.NonRecoverableError(
-            "Template {0} could not be found".format(server_dict['template']))
+            "Template '{0}' could not be found".
+            format(server_dict['template']))
 
 
 @operation
@@ -91,9 +95,9 @@ def create(vca_client, **kwargs):
                 'guest_customization': {
                     'pre_script': 'pre_script',
                     'post_script': 'post_script',
-                    'public_keys': [{
-                        'key': True
-                    }]
+                    'admin_password': 'pass',
+                    'computer_name': 'computer'
+
                 }
             }
         }
@@ -108,6 +112,12 @@ def create(vca_client, **kwargs):
     if ctx.node.properties.get('use_external_resource'):
         res_id = ctx.node.properties['resource_id']
         ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = res_id
+        vdc = vca_client.get_vdc(config['vdc'])
+        if not vca_client.get_vapp(vdc, res_id):
+            raise cfy_exc.NonRecoverableError(
+                "Unable to find external vAPP server resource {0}."
+                .format(res_id))
+        server.update({'name': res_id})
         ctx.logger.info(
             "External resource {0} has been used".format(res_id))
     else:
@@ -125,64 +135,46 @@ def _create(vca_client, config, server):
     vapp_name = server['name']
     vapp_template = server['template']
     vapp_catalog = server['catalog']
+    connections = _create_connections_list(vca_client)
     ctx.logger.info("Creating VApp with parameters: {0}".format(server))
     task = vca_client.create_vapp(config['vdc'],
                                   vapp_name,
                                   vapp_template,
-                                  vapp_catalog,
-                                  vm_name=vapp_name)
+                                  vapp_catalog)
     if not task:
         raise cfy_exc.NonRecoverableError("Could not create vApp: {0}"
-                                          .format(vca_client.response.content))
+                                          .format(error_response(vca_client)))
     wait_for_task(vca_client, task)
 
-    hardware = server.get('hardware')
-    if hardware:
-        cpu = hardware.get('cpu')
-        memory = hardware.get('memory')
-        _check_hardware(cpu, memory)
-        vapp = vca_client.get_vapp(
-            vca_client.get_vdc(config['vdc']), vapp_name
-        )
-        if memory:
-            task = vapp.modify_vm_memory(vapp_name, memory)
-            if task:
-                wait_for_task(vca_client, task)
-                ctx.logger.info("Customize VM memory: {0}.".format(memory))
-            else:
-                raise cfy_exc.NonRecoverableError(
-                    "Customize VM memory failed: {0}.".format(task)
-                )
-        if cpu:
-            task = vapp.modify_vm_cpu(vapp_name, cpu)
-            if task:
-                wait_for_task(vca_client, task)
-                ctx.logger.info("Customize VM cpu: {0}.".format(cpu))
-            else:
-                raise cfy_exc.NonRecoverableError(
-                    "Customize VM cpu failed: {0}.".format(task)
-                )
+    vdc = vca_client.get_vdc(config['vdc'])
+    vapp = vca_client.get_vapp(vdc, vapp_name)
+    if vapp is None:
+        raise cfy_exc.NonRecoverableError(
+            "vApp '{0}' could not be found".format(vapp_name))
 
+    task = vapp.modify_vm_name(1, vapp_name)
+    if not task:
+        raise cfy_exc.NonRecoverableError(
+            "Can't modyfy VM name".format(vapp_name))
+    wait_for_task(vca_client, task)
+    ctx.logger.info("VM '{0}' has been renamed.".format(vapp_name))
+
+    # reread vapp
+    vapp = vca_client.get_vapp(vdc, vapp_name)
     ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = vapp_name
-    connections = _create_connections_list(vca_client)
 
     # we allways have connection to management_network_name
     if connections:
         for index, connection in enumerate(connections):
-            vdc = vca_client.get_vdc(config['vdc'])
-            vapp = vca_client.get_vapp(vdc, vapp_name)
-            if vapp is None:
-                raise cfy_exc.NonRecoverableError(
-                    "vApp {0} could not be found".format(vapp_name))
-
             network_name = connection.get('network')
             network = get_network(vca_client, network_name)
-
+            ctx.logger.info("Connect network '{0}' to server '{1}'."
+                            .format(network_name, vapp_name))
             task = vapp.connect_to_network(network_name, network.get_href())
             if not task:
                 raise cfy_exc.NonRecoverableError(
-                    "Could not add network {0} to VApp {1}"
-                    .format(network_name, vapp_name))
+                    "Could not add network {0} to VApp {1}. {2}"
+                    .format(network_name, vapp_name, error_response(vapp)))
             wait_for_task(vca_client, task)
 
             connections_primary_index = None
@@ -205,35 +197,21 @@ def _create(vca_client, config, server):
             task = vapp.connect_vms(**connection_args)
             if task is None:
                 raise cfy_exc.NonRecoverableError(
-                    "Could not connect vApp {0} to network {1}"
-                    .format(vapp_name, network_name))
+                    "Could not connect vApp {0} to network {1}. {2}"
+                    .format(vapp_name, network_name, error_response(vapp)))
             wait_for_task(vca_client, task)
 
-    # customize root password and hostname
-    custom = server.get(GUEST_CUSTOMIZATION)
-    if custom:
-        vdc = vca_client.get_vdc(config['vdc'])
-        vapp = vca_client.get_vapp(vdc, vapp_name)
-        script = _build_script(custom)
-        password = custom.get('admin_password')
-        computer_name = custom.get('computer_name')
 
-        task = vapp.customize_guest_os(
-            vapp_name,
-            customization_script=script,
-            computer_name=computer_name,
-            admin_password=password
-        )
-        if task is None:
+def _power_on_vm(vca_client, vapp, vapp_name):
+    """Poweron VM"""
+    if _vapp_is_on(vapp) is False:
+        ctx.logger.info("Power-on VApp {0}".format(vapp_name))
+        task = vapp.poweron()
+        if not task:
             raise cfy_exc.NonRecoverableError(
-                "Could not set guest customization parameters")
+                "Could not power-on vApp. {0}".
+                format(error_response(vapp)))
         wait_for_task(vca_client, task)
-        # This function avialable from API version 5.6
-        if vapp.customize_on_next_poweron():
-            ctx.logger.info("Customizations successful")
-        else:
-            raise cfy_exc.NonRecoverableError(
-                "Can't run customization in next power on")
 
 
 @operation
@@ -250,12 +228,7 @@ def start(vca_client, **kwargs):
         config = get_vcloud_config()
         vdc = vca_client.get_vdc(config['vdc'])
         vapp = vca_client.get_vapp(vdc, vapp_name)
-        if _vapp_is_on(vapp) is False:
-            ctx.logger.info("Power-on VApp {0}".format(vapp_name))
-            task = vapp.poweron()
-            if not task:
-                raise cfy_exc.NonRecoverableError("Could not power-on vApp")
-            wait_for_task(vca_client, task)
+        _power_on_vm(vca_client, vapp, vapp_name)
 
     if not _get_state(vca_client):
         return ctx.operation.retry(
@@ -280,7 +253,8 @@ def stop(vca_client, **kwargs):
         ctx.logger.info("Power-off and undeploy VApp {0}".format(vapp_name))
         task = vapp.undeploy()
         if not task:
-            raise cfy_exc.NonRecoverableError("Could not undeploy vApp")
+            raise cfy_exc.NonRecoverableError("Could not undeploy vApp {0}".
+                                              format(error_response(vapp)))
         wait_for_task(vca_client, task)
 
 
@@ -301,27 +275,195 @@ def delete(vca_client, **kwargs):
         ctx.logger.info("Deleting VApp {0}".format(vapp_name))
         task = vapp.delete()
         if not task:
-            raise cfy_exc.NonRecoverableError("Could not delete vApp")
+            raise cfy_exc.NonRecoverableError("Could not delete vApp {0}".
+                                              format(error_response(vapp)))
         wait_for_task(vca_client, task)
 
     del ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
 
 
-def _get_management_network_from_node():
-    """
-        get management network name from:
-        * node properties or
-        * provider context (bootstrap context)
-    """
-    management_network_name = ctx.node.properties.get('management_network')
-    if not management_network_name:
-        resources = ctx.provider_context.get('resources')
-        if resources and 'int_network' in resources:
-            management_network_name = resources['int_network'].get('name')
-    if not management_network_name:
+def _is_primary_connection_has_ip(vapp):
+    """Return True in case when primary interface has some ip"""
+    network_info = vapp.get_vms_network_info()
+    # we dont have any network, skip checks
+    if not network_info:
+        return True
+    if not network_info[0]:
+        return True
+    # we have some networks
+    for conn in network_info[0]:
+        if conn['is_connected'] and conn['is_primary'] and conn['ip']:
+            return True
+    return False
+
+
+@operation
+@with_vca_client
+def configure(vca_client, **kwargs):
+
+    if ctx.node.properties.get('use_external_resource'):
+        ctx.logger.info('Avoiding external resource configuration.')
+    else:
+        ctx.logger.info("Configure server")
+        server = {'name': ctx.instance.id}
+        server.update(ctx.node.properties.get('server', {}))
+        ctx.logger.info("Server properties: {0}"
+                        .format(str(server)))
+        vapp_name = server['name']
+        config = get_vcloud_config()
+        custom = server.get(GUEST_CUSTOMIZATION, {})
+        public_keys = _get_connected_keypairs()
+
+        vdc = vca_client.get_vdc(config['vdc'])
+        vapp = vca_client.get_vapp(vdc, vapp_name)
+        if not vapp:
+            raise cfy_exc.NonRecoverableError(
+                "Unable to find vAPP server "
+                "by its name {0}.".format(vapp_name))
+        ctx.logger.info("Using vAPP {0}".format(str(vapp_name)))
+
+        hardware = server.get('hardware')
+        if hardware:
+            cpu = hardware.get('cpu')
+            memory = hardware.get('memory')
+            _check_hardware(cpu, memory)
+            if memory:
+                try:
+                    ctx.logger.info(
+                        "Customize VM memory: '{0}'.".format(memory)
+                    )
+                    task = vapp.modify_vm_memory(vapp_name, memory)
+                    wait_for_task(vca_client, task)
+                except Exception:
+                    raise cfy_exc.NonRecoverableError(
+                        "Customize VM memory failed: '{0}'. {1}".
+                        format(task, error_response(vapp)))
+            if cpu:
+                try:
+                    ctx.logger.info(
+                        "Customize VM cpu: '{0}'.".format(cpu)
+                    )
+                    task = vapp.modify_vm_cpu(vapp_name, cpu)
+                    wait_for_task(vca_client, task)
+                except Exception:
+                    raise cfy_exc.NonRecoverableError(
+                        "Customize VM cpu failed: '{0}'. {1}".
+                        format(task, error_response(vapp)))
+
+        if custom or public_keys:
+            script = _build_script(custom, public_keys)
+            password = custom.get('admin_password')
+            computer_name = custom.get('computer_name')
+            ctx.logger.info("Customizing guest OS.")
+            task = vapp.customize_guest_os(
+                vapp_name,
+                customization_script=script,
+                computer_name=computer_name,
+                admin_password=password
+            )
+            if task is None:
+                raise cfy_exc.NonRecoverableError(
+                    "Could not set guest customization parameters. {0}".
+                    format(error_response(vapp)))
+            wait_for_task(vca_client, task)
+            if vapp.customize_on_next_poweron():
+                ctx.logger.info("Customizations successful")
+            else:
+                customization_task = vapp.force_customization(vapp_name)
+                if customization_task:
+                    ctx.logger.info("Customizations forced")
+                    wait_for_task(vca_client, customization_task)
+                else:
+                    raise cfy_exc.NonRecoverableError(
+                        "Can't run customization in next power on. {0}".
+                        format(error_response(vapp)))
+
+        if not _is_primary_connection_has_ip(vapp):
+            ctx.logger.info("Power on server for get dhcp ip.")
+            # we have to start vapp before continue
+            _power_on_vm(vca_client, vapp, vapp_name)
+            for attempt in xrange(RETRY_COUNT):
+                vapp = vca_client.get_vapp(vdc, vapp_name)
+                if _is_primary_connection_has_ip(vapp):
+                    return
+                ctx.logger.info(
+                    "No ip assigned. Retrying... {}/{} attempt."
+                    .format(attempt + 1, RETRY_COUNT)
+                )
+                time.sleep(GATEWAY_TIMEOUT)
+            ctx.logger.info("We dont recieve ip, try next time...")
+
+
+@operation
+@with_vca_client
+def remove_keys(vca_client, **kwargs):
+    ctx.logger.info("Remove public keys from VM.")
+    relationships = getattr(ctx.target.instance, 'relationships', None)
+    if relationships:
+        public_keys = [
+            relationship.target.instance.runtime_properties['public_key']
+            for relationship in relationships
+            if 'public_key' in
+            relationship.target.instance.runtime_properties
+        ]
+    else:
+        return
+    vdc = vca_client.get_vdc(get_vcloud_config()['vdc'])
+    vapp_name = ctx.target.instance.id
+    vapp = vca_client.get_vapp(vdc, vapp_name)
+    if not vapp:
+        vapp_name = ctx.target.node.properties['server'].get('name', '')
+        vapp = vca_client.get_vapp(vdc, vapp_name)
+        if not vapp:
+            raise cfy_exc.NonRecoverableError(
+                "Unable to find vAPP server "
+                "by its name {0}.".format(vapp_name))
+    ctx.logger.info("Using vAPP {0}".format(str(vapp_name)))
+    script = "#!/bin/sh\n" + _build_public_keys_script(public_keys,
+                                                       _remove_key_script)
+    task = vapp.undeploy()
+    if not task:
         raise cfy_exc.NonRecoverableError(
-            "Parameter 'managment_network' for Server node is not defined.")
-    return management_network_name
+            "Can't power off VM. {0}".format(vapp_name))
+    wait_for_task(vca_client, task)
+    task = vapp.customize_guest_os(
+        vapp_name,
+        customization_script=script)
+    if not task:
+        raise cfy_exc.NonRecoverableError(
+            "Could not set guest customization parameters. {0}.".
+            format(error_response(vapp)))
+    wait_for_task(vca_client, task)
+    if vapp.customize_on_next_poweron():
+        ctx.logger.info("Customizations successful.")
+    else:
+        customization_task = vapp.force_customization(vapp_name)
+        if customization_task:
+            ctx.logger.info("Customizations forced")
+            wait_for_task(vca_client, customization_task)
+        else:
+            raise cfy_exc.NonRecoverableError(
+                "Can't run customization on next power on. {0}.".
+                format(error_response(vapp)))
+    vapp = vca_client.get_vapp(vdc, vapp_name)
+    task = vapp.poweron()
+    if not task:
+        raise cfy_exc.NonRecoverableError(
+            "Can't poweron VM. {0}".format(vapp_name))
+    wait_for_task(vca_client, task)
+    ctx.logger.info("Power on after deleting public key successful.")
+
+    ctx.logger.info("Remove keys from properties.")
+    host_rt_properties = ctx.target.instance.runtime_properties
+    if SSH_KEY in host_rt_properties:
+        del host_rt_properties[SSH_KEY]
+
+
+def _remove_key_script(commands, user, ssh_dir, keys_file, public_key):
+    sed_template = " sed -i /{0}/d {1}"
+    commands.append(sed_template.format(
+        public_key.split()[1].replace('/', '[/]'), keys_file)
+    )
 
 
 def _get_state(vca_client):
@@ -332,13 +474,13 @@ def _get_state(vca_client):
     config = get_vcloud_config()
     vdc = vca_client.get_vdc(config['vdc'])
     vapp = vca_client.get_vapp(vdc, vapp_name)
+
     nw_connections = _get_vm_network_connections(vapp)
     if len(nw_connections) == 0:
         ctx.logger.info("No networks connected")
         ctx.instance.runtime_properties['ip'] = None
         ctx.instance.runtime_properties['networks'] = {}
         return True
-    management_network_name = _get_management_network_from_node()
 
     if not all([connection['ip'] for connection in nw_connections]):
         ctx.logger.info("Network configuration is not finished yet.")
@@ -349,9 +491,11 @@ def _get_state(vca_client):
         for connection in nw_connections}
 
     for connection in nw_connections:
-        if connection['network_name'] == management_network_name:
-            ctx.logger.info("Management network ip address {0}"
-                            .format(connection['ip']))
+        if connection['is_primary']:
+            ctx.logger.info("Primary network ip address '{0}' for"
+                            "  network '{1}'."
+                            .format(connection['ip'],
+                                    connection['network_name']))
             ctx.instance.runtime_properties['ip'] = connection['ip']
             return True
     return False
@@ -382,17 +526,17 @@ def _get_vm_network_connection(vapp, network_name):
             return connection
 
 
-def _build_script(custom):
+def _build_script(custom, public_keys):
     """
         create customization script
     """
     pre_script = custom.get('pre_script', "")
     post_script = custom.get('post_script', "")
-    public_keys = custom.get('public_keys')
     if not pre_script and not post_script and not public_keys:
         return None
-    script_executor = custom.get('script_executor', DEFAULT_EXECUTOR)
-    public_keys_script = _build_public_keys_script(public_keys)
+    script_executor = DEFAULT_EXECUTOR
+    public_keys_script = _build_public_keys_script(public_keys,
+                                                   _add_key_script)
     script_template = """#!{0}
 echo performing customization tasks with param $1 \
 at `date "+DATE: %Y-%m-%d - TIME: %H:%M:%S"` >> /root/customization.log
@@ -415,13 +559,18 @@ fi
     return script
 
 
-def _build_public_keys_script(public_keys):
-    """
-        create script for update ssh keys
-    """
-    key_commands = []
-    ssh_dir_template = "{0}/{1}/.ssh"
-    authorized_keys_template = "{0}/authorized_keys"
+def _get_connected_keypairs():
+    relationships = getattr(ctx.instance, 'relationships', None)
+    if relationships:
+        return [relationship.target.instance.runtime_properties[PUBLIC_KEY]
+                for relationship in relationships
+                if 'public_key' in
+                relationship.target.instance.runtime_properties]
+    else:
+        return []
+
+
+def _add_key_script(commands, user, ssh_dir, keys_file, public_key):
     add_key_template = "echo '{0}\n' >> {1}"
     test_ssh_dir_template = """
     if [ ! -d {1} ];then
@@ -431,21 +580,37 @@ def _build_public_keys_script(public_keys):
       touch {2}
       chown {0}:{0} {2}
       chmod 600 {2}
+      # make centos with selinux happy
+      which restorecon && restorecon -Rv {1}
     fi
     """
+    test_ssh_dir = test_ssh_dir_template.format(user, ssh_dir, keys_file)
+    commands.append(test_ssh_dir)
+    commands.append(add_key_template.format(public_key, keys_file))
+
+
+def _build_public_keys_script(public_keys, script_function):
+    """
+        create script for update ssh keys
+    """
+    key_commands = []
+    ssh_dir_template = "{0}/{1}/.ssh"
+    authorized_keys_template = "{0}/authorized_keys"
     for key in public_keys:
         public_key = key.get('key')
         if not public_key:
             continue
-        user = key.get('user', DEFAULT_USER)
-        home = key.get('home', DEFAULT_HOME)
+        user = key.get('user')
+        if not user:
+            user = DEFAULT_USER
+        home = key.get('home')
+        if not home:
+            home = '' if user == 'root' else DEFAULT_HOME
         ssh_dir = ssh_dir_template.format(home, user)
         authorized_keys = authorized_keys_template.format(ssh_dir)
-        test_ssh_dir = test_ssh_dir_template.format(
-            user, ssh_dir, authorized_keys)
-        key_commands.append(test_ssh_dir)
-        key_commands.append(
-            add_key_template.format(public_key, authorized_keys))
+        script_function(
+            key_commands, user, ssh_dir, authorized_keys, public_key
+        )
     return "\n".join(key_commands)
 
 
@@ -457,13 +622,8 @@ def _create_connections_list(vca_client):
     ports = _get_connected(ctx.instance, 'port')
     networks = _get_connected(ctx.instance, 'network')
 
-    management_network_name = _get_management_network_from_node()
+    management_network_name = ctx.node.properties.get('management_network')
 
-    if not is_network_exists(vca_client, management_network_name):
-        raise cfy_exc.NonRecoverableError(
-            "Network {0} could not be found".format(management_network_name))
-
-    # connection by port
     for port in ports:
         port_properties = port.node.properties['port']
         connections.append(
@@ -475,21 +635,33 @@ def _create_connections_list(vca_client):
                                port_properties.get('primary_interface', False))
         )
 
-    # connection by networks
     for net in networks:
         connections.append(
             _create_connection(get_network_name(net.node.properties),
                                None, None, 'POOL'))
 
-    # add managmenty network if not exist in list
-    if not any([conn['network'] == management_network_name
-                for conn in connections]):
+    if management_network_name and not any(
+            [conn['network'] == management_network_name
+             for conn in connections]):
         connections.append(_create_connection(management_network_name,
                                               None, None, 'POOL'))
+
+    for conn in connections:
+        if not is_network_exists(vca_client, conn['network']):
+            raise cfy_exc.NonRecoverableError(
+                "Network '{0}' could not be found".format(conn['network']))
 
     primary_iface_set = len(filter(lambda conn: conn.get('primary_interface',
                                                          False),
                                    connections)) > 0
+    if not primary_iface_set:
+        if management_network_name:
+            primary_name = management_network_name
+        elif connections:
+            primary_name = connections[0]['network']
+        else:
+            raise cfy_exc.NonRecoverableError(
+                "Can't setup primary interface")
 
     # check list of connections and set managment network as primary
     # in case when we dont have any primary networks
@@ -500,10 +672,13 @@ def _create_connections_list(vca_client):
             raise cfy_exc.NonRecoverableError(
                 "DHCP for network {0} is not available"
                 .format(network_name))
-
-        if primary_iface_set is False:
+        if not primary_iface_set:
             conn['primary_interface'] = \
-                (network_name == management_network_name)
+                (network_name == primary_name)
+        if conn['primary_interface']:
+            ctx.logger.info(
+                "The primary interface has been set to {}".format(
+                    network_name))
 
     return connections
 

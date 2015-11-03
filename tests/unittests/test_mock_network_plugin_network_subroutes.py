@@ -8,9 +8,9 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import mock
 import unittest
@@ -114,11 +114,10 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
                 self.set_gateway_busy(fake_client._vdc_gateway)
                 self.prepare_retry(fake_ctx)
 
-                network._dhcp_operation(
+                self.assertFalse(network._dhcp_operation(
                     fake_client, '_management_network',
                     network.DELETE_POOL
-                ), None
-                self.check_retry_realy_called(fake_ctx)
+                ))
 
                 # no such gateway
                 fake_client.get_gateway = mock.MagicMock(return_value=None)

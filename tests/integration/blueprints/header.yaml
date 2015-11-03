@@ -1,0 +1,96 @@
+tosca_definitions_version: cloudify_dsl_1_2
+
+imports:
+    - http://s3.amazonaws.com/vcloud-score/types.yaml
+    - https://raw.githubusercontent.com/cloudify-cosmo/tosca-vcloud-plugin/master/plugin.yaml
+    - http://www.getcloudify.org/spec/fabric-plugin/1.3rc1/plugin.yaml
+
+inputs:
+  username:
+      type: string
+  password:
+      type: string
+  vdc:
+      type: string
+  instance:
+      type: string
+      default: ''
+  service:
+      type: string
+      default: ''
+  org:
+      type: string
+      default: ''
+  url:
+      type: string
+      default: ''
+  service_type:
+      type: string
+      default: ''
+  api_version:
+      type: string
+      default: ''
+  catalog:
+      type: string
+      default: ''
+  template:
+      type: string
+      default: ''
+  network_name:
+      type: string
+      default: ''
+  edge_gateway:
+      type: string
+      default: ''
+  public_ip:
+      type: string
+      default: ''
+  server_name:
+      type: string
+      default: ''
+  server_cpu:
+      type: integer
+      default: 1
+  server_memory:
+      type: integer
+      default: 1024
+  ssh_user:
+      type: string
+      default: ubuntu
+  auto_generate_ssh_keys:
+      type: boolean
+      default: false
+  test_vdc_name:
+      type: string
+      default: ''
+  volume_name:
+      type: string
+      default: ''
+  volume_size_Mb:
+      type: string
+      default: 1024
+  test_network_name:
+      type: string
+      default: ''
+
+node_types:
+    vcloud_configuration:
+        derived_from: cloudify.nodes.Root
+        properties:
+            vcloud_config: {}
+
+node_templates:
+    vcloud_configuration:
+        type: vcloud_configuration
+        properties:
+            vcloud_config:
+                username: { get_input: username }
+                password: { get_input: password }
+                url: { get_input: url }
+                instance: { get_input: instance }
+                vdc: { get_input: vdc }
+                org: { get_input: org }
+                service: { get_input: service }
+                service_type: { get_input: service_type }
+                api_version: { get_input: api_version }
+                edge_gateway: { get_input: edge_gateway }

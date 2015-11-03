@@ -8,9 +8,9 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import mock
 import unittest
@@ -118,7 +118,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
                         'dhcp': {
                             'dhcp_range': "10.1.1.128-10.1.1.255"
                         },
-                        'static_range':  "10.1.1.2-10.1.1.127",
+                        'static_range': "10.1.1.2-10.1.1.127",
                         'gateway_ip': "10.1.1.1",
                         'edge_gateway': 'gateway',
                         'name': 'secret_network',
@@ -175,7 +175,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
                         'dhcp': {
                             'dhcp_range': "10.1.1.128-10.1.1.255"
                         },
-                        'static_range':  "10.1.1.2-10.1.1.127",
+                        'static_range': "10.1.1.2-10.1.1.127",
                         'gateway_ip': "10.1.1.1",
                         'edge_gateway': 'gateway',
                         'name': 'secret_network',
@@ -200,7 +200,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
                         'dhcp': {
                             'dhcp_range': "10.1.1.128-10.1.1.255"
                         },
-                        'static_range':  "10.1.1.2-10.1.1.127",
+                        'static_range': "10.1.1.2-10.1.1.127",
                         'gateway_ip': "10.1.1.1",
                         'edge_gateway': 'gateway',
                         'name': 'secret_network',
@@ -236,7 +236,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
                         'dhcp': {
                             'dhcp_range': "10.1.1.128-10.1.1.255"
                         },
-                        'static_range':  "10.1.1.2-10.1.1.127",
+                        'static_range': "10.1.1.2-10.1.1.127",
                         'gateway_ip': "10.1.1.1",
                         'edge_gateway': 'gateway',
                         'name': 'secret_network',
@@ -286,7 +286,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
                         'dhcp': {
                             'dhcp_range': "10.1.1.128-10.1.1.255"
                         },
-                        'static_range':  "10.1.1.2-10.1.1.127",
+                        'static_range': "10.1.1.2-10.1.1.127",
                         'gateway_ip': "10.1.1.1",
                         'edge_gateway': 'gateway',
                         'name': 'secret_network',
@@ -316,7 +316,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
                         'dhcp': {
                             'dhcp_range': "10.1.1.128-10.1.1.255"
                         },
-                        'static_range':  "10.1.1.2-10.1.1.127",
+                        'static_range': "10.1.1.2-10.1.1.127",
                         'gateway_ip': "10.1.1.1",
                         'edge_gateway': 'gateway',
                         'name': 'secret_network',
@@ -348,7 +348,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
                         'dhcp': {
                             'dhcp_range': "10.1.1.128-10.1.1.255"
                         },
-                        'static_range':  "10.1.1.2-10.1.1.127",
+                        'static_range': "10.1.1.2-10.1.1.127",
                         'gateway_ip': "10.1.1.1",
                         'edge_gateway': 'gateway',
                         'name': 'private_network',
@@ -390,7 +390,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
                         'dhcp': {
                             'dhcp_range': "10.1.1.128-10.1.1.255"
                         },
-                        'static_range':  "10.1.1.2-10.1.1.127",
+                        'static_range': "10.1.1.2-10.1.1.127",
                         'gateway_ip': "10.1.1.1",
                         'edge_gateway': 'gateway',
                         'name': 'private_network',
@@ -425,7 +425,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
                         'dhcp': {
                             'dhcp_range': "10.1.1.10-10.1.1.255"
                         },
-                        'static_range':  "10.1.1.2-10.1.1.210",
+                        'static_range': "10.1.1.2-10.1.1.210",
                         'gateway_ip': "10.1.1.1",
                         'edge_gateway': 'gateway',
                         'name': 'private_network',

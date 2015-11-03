@@ -22,6 +22,9 @@ node_types:
                 create:
                     implementation: vcloud.server_plugin.server.create
                     inputs: {}
+                configure:
+                    implementation: vcloud.server_plugin.server.configure
+                    inputs: {}
                 start:
                     implementation: vcloud.server_plugin.server.start
                     inputs: {}
@@ -115,16 +118,23 @@ node_types:
     cloudify.vcloud.nodes.KeyPair:
         derived_from: cloudify.nodes.Root
         properties:
-            private_key_path:
-                default: ''
-            public_key:
+            auto_generate:
+                default: false
+            private_key:
                 default: {}
-            vcloud_config:
+            public_key:
                 default: {}
         interfaces:
             cloudify.interfaces.validation:
                 creation:
                     implementation: vcloud.network_plugin.keypair.creation_validation
+            cloudify.interfaces.lifecycle:
+                create:
+                    implementation: vcloud.network_plugin.keypair.create
+                    inputs: {}
+                delete:
+                    implementation: vcloud.network_plugin.keypair.delete
+                    inputs: {}
 
 
     cloudify.vcloud.nodes.Volume:
@@ -143,21 +153,44 @@ node_types:
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
-                    implementation: vcloud.server_plugin.volume.create_volume
+                    implementation: vcloud.storage_plugin.volume.create_volume
                     inputs: {}
                 delete:
-                    implementation: vcloud.server_plugin.volume.delete_volume
+                    implementation: vcloud.storage_plugin.volume.delete_volume
                     inputs: {}
             cloudify.interfaces.validation:
                 creation:
-                    implementation: vcloud.server_plugin.volume.creation_validation
+                    implementation: vcloud.storage_plugin.volume.creation_validation
+
+    cloudify.vcloud.nodes.VDC:
+        derived_from: cloudify.nodes.Root
+        properties:
+            name:
+                default: ''
+            use_external_resource:
+                default: false
+            resource_id:
+                default: ''
+            vcloud_config:
+                default: {}
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                create:
+                    implementation: vcloud.server_plugin.vdc.create
+                    inputs: {}
+                delete:
+                    implementation: vcloud.server_plugin.vdc.delete
+                    inputs: {}
+            cloudify.interfaces.validation:
+                creation:
+                    implementation: vcloud.server_plugin.vdc.creation_validation
 
 relationships:
     cloudify.vcloud.server_connected_to_floating_ip:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
-                establish:
+                postconfigure:
                     implementation: vcloud.network_plugin.floatingip.connect_floatingip
                     inputs: {}
                 unlink:
@@ -173,7 +206,7 @@ relationships:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
-                establish:
+                postconfigure:
                     implementation: vcloud.network_plugin.security_group.create
                     inputs: {}
                 unlink:
@@ -183,7 +216,10 @@ relationships:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
-                establish:
+                preconfigure:
+                    implementation: vcloud.network_plugin.public_nat.net_connect_to_nat_preconfigure
+                    inputs: {}
+                postconfigure:
                     implementation: vcloud.network_plugin.public_nat.net_connect_to_nat
                     inputs: {}
                 unlink:
@@ -193,20 +229,42 @@ relationships:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
-                establish:
+                postconfigure:
                     implementation: vcloud.network_plugin.public_nat.server_connect_to_nat
                     inputs: {}
                 unlink:
                     implementation: vcloud.network_plugin.public_nat.server_disconnect_from_nat
                     inputs: {}
-
     cloudify.vcloud.volume_attached_to_server:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
             cloudify.interfaces.relationship_lifecycle:
                 establish:
-                    implementation: vcloud.server_plugin.volume.attach_volume
+                    implementation: vcloud.storage_plugin.volume.attach_volume
                     inputs: {}
                 unlink:
-                    implementation: vcloud.server_plugin.volume.detach_volume
+                    implementation: vcloud.storage_plugin.volume.detach_volume
                     inputs: {}
+    cloudify.vcloud.server_connected_to_keypair:
+        derived_from: cloudify.relationships.connected_to
+        target_interfaces:
+            cloudify.interfaces.relationship_lifecycle:
+                postconfigure:
+                    implementation: vcloud.network_plugin.keypair.server_connect_to_keypair
+                    inputs: {}
+                unlink:
+                    implementation: vcloud.network_plugin.keypair.server_disconnect_from_keypair
+                    inputs: {}
+    cloudify.vcloud.server_connected_to_vdc:
+        derived_from: cloudify.relationships.connected_to
+    cloudify.vcloud.delete_public_key_from_server:
+        derived_from: cloudify.relationships.connected_to
+        target_interfaces:
+            cloudify.interfaces.relationship_lifecycle:
+                establish:
+                    implementation: vcloud.server_plugin.server.remove_keys
+                    inputs: {}
+
+workflows:
+    scoreinstall: vcloud.vcloud_plugin_common.workflows.install
+    scoreuninstall: vcloud.vcloud_plugin_common.workflows.uninstall

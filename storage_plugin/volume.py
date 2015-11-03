@@ -8,16 +8,18 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import time
 
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (wait_for_task, with_vca_client,
-                                  get_vcloud_config, get_mandatory)
-from network_plugin import get_vapp_name
+                                  get_vcloud_config, get_mandatory,
+                                  error_response)
+from network_plugin import get_vapp_name, SSH_PUBLIC_IP, SSH_PORT
 
 
 @operation
@@ -39,11 +41,13 @@ def create_volume(vca_client, **kwargs):
     vdc_name = get_vcloud_config()['vdc']
     name = ctx.node.properties['volume']['name']
     size = ctx.node.properties['volume']['size']
-    size_in_Mb = size * 1024 * 1024
-    success, disk = vca_client.add_disk(vdc_name, name, size_in_Mb)
+    size_in_bytes = size * 1024 * 1024
+    ctx.logger.info("Create volume '{0}' to '{1}' with size {2}Mb."
+                    .format(name, vdc_name, size))
+    success, disk = vca_client.add_disk(vdc_name, name, size_in_bytes)
     if success:
         wait_for_task(vca_client, disk.get_Tasks()[0])
-        ctx.logger.info("Volume node {} has been created".format(name))
+        ctx.logger.info("Volume node '{0}' has been created".format(name))
     else:
         raise cfy_exc.NonRecoverableError(
             "Disk creation error: {0}".format(disk))
@@ -60,10 +64,12 @@ def delete_volume(vca_client, **kwargs):
         return
     vdc_name = get_vcloud_config()['vdc']
     name = ctx.node.properties['volume']['name']
+    ctx.logger.info("Delete volume '{0}' from '{1}'."
+                    .format(name, vdc_name))
     success, task = vca_client.delete_disk(vdc_name, name)
     if success:
         wait_for_task(vca_client, task)
-        ctx.logger.info("Volume node {} has been deleted".format(name))
+        ctx.logger.info("Volume node '{0}' has been deleted".format(name))
     else:
         raise cfy_exc.NonRecoverableError(
             "Disk deletion error: {0}".format(task))
@@ -96,9 +102,8 @@ def creation_validation(vca_client, **kwargs):
 @operation
 @with_vca_client
 def attach_volume(vca_client, **kwargs):
-    """
-        attach volume
-    """
+    """attach volume"""
+    _wait_for_boot()
     _volume_operation(vca_client, "ATTACH")
 
 
@@ -126,24 +131,60 @@ def _volume_operation(vca_client, operation):
     for ref in vca_client.get_diskRefs(vdc):
         if ref.name == volumeName:
             if operation == 'ATTACH':
+                ctx.logger.info("Attach volume node '{0}'.".format(volumeName))
                 task = vapp.attach_disk_to_vm(vmName, ref)
                 if task:
                     wait_for_task(vca_client, task)
                     ctx.logger.info(
-                        "Volume node {} has been attached".format(volumeName))
+                        "Volume node '{0}' has been attached".format(volumeName))
                 else:
                     raise cfy_exc.NonRecoverableError(
-                        "Can't attach disk: {0}".format(volumeName))
+                        "Can't attach disk: '{0}' with error: {1}".
+                        format(volumeName, error_response(vapp)))
 
             elif operation == 'DETACH':
+                ctx.logger.info("Detach volume node '{0}'.".format(volumeName))
                 task = vapp.detach_disk_from_vm(vmName, ref)
                 if task:
                     wait_for_task(vca_client, task)
                     ctx.logger.info(
-                        "Volume node {} has been detached".format(volumeName))
+                        "Volume node '{0}' has been detached.".
+                        format(volumeName))
                 else:
                     raise cfy_exc.NonRecoverableError(
-                        "Can't detach disk: {0}".format(volumeName))
+                        "Can't detach disk: '{0}'. With error: {1}".
+                        format(volumeName, error_response(vapp)))
             else:
                 raise cfy_exc.NonRecoverableError(
-                    "Unknown operation {0}".format(operation))
+                    "Unknown operation '{0}'".format(operation))
+
+
+def _wait_for_boot():
+    """
+    Whait for loading os.
+    This function just check if sshd is available.
+    After attaching disk system may be unbootable,
+    therefore user can do some manipulation for setup boot sequence.
+    """
+    from fabric import api as fabric_api
+    ip = ctx.target.instance.runtime_properties.get(SSH_PUBLIC_IP)
+    if not ip:
+        # private ip will be used in case
+        # when we does not have public ip
+        ip = ctx.target.instance.runtime_properties['ip']
+    port = ctx.target.instance.runtime_properties.get(SSH_PORT, 22)
+    ctx.logger.info("Using ip '{0}'.".format(ip))
+    for i in range(30):
+        ctx.logger.info("Wait for boot '{0}'.".format(i))
+        try:
+            with fabric_api.settings(
+                host_string=ip, port=port, warn_only=True,
+                abort_on_prompts=True
+            ):
+                fabric_api.run('id')
+                time.sleep(5)
+        except SystemExit:
+            return
+        except Exception:
+            pass
+    raise cfy_exc.NonRecoverableError("Can't wait for boot")

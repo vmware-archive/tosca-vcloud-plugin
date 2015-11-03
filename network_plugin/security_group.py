@@ -1,10 +1,24 @@
+# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, get_mandatory,
                                   get_vcloud_config)
 from network_plugin import (check_ip, get_vm_ip, save_gateway_configuration,
-                            get_gateway, utils)
+                            get_gateway, utils, set_retry, lock_gateway)
 
 
 CREATE_RULE = 1
@@ -16,20 +30,24 @@ ACTIONS = ("allow", "deny")
 
 @operation
 @with_vca_client
+@lock_gateway
 def create(vca_client, **kwargs):
     """
         create firewall rules for node
     """
-    _rule_operation(CREATE_RULE, vca_client)
+    if not _rule_operation(CREATE_RULE, vca_client):
+        return set_retry(ctx)
 
 
 @operation
 @with_vca_client
+@lock_gateway
 def delete(vca_client, **kwargs):
     """
         drop firewall rules for node
     """
-    _rule_operation(DELETE_RULE, vca_client)
+    if not _rule_operation(DELETE_RULE, vca_client):
+        return set_retry(ctx)
 
 
 @operation
@@ -89,8 +107,8 @@ def _rule_operation(operation, vca_client):
     """
         create/delete firewall rules in gateway for current node
     """
-    gateway = get_gateway(
-        vca_client, _get_gateway_name(ctx.target.node.properties))
+    gateway_name = _get_gateway_name(ctx.target.node.properties)
+    gateway = get_gateway(vca_client, gateway_name)
     for rule in ctx.target.node.properties['rules']:
         description = rule.get('description', "Rule added by pyvcloud").strip()
         source_ip = rule.get("source", "external")
@@ -121,9 +139,8 @@ def _rule_operation(operation, vca_client):
             ctx.logger.info(
                 "Firewall rule has been deleted: {0}".format(description))
 
-    if not save_gateway_configuration(gateway, vca_client):
-        return ctx.operation.retry(message='Waiting for gateway.',
-                                   retry_after=10)
+    ctx.logger.info("Saving security group configuration")
+    return save_gateway_configuration(gateway, vca_client, ctx)
 
 
 def _get_gateway_name(properties):
