@@ -17,7 +17,7 @@ import unittest
 
 from cloudify import exceptions as cfy_exc
 import test_mock_base
-from network_plugin import network
+from vcloud_network_plugin import network
 
 
 class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
@@ -57,7 +57,7 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
                 'vdc': 'vdc_name'
             }
         })
-        with mock.patch('network_plugin.network.ctx', fake_ctx):
+        with mock.patch('vcloud_network_plugin.network.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 network._dhcp_operation(
                     fake_client, '_management_network', network.ADD_POOL
@@ -74,7 +74,7 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
                 'vdc': 'vdc_name'
             }
         })
-        with mock.patch('network_plugin.network.ctx', fake_ctx):
+        with mock.patch('vcloud_network_plugin.network.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 with self.assertRaises(cfy_exc.NonRecoverableError):
                     network._dhcp_operation(
@@ -93,7 +93,7 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
             }
         })
 
-        with mock.patch('network_plugin.network.ctx', fake_ctx):
+        with mock.patch('vcloud_network_plugin.network.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 # returned error/None from server
                 with self.assertRaises(cfy_exc.NonRecoverableError):

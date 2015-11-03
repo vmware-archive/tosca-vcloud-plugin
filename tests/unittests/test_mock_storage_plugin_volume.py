@@ -17,10 +17,10 @@ import unittest
 
 from cloudify import exceptions as cfy_exc
 from cloudify import mocks as cfy_mocks
-from storage_plugin import volume
+from vcloud_storage_plugin import volume
 import vcloud_plugin_common
 from tests.unittests import test_mock_base
-import network_plugin
+import vcloud_network_plugin
 
 
 class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
@@ -289,7 +289,7 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
                 'vcloud_plugin_common.ctx', fake_ctx
             ):
                 with mock.patch(
-                    'storage_plugin.volume.ctx', fake_ctx
+                    'vcloud_storage_plugin.volume.ctx', fake_ctx
                 ):
                     volume._volume_operation(fake_client, operation)
         # use external resource, no disks
@@ -371,7 +371,7 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
             'resource_id': 'some'
         }
         fake_ctx._target.instance.runtime_properties = {
-            network_plugin.VCLOUD_VAPP_NAME: self.VAPPNAME,
+            vcloud_network_plugin.VCLOUD_VAPP_NAME: self.VAPPNAME,
             'ip': "1.2.3.4"
         }
         return fake_ctx, fake_client
@@ -384,7 +384,7 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
         with mock.patch('vcloud_plugin_common.VcloudAirClient.get',
                         mock.MagicMock(return_value=fake_client)):
             with mock.patch(
-                    'storage_plugin.volume._wait_for_boot', mock.MagicMock()):
+                    'vcloud_storage_plugin.volume._wait_for_boot', mock.MagicMock()):
                 volume.attach_volume(ctx=fake_ctx)
 
     def test_detach_volume(self):

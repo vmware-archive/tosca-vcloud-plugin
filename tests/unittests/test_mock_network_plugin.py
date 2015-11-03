@@ -18,8 +18,8 @@ import collections
 
 from cloudify import exceptions as cfy_exc
 from tests.unittests import test_mock_base
-import network_plugin
-from network_plugin import utils
+import vcloud_network_plugin
+from vcloud_network_plugin import utils
 import vcloud_plugin_common
 
 
@@ -38,12 +38,12 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             }
         }
         fake_ctx._source.instance.runtime_properties = {
-            network_plugin.VCLOUD_VAPP_NAME: "name"
+            vcloud_network_plugin.VCLOUD_VAPP_NAME: "name"
         }
         # empty connections/no connection name
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                network_plugin.get_vm_ip(
+                vcloud_network_plugin.get_vm_ip(
                     fake_client, fake_ctx, fake_client._vdc_gateway
                 )
         vms_networks = [{
@@ -56,14 +56,14 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         # not routed
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                network_plugin.get_vm_ip(
+                vcloud_network_plugin.get_vm_ip(
                     fake_client, fake_ctx, fake_client._vdc_gateway
                 )
         # routed
         self.set_network_routed_in_client(fake_client)
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             self.assertEqual(
-                network_plugin.get_vm_ip(
+                vcloud_network_plugin.get_vm_ip(
                     fake_client, fake_ctx, fake_client._vdc_gateway
                 ),
                 '1.1.1.1'
@@ -74,14 +74,14 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                network_plugin.get_vm_ip(
+                vcloud_network_plugin.get_vm_ip(
                     fake_client, fake_ctx, fake_client._vdc_gateway
                 )
         # no vapp
         fake_client.get_vapp = mock.MagicMock(return_value=None)
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                network_plugin.get_vm_ip(
+                vcloud_network_plugin.get_vm_ip(
                     fake_client, fake_ctx, fake_client._vdc_gateway
                 )
 
@@ -92,7 +92,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         """
         # empty gateway
         self.assertEqual(
-            network_plugin.collectAssignedIps(None),
+            vcloud_network_plugin.collectAssignedIps(None),
             set([])
         )
         # snat
@@ -104,9 +104,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             return_value=[rule_inlist]
         )
         self.assertEqual(
-            network_plugin.collectAssignedIps(gateway),
+            vcloud_network_plugin.collectAssignedIps(gateway),
             set(
-                [network_plugin.AssignedIPs(
+                [vcloud_network_plugin.AssignedIPs(
                     external='internal', internal='external'
                 )]
             )
@@ -120,9 +120,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             rule_inlist
         ])
         self.assertEqual(
-            network_plugin.collectAssignedIps(gateway),
+            vcloud_network_plugin.collectAssignedIps(gateway),
             set(
-                [network_plugin.AssignedIPs(
+                [vcloud_network_plugin.AssignedIPs(
                     external='external', internal='internal'
                 )]
             )
@@ -142,7 +142,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         gateway.get_nat_rules = mock.MagicMock(return_value=[rule_inlist])
         self.assertEqual(
-            network_plugin.getFreeIP(gateway),
+            vcloud_network_plugin.getFreeIP(gateway),
             '10.18.1.2'
         )
         # no free ips
@@ -150,7 +150,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             '10.18.1.1'
         ])
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            network_plugin.getFreeIP(gateway)
+            vcloud_network_plugin.getFreeIP(gateway)
 
     def test_del_ondemand_public_ip(self):
         """
@@ -161,9 +161,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_node_context()
         # can't deallocate ip
         gateway.deallocate_public_ip = mock.MagicMock(return_value=None)
-        with mock.patch('network_plugin.wait_for_gateway', mock.MagicMock()):
+        with mock.patch('vcloud_network_plugin.wait_for_gateway', mock.MagicMock()):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                network_plugin.del_ondemand_public_ip(
+                vcloud_network_plugin.del_ondemand_public_ip(
                     fake_client, gateway, '127.0.0.1', fake_ctx)
         gateway.deallocate_public_ip.assert_called_with('127.0.0.1')
         # successfully dropped public ip
@@ -173,8 +173,8 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             )
         )
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
-            with mock.patch('network_plugin.wait_for_gateway', mock.MagicMock()):
-                network_plugin.del_ondemand_public_ip(
+            with mock.patch('vcloud_network_plugin.wait_for_gateway', mock.MagicMock()):
+                vcloud_network_plugin.del_ondemand_public_ip(
                     fake_client, gateway, '127.0.0.1', fake_ctx)
 
     def test_save_gateway_configuration(self):
@@ -191,7 +191,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         fake_ctx = self.generate_node_context()
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            network_plugin.save_gateway_configuration(
+            vcloud_network_plugin.save_gateway_configuration(
                 gateway, fake_client, fake_ctx)
         # error in status
         self.set_services_conf_result(
@@ -199,7 +199,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         with self.assertRaises(cfy_exc.NonRecoverableError):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
-                network_plugin.save_gateway_configuration(
+                vcloud_network_plugin.save_gateway_configuration(
                     gateway, fake_client, fake_ctx)
         # everything fine
         self.set_services_conf_result(
@@ -207,7 +207,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             self.assertTrue(
-                network_plugin.save_gateway_configuration(
+                vcloud_network_plugin.save_gateway_configuration(
                     gateway, fake_client, fake_ctx))
         # server busy
         self.set_services_conf_result(
@@ -215,7 +215,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         self.set_gateway_busy(gateway)
         self.assertFalse(
-            network_plugin.save_gateway_configuration(
+            vcloud_network_plugin.save_gateway_configuration(
                 gateway, fake_client, fake_ctx))
 
     def test_is_network_routed(self):
@@ -236,7 +236,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             network = self.generate_fake_client_network("not_routed")
             fake_client.get_network = mock.MagicMock(return_value=network)
             self.assertFalse(
-                network_plugin.is_network_routed(
+                vcloud_network_plugin.is_network_routed(
                     fake_client, 'network_name',
                     fake_client._vdc_gateway
                 )
@@ -244,14 +244,14 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             # nat routed
             self.set_network_routed_in_client(fake_client)
             self.assertTrue(
-                network_plugin.is_network_routed(
+                vcloud_network_plugin.is_network_routed(
                     fake_client, 'network_name',
                     fake_client._vdc_gateway
                 )
             )
             # nat routed but for other network
             self.assertFalse(
-                network_plugin.is_network_routed(
+                vcloud_network_plugin.is_network_routed(
                     fake_client, 'other_network_name',
                     fake_client._vdc_gateway
                 )
@@ -262,13 +262,13 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             check get vapp name
         """
         self.assertEqual(
-            network_plugin.get_vapp_name({
-                network_plugin.VCLOUD_VAPP_NAME: "name"
+            vcloud_network_plugin.get_vapp_name({
+                vcloud_network_plugin.VCLOUD_VAPP_NAME: "name"
             }),
             "name"
         )
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            network_plugin.get_vapp_name({
+            vcloud_network_plugin.get_vapp_name({
                 "aa": "aaa"
             })
 
@@ -302,12 +302,12 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             return_value=[rule_inlist]
         )
         # free ip
-        network_plugin.CheckAssignedExternalIp(
+        vcloud_network_plugin.CheckAssignedExternalIp(
             '10.10.1.2', gateway
         )
         # assigned ip
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            network_plugin.CheckAssignedExternalIp(
+            vcloud_network_plugin.CheckAssignedExternalIp(
                 '10.1.1.1', gateway
             )
 
@@ -326,12 +326,12 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             return_value=[rule_inlist]
         )
         # free ip
-        network_plugin.CheckAssignedInternalIp(
+        vcloud_network_plugin.CheckAssignedInternalIp(
             '123.1.1.2', gateway
         )
         # assigned ip
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            network_plugin.CheckAssignedInternalIp(
+            vcloud_network_plugin.CheckAssignedInternalIp(
                 '123.1.1.1', gateway
             )
 
@@ -344,7 +344,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_node_context()
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             self.assertEqual(
-                network_plugin.get_gateway(
+                vcloud_network_plugin.get_gateway(
                     fake_client, 'test name'
                 ),
                 fake_client._vdc_gateway
@@ -358,7 +358,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         fake_client.get_gateway = mock.MagicMock(return_value=None)
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                network_plugin.get_gateway(
+                vcloud_network_plugin.get_gateway(
                     fake_client, 'test name'
                 )
 
@@ -377,7 +377,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             self.assertEqual(
-                network_plugin.get_network(
+                vcloud_network_plugin.get_network(
                     fake_client, 'test name'
                 ),
                 fake_network
@@ -391,7 +391,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         fake_client.get_network = mock.MagicMock(return_value=None)
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                network_plugin.get_network(
+                vcloud_network_plugin.get_network(
                     fake_client, 'test name'
                 )
         # worse case = nework == None
@@ -399,7 +399,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_node_context()
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                network_plugin.get_network(
+                vcloud_network_plugin.get_network(
                     fake_client, None
                 )
 
@@ -409,12 +409,12 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         """
         # external without resource_id
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            network_plugin.get_network_name({
+            vcloud_network_plugin.get_network_name({
                 'use_external_resource': True
             })
         # exteranal with resource_id
         self.assertEqual(
-            network_plugin.get_network_name({
+            vcloud_network_plugin.get_network_name({
                 'use_external_resource': True,
                 'resource_id': 'some_text'
             }),
@@ -422,17 +422,17 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         # internal, without network
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            network_plugin.get_network_name({})
+            vcloud_network_plugin.get_network_name({})
         # network without name
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            network_plugin.get_network_name({
+            vcloud_network_plugin.get_network_name({
                 'network': {
                     'name': None
                 }
             })
         # good case
         self.assertEqual(
-            network_plugin.get_network_name({
+            vcloud_network_plugin.get_network_name({
                 'network': {
                     'name': 'good_text'
                 }
@@ -465,7 +465,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                network_plugin.get_ondemand_public_ip(
+                vcloud_network_plugin.get_ondemand_public_ip(
                     fake_client, fake_client._vdc_gateway, fake_ctx
                 )
         # success allocate ips, but empty list of ips
@@ -476,7 +476,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                network_plugin.get_ondemand_public_ip(
+                vcloud_network_plugin.get_ondemand_public_ip(
                     fake_client, fake_client._vdc_gateway, fake_ctx
                 )
         # exist some new ip
@@ -489,7 +489,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             self.assertEqual(
-                network_plugin.get_ondemand_public_ip(
+                vcloud_network_plugin.get_ondemand_public_ip(
                     fake_client, fake_client._vdc_gateway, fake_ctx
                 ),
                 '1.1.1.1'
@@ -512,7 +512,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_node_context()
         # for subscription we dont use client
         self.assertEqual(
-            network_plugin.get_public_ip(
+            vcloud_network_plugin.get_public_ip(
                 None, gateway,
                 vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE, fake_ctx
             ),
@@ -543,7 +543,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             self.assertEqual(
-                network_plugin.get_public_ip(
+                vcloud_network_plugin.get_public_ip(
                     fake_client, fake_client._vdc_gateway,
                     vcloud_plugin_common.ONDEMAND_SERVICE_TYPE, fake_ctx
                 ),
@@ -556,13 +556,13 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         """
         # wrong type
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            network_plugin.check_ip({'wrong': None})
+            vcloud_network_plugin.check_ip({'wrong': None})
         # wrong value
         with self.assertRaises(cfy_exc.NonRecoverableError):
-            network_plugin.check_ip("1.1.1.400")
+            vcloud_network_plugin.check_ip("1.1.1.400")
         # good case
         self.assertEqual(
-            network_plugin.check_ip("1.1.1.40"),
+            vcloud_network_plugin.check_ip("1.1.1.40"),
             "1.1.1.40"
         )
 
@@ -572,11 +572,11 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         """
         # wrong range
         self.assertFalse(
-            network_plugin.is_valid_ip_range("1.1.1.50", "1.1.1.40")
+            vcloud_network_plugin.is_valid_ip_range("1.1.1.50", "1.1.1.40")
         )
         # good case
         self.assertTrue(
-            network_plugin.is_valid_ip_range("1.1.1.40", "1.1.1.50")
+            vcloud_network_plugin.is_valid_ip_range("1.1.1.40", "1.1.1.50")
         )
 
     def test_is_network_exists(self):
@@ -591,7 +591,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             self.assertTrue(
-                network_plugin.is_network_exists(fake_client, 'test')
+                vcloud_network_plugin.is_network_exists(fake_client, 'test')
             )
         fake_client.get_network.assert_called_with('vdc_name', 'test')
         # network not exist
@@ -602,7 +602,7 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         )
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
             self.assertFalse(
-                network_plugin.is_network_exists(fake_client, 'test')
+                vcloud_network_plugin.is_network_exists(fake_client, 'test')
             )
 
     def test_is_ips_in_same_subnet(self):
@@ -611,13 +611,13 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         """
         # ips from several networks
         self.assertFalse(
-            network_plugin.is_ips_in_same_subnet(
+            vcloud_network_plugin.is_ips_in_same_subnet(
                 ['123.11.1.1', '123.11.3.1'], 24
             )
         )
         # ips from same network
         self.assertTrue(
-            network_plugin.is_ips_in_same_subnet(
+            vcloud_network_plugin.is_ips_in_same_subnet(
                 ['123.11.1.1', '123.11.1.1'], 24
             )
         )
@@ -629,14 +629,14 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         IPRange = collections.namedtuple('IPRange', 'start end')
         # positive case
         self.assertTrue(
-            network_plugin.is_separate_ranges(
+            vcloud_network_plugin.is_separate_ranges(
                 IPRange(start='1.1.1.1', end='1.1.1.11'),
                 IPRange(start='1.1.1.12', end='1.1.1.23')
             )
         )
         # negative case
         self.assertFalse(
-            network_plugin.is_separate_ranges(
+            vcloud_network_plugin.is_separate_ranges(
                 IPRange(start='1.1.1.1', end='1.1.1.15'),
                 IPRange(start='1.1.1.9', end='1.1.1.23')
             )

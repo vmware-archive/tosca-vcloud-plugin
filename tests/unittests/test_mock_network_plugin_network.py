@@ -17,7 +17,7 @@ import unittest
 
 from cloudify import exceptions as cfy_exc
 from tests.unittests import test_mock_base
-from network_plugin import network
+from vcloud_network_plugin import network
 import vcloud_plugin_common
 
 

@@ -19,7 +19,7 @@ from cloudify.decorators import operation
 from vcloud_plugin_common import (wait_for_task, with_vca_client,
                                   get_vcloud_config, get_mandatory,
                                   error_response)
-from network_plugin import get_vapp_name, SSH_PUBLIC_IP, SSH_PORT
+from vcloud_network_plugin import get_vapp_name, SSH_PUBLIC_IP, SSH_PORT
 
 
 @operation
