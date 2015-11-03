@@ -19,9 +19,9 @@ from vcloud_plugin_common import (with_vca_client, wait_for_task,
                                   get_vcloud_config, get_mandatory)
 import collections
 from vcloud_network_plugin import (check_ip, is_valid_ip_range, is_separate_ranges,
-                            is_ips_in_same_subnet, save_gateway_configuration,
-                            get_network_name, is_network_exists,
-                            get_gateway, set_retry)
+                                   is_ips_in_same_subnet, save_gateway_configuration,
+                                   get_network_name, is_network_exists,
+                                   get_gateway, set_retry)
 
 VCLOUD_NETWORK_NAME = 'vcloud_network_name'
 SKIP_CREATE_NETWORK = 'skip_create_network'

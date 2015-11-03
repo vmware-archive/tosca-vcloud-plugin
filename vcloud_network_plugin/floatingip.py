@@ -18,12 +18,12 @@ from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, get_vcloud_config,
                                   is_subscription, is_ondemand, get_mandatory)
 from vcloud_network_plugin import (check_ip, CheckAssignedExternalIp,
-                            CheckAssignedInternalIp, get_vm_ip,
-                            save_gateway_configuration, getFreeIP,
-                            CREATE, DELETE, PUBLIC_IP, get_gateway,
-                            SSH_PUBLIC_IP, SSH_PORT, save_ssh_parameters,
-                            get_public_ip, del_ondemand_public_ip,
-                            set_retry, lock_gateway)
+                                   CheckAssignedInternalIp, get_vm_ip,
+                                   save_gateway_configuration, getFreeIP,
+                                   CREATE, DELETE, PUBLIC_IP, get_gateway,
+                                   SSH_PUBLIC_IP, SSH_PORT, save_ssh_parameters,
+                                   get_public_ip, del_ondemand_public_ip,
+                                   set_retry, lock_gateway)
 
 
 @operation

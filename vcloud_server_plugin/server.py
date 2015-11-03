@@ -25,7 +25,7 @@ from vcloud_plugin_common import (get_vcloud_config,
                                   error_response,
                                   STATUS_POWERED_ON)
 from vcloud_network_plugin import (get_network_name, get_network, is_network_exists,
-                            get_vapp_name, GATEWAY_TIMEOUT, RETRY_COUNT)
+                                   get_vapp_name, GATEWAY_TIMEOUT, RETRY_COUNT)
 from vcloud_network_plugin.keypair import PUBLIC_KEY, SSH_KEY
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
