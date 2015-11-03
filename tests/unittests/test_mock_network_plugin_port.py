@@ -17,7 +17,7 @@ import unittest
 
 from cloudify import exceptions as cfy_exc
 from tests.unittests import test_mock_base
-from network_plugin import port
+from vcloud_network_plugin import port
 
 
 class NetworkPluginPortMockTestCase(test_mock_base.TestBase):

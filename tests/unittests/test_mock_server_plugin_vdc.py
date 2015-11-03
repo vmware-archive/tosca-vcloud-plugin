@@ -15,7 +15,7 @@
 import mock
 
 from cloudify import exceptions as cfy_exc
-from server_plugin import vdc
+from vcloud_server_plugin import vdc
 import vcloud_plugin_common
 from tests.unittests import test_mock_base
 

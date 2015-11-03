@@ -19,9 +19,9 @@ setup(
     version='1.3rc1',
     packages=[
         'vcloud_plugin_common',
-        'server_plugin',
-        'storage_plugin',
-        'network_plugin'
+        'vcloud_server_plugin',
+        'vcloud_storage_plugin',
+        'vcloud_network_plugin'
     ],
     license='LICENSE',
     description='Cloudify plugin for vmWare vCloud infrastructure.',

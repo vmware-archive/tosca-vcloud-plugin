@@ -17,7 +17,7 @@ import unittest
 
 from cloudify import exceptions as cfy_exc
 from tests.unittests import test_mock_base
-from network_plugin import security_group
+from vcloud_network_plugin import security_group
 import vcloud_plugin_common
 
 
@@ -77,7 +77,7 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         gateway.delete_fw_rule = mock.MagicMock(return_value=None)
         # any networks will be routed
         self.set_network_routed_in_client(fake_client)
-        with mock.patch('network_plugin.security_group.ctx', fake_ctx):
+        with mock.patch('vcloud_network_plugin.security_group.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 security_group._rule_operation(
                     rule_type, fake_client
@@ -96,7 +96,7 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         self.set_services_conf_result(
             fake_client._vdc_gateway, None
         )
-        with mock.patch('network_plugin.security_group.ctx', fake_ctx):
+        with mock.patch('vcloud_network_plugin.security_group.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 self.assertFalse(security_group._rule_operation(
                     rule_type, fake_client

@@ -15,9 +15,9 @@
 import mock
 import unittest
 from cloudify import mocks as cfy_mocks
-import network_plugin
-network_plugin.GATEWAY_TRY_COUNT = 2
-network_plugin.GATEWAY_TIMEOUT = 1
+import vcloud_network_plugin
+vcloud_network_plugin.GATEWAY_TRY_COUNT = 2
+vcloud_network_plugin.GATEWAY_TIMEOUT = 1
 
 
 class MockToscaCloudifyContext(cfy_mocks.MockCloudifyContext):
@@ -78,7 +78,7 @@ class TestBase(unittest.TestCase):
     def set_gateway_busy(self, gateway):
         message = gateway.response.content
         message = message.replace(
-            self.ERROR_PLACE, network_plugin.BUSY_MESSAGE
+            self.ERROR_PLACE, vcloud_network_plugin.BUSY_MESSAGE
         )
         gateway.response.content = message
 
@@ -207,7 +207,7 @@ class TestBase(unittest.TestCase):
             set any network as routed
         """
         network = self.generate_fake_client_network(
-            network_plugin.NAT_ROUTED
+            vcloud_network_plugin.NAT_ROUTED
         )
         fake_client.get_network = mock.MagicMock(return_value=network)
 

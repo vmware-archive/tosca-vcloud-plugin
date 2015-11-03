@@ -17,7 +17,7 @@ from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, get_vcloud_config,
                                   is_subscription, is_ondemand, get_mandatory)
-from network_plugin import (check_ip, CheckAssignedExternalIp,
+from vcloud_network_plugin import (check_ip, CheckAssignedExternalIp,
                             CheckAssignedInternalIp, get_vm_ip,
                             save_gateway_configuration, getFreeIP,
                             CREATE, DELETE, PUBLIC_IP, get_gateway,

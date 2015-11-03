@@ -17,7 +17,7 @@ import unittest
 
 from cloudify import exceptions as cfy_exc
 from cloudify import mocks as cfy_mocks
-from server_plugin import server
+from vcloud_server_plugin import server
 from tests.unittests import test_mock_base
 
 
@@ -61,7 +61,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
         server._check_hardware(1, 512)
 
     def test_build_script(self):
-        with mock.patch('server_plugin.server._get_connected_keypairs',
+        with mock.patch('vcloud_server_plugin.server._get_connected_keypairs',
                         mock.MagicMock(
                             return_value=[])):
             self.assertEqual(None, server._build_script({}, []))
@@ -73,7 +73,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                 'key': True
             }]
         }
-        with mock.patch('server_plugin.server._get_connected_keypairs',
+        with mock.patch('vcloud_server_plugin.server._get_connected_keypairs',
                         mock.MagicMock(
                             return_value=[{'key': 'key'}])):
             self.assertNotEqual(None, server._build_script(custom, []))
@@ -227,7 +227,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             provider_context={}
         )
 
-        with mock.patch('server_plugin.server.ctx', fake_ctx):
+        with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 self.assertEqual(
                     True, server._isDhcpAvailable(client, 'bridged')
@@ -276,7 +276,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             }
         })
         fake_client = self.generate_client()
-        with mock.patch('server_plugin.server.ctx', fake_ctx):
+        with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 connection = server._create_connections_list(fake_client)
                 self.assertEqual(
@@ -316,7 +316,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                 'name': 'some_network'
             }
         })
-        with mock.patch('server_plugin.server.ctx', fake_ctx):
+        with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 connection = server._create_connections_list(fake_client)
                 self.assertEqual(
@@ -351,13 +351,13 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                 'name': 'some_network'
             }
         })
-        with mock.patch('server_plugin.server.ctx', fake_ctx):
+        with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 with self.assertRaises(cfy_exc.NonRecoverableError):
                     server._create_connections_list(fake_client)
         # only managment node
         fake_ctx.instance._relationships = []
-        with mock.patch('server_plugin.server.ctx', fake_ctx):
+        with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 connection = server._create_connections_list(fake_client)
                 self.assertEqual(
@@ -377,7 +377,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             return None
 
         fake_client.get_network = _generate_fake_client_network
-        with mock.patch('server_plugin.server.ctx', fake_ctx):
+        with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 with self.assertRaises(cfy_exc.NonRecoverableError):
                     server._create_connections_list(fake_client)
@@ -442,7 +442,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
 
     def test_get_state(self):
         fake_ctx = self.generate_node_context()
-        with mock.patch('server_plugin.server.ctx', fake_ctx):
+        with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 # connected network_name
                 fake_client = self.generate_client([{

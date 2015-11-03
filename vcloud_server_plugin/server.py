@@ -24,9 +24,9 @@ from vcloud_plugin_common import (get_vcloud_config,
                                   with_vca_client,
                                   error_response,
                                   STATUS_POWERED_ON)
-from network_plugin import (get_network_name, get_network, is_network_exists,
+from vcloud_network_plugin import (get_network_name, get_network, is_network_exists,
                             get_vapp_name, GATEWAY_TIMEOUT, RETRY_COUNT)
-from network_plugin.keypair import PUBLIC_KEY, SSH_KEY
+from vcloud_network_plugin.keypair import PUBLIC_KEY, SSH_KEY
 
 VCLOUD_VAPP_NAME = 'vcloud_vapp_name'
 GUEST_CUSTOMIZATION = 'guest_customization'

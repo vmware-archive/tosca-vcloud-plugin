@@ -17,12 +17,12 @@ from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, get_vcloud_config,
                                   get_mandatory, is_subscription, is_ondemand)
-from network_plugin import (check_ip, save_gateway_configuration,
+from vcloud_network_plugin import (check_ip, save_gateway_configuration,
                             get_vm_ip, get_public_ip,
                             get_gateway, getFreeIP, CREATE, DELETE, PUBLIC_IP,
                             SSH_PUBLIC_IP, SSH_PORT, save_ssh_parameters,
                             del_ondemand_public_ip, utils, set_retry, lock_gateway)
-from network_plugin.network import VCLOUD_NETWORK_NAME
+from vcloud_network_plugin.network import VCLOUD_NETWORK_NAME
 from IPy import IP
 
 PORT_REPLACEMENT = 'port_replacement'

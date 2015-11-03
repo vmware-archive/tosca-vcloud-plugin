@@ -16,7 +16,7 @@ import unittest
 import mock
 from cloudify import exceptions as cfy_exc
 from tests.unittests import test_mock_base
-from network_plugin import keypair
+from vcloud_network_plugin import keypair
 
 
 class NetworkPluginKeyPairpMockTestCase(test_mock_base.TestBase):
@@ -39,12 +39,12 @@ class NetworkPluginKeyPairpMockTestCase(test_mock_base.TestBase):
             keypair.creation_validation(ctx=fake_ctx)
 
     def test_create(self):
-        patcher1 = mock.patch('network_plugin.keypair._save_key_file',
+        patcher1 = mock.patch('vcloud_network_plugin.keypair._save_key_file',
                               mock.MagicMock())
-        patcher2 = mock.patch('network_plugin.keypair._generate_pair',
+        patcher2 = mock.patch('vcloud_network_plugin.keypair._generate_pair',
                               mock.MagicMock(return_value=('public',
                                                            'private')))
-        patcher3 = mock.patch('network_plugin.keypair._create_path',
+        patcher3 = mock.patch('vcloud_network_plugin.keypair._create_path',
                               mock.MagicMock(return_value=(
                                   '~/.ssh/test_private.key')))
         patcher1.start()
@@ -72,7 +72,7 @@ class NetworkPluginKeyPairpMockTestCase(test_mock_base.TestBase):
         mock.patch.stopall()
 
     def test_delete(self):
-        patcher = mock.patch('network_plugin.keypair._delete_key_file',
+        patcher = mock.patch('vcloud_network_plugin.keypair._delete_key_file',
                              mock.MagicMock())
         patcher.start()
 
@@ -115,8 +115,8 @@ class NetworkPluginKeyPairpMockTestCase(test_mock_base.TestBase):
         fake_ctx._context = {}
         fake_ctx._context['storage'] = mock.MagicMock()
         fake_ctx._context['storage']._storage_dir = 'storage_dir'
-        patcher1 = mock.patch('network_plugin.keypair.ctx', fake_ctx)
-        patcher2 = mock.patch('network_plugin.keypair.os.environ',
+        patcher1 = mock.patch('vcloud_network_plugin.keypair.ctx', fake_ctx)
+        patcher2 = mock.patch('vcloud_network_plugin.keypair.os.environ',
                               {'VIRTUALENV': '/path/to/dir'})
         patcher1.start()
         patcher2.start()
@@ -125,7 +125,7 @@ class NetworkPluginKeyPairpMockTestCase(test_mock_base.TestBase):
 
         patcher1.stop()
         fake_ctx._local = False
-        patcher1 = mock.patch('network_plugin.keypair.ctx', fake_ctx)
+        patcher1 = mock.patch('vcloud_network_plugin.keypair.ctx', fake_ctx)
         patcher1.start()
         path = keypair._create_path()
         self.assertEqual('/path/to/id_private.key', path)
@@ -137,14 +137,14 @@ class NetworkPluginKeyPairpMockTestCase(test_mock_base.TestBase):
         with mock.patch(
                 '__builtin__.open', fake_file, create=True):
             with mock.patch(
-                    'network_plugin.keypair.chmod'):
+                    'vcloud_network_plugin.keypair.chmod'):
                 keypair._save_key_file('/path/to/file/', 'private')
         handle = fake_file()
         handle.write.assert_called_once_with('private')
 
     def test_delete_key_file(self):
         with mock.patch(
-                'network_plugin.keypair.os.unlink'):
+                'vcloud_network_plugin.keypair.os.unlink'):
             keypair._delete_key_file('/path/')
 
 if __name__ == '__main__':
