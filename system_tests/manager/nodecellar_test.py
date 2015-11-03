@@ -37,12 +37,3 @@ class VcloudNodeCellarTest(nodecellar_test.NodecellarAppTest):
     @property
     def expected_nodes_count(self):
         return 9
-
-    @property
-    def repo_url(self):
-        return 'https://github.com/kostya13/cloudify-nodecellar-example.git'
-
-    @property
-    def repo_branch(self):
-        return 'vcloud-example'
-
