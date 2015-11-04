@@ -2,6 +2,8 @@ plugins:
     vcloud:
         executor: central_deployment_agent
         source: https://github.com/cloudify-cosmo/tosca-vcloud-plugin/archive/master.zip
+        package_name: cloudify-vcloud-plugin
+        package_version: 1.3rc1
 
 node_types:
     cloudify.vcloud.nodes.Server:
