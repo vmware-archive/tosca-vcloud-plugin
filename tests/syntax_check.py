@@ -16,7 +16,6 @@
 import yaml
 
 yaml_files = ['../examples/blueprint.yaml',
-              '../manager_blueprint/vcloud-manager-blueprint.yaml',
               '../plugin.yaml']
 
 
