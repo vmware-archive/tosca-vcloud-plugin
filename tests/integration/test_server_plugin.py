@@ -49,6 +49,12 @@ class ServerTestCase(TestCase):
         self.failed = False
 
     @fail_guard
+    def test_interface_inputs(self):
+        self.init('server_use_interface_inputs.yaml')
+        self.install()
+        self.uninstall()
+
+    @fail_guard
     def test_connect_to_network(self):
         self.init('server_to_network.yaml')
         self.install()
