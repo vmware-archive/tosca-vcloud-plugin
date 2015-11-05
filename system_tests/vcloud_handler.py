@@ -135,8 +135,11 @@ class VcloudHandler(BaseHandler):
         super(VcloudHandler, self).before_bootstrap()
         vca = login(self.env.cloudify_config)
         if vca.get_vdc(TEST_VDC):
-            task = vca.delete_vdc(TEST_VDC)
-            wait_for_task(vca, task)
+            status, task = vca.delete_vdc(TEST_VDC)
+            if status:
+                wait_for_task(vca, task)
+            else:
+                raise RuntimeError("Can't delete test VDC")
         if vca:
             task = vca.create_vdc(TEST_VDC)
             wait_for_task(vca, task)
