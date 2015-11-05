@@ -1,0 +1,15 @@
+    test_server:
+        type: cloudify.vcloud.nodes.Server
+        properties:
+            server:
+                template: { get_input: template }
+            install_agent: false
+            vcloud_config: { get_property: [vcloud_configuration, vcloud_config] }
+        interfaces:
+          cloudify.interfaces.lifecycle:
+              create:
+                inputs:
+                    properties:
+                        management_network: { get_input: network_name }
+                        server:
+                            catalog: { get_input: catalog }

@@ -18,6 +18,7 @@ import yaml
 import os
 import requests
 import time
+import collections
 
 from pyvcloud import vcloudair
 from pyvcloud.schema.vcd.v1_5.schemas.vcloud import taskType
@@ -379,11 +380,21 @@ class VcloudAirClient(object):
         return vca
 
 
+def _update_nested(d, u):
+    for k, v in u.iteritems():
+        if isinstance(v, collections.Mapping):
+            r = _update_nested(d.get(k, {}), v)
+            d[k] = r
+        else:
+            d[k] = u[k]
+    return d
+
+
 def _update_static_properties(node, kw, element):
     if element in kw:
         node._node = node._endpoint.get_node(node.id)
         props = node._node.get('properties', {})
-        props.update(kw[element])
+        _update_nested(props, kw[element])
         node._node['properties'] = ImmutableProperties(props)
 
 
