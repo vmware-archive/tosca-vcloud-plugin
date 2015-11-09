@@ -23,8 +23,8 @@ class VcloudNodeCellarTest(nodecellar_test.NodecellarAppTest):
 
     def get_inputs(self):
         return {
-            'catalog':  'Public Catalog',
-            'template': 'Ubuntu Server 12.04 LTS (amd64 20150127)',
+            'catalog':  self.env.catalog,
+            'template': self.env.ubuntu_precise_template,
             'edge_gateway': self.env.edge_gateway,
             'management_network_name': self.env.management_network_name,
             'agent_public_key': self.env.agent_public_key
