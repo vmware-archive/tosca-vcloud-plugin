@@ -23,7 +23,7 @@ class VcloudNodeCellarTest(nodecellar_test.NodecellarAppTest):
 
     def get_inputs(self):
         return {
-            'catalog':  self.env.catalog,
+            'catalog':  self.env.public_catalog,
             'template': self.env.ubuntu_precise_template,
             'edge_gateway': self.env.edge_gateway,
             'management_network_name': self.env.management_network_name,

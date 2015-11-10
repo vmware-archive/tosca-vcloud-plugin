@@ -126,6 +126,13 @@ class CloudifyVcloudInputsConfigReader(BaseCloudifyInputsConfigReader):
     def vcloud_region(self):
         return self.config['vcloud_region']
 
+    @property
+    def public_catalog(self):
+        return 'Public Catalog'
+    @property
+    def ubuntu_precise_template(self):
+        return 'Ubuntu Server 12.04 LTS (amd64 20150127)'
+
 
 class VcloudHandler(BaseHandler):
     CleanupContext = VcloudCleanupContext
