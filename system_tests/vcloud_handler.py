@@ -99,16 +99,16 @@ class CloudifyVcloudInputsConfigReader(BaseCloudifyInputsConfigReader):
         return self.config['floating_ip_public_ip']
 
     @property
-    def manager_private_key_path(self):
-        return self.config['manager_private_key_path']
+    def ssh_key_filename(self):
+        return self.config['ssh_key_filename']
 
     @property
     def agent_private_key_path(self):
         return self.config['agent_private_key_path']
 
     @property
-    def manager_public_key(self):
-        return self.config['manager_public_key']
+    def user_public_key(self):
+        return self.config['user_public_key']
 
     @property
     def agent_public_key(self):
