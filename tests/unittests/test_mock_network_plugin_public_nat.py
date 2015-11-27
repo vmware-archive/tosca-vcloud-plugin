@@ -363,7 +363,12 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 gateway, vcloud_plugin_common.TASK_STATUS_SUCCESS
             )
             fake_ctx._target.instance.runtime_properties = {
-                vcloud_network_plugin.PUBLIC_IP: "1.2.3.4"
+                vcloud_network_plugin.PUBLIC_IP: "1.2.3.4",
+                public_nat.PORT_REPLACEMENT: {
+                    '127.0.0.1:10': '100'
+                },
+                vcloud_network_plugin.SSH_PORT: '23',
+                vcloud_network_plugin.SSH_PUBLIC_IP: '10.1.1.1'
             }
             properties = {
                 'vcloud_config': {
@@ -489,6 +494,16 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 )
         gateway.deallocate_public_ip.assert_called_with("1.2.3.4")
         self.assertFalse(_ip_exist_in_runtime(fake_ctx))
+        runtime_properties = fake_ctx._target.instance.runtime_properties
+        self.assertFalse(
+            public_nat.PORT_REPLACEMENT in runtime_properties
+        )
+        self.assertFalse(
+            vcloud_network_plugin.SSH_PORT in runtime_properties
+        )
+        self.assertFalse(
+            vcloud_network_plugin.SSH_PUBLIC_IP in runtime_properties
+        )
 
     def test_nat_network_operation(self):
         fake_client = self.generate_client()
@@ -908,7 +923,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         ):
             public_nat.creation_validation(ctx=fake_ctx)
 
-    def test_server_disconnect_from_nat(self):
+    def _server_disconnect_to_nat_noexternal(self):
         fake_client, fake_ctx = self.generate_client_and_context_server()
         fake_ctx._target.instance.runtime_properties = {
             vcloud_network_plugin.PUBLIC_IP: '192.168.1.1'
@@ -932,6 +947,11 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             'gateway_lock': False,
             'vcloud_vapp_name': 'vapp'
         }
+        return fake_client, fake_ctx
+
+    def test_server_disconnect_from_nat(self):
+        # successful
+        fake_client, fake_ctx = self._server_disconnect_to_nat_noexternal()
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -940,8 +960,17 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         fake_client._vdc_gateway.del_nat_rule.assert_called_with(
             'DNAT', '192.168.1.1', 'any', '1.1.1.1', 'any', 'any'
         )
+        # check retry
+        fake_client, fake_ctx = self._server_disconnect_to_nat_noexternal()
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            self.prepere_gatway_busy_retry(fake_client, fake_ctx)
+            public_nat.server_disconnect_from_nat(ctx=fake_ctx)
+            self.check_retry_realy_called(fake_ctx)
 
-    def test_server_connect_to_nat(self):
+    def _server_connect_to_nat_noexternal(self):
         fake_client, fake_ctx = self.generate_client_and_context_server()
         fake_ctx._target.instance.runtime_properties = {
             vcloud_network_plugin.PUBLIC_IP: '192.168.1.1'
@@ -969,6 +998,10 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         fake_client._vdc_gateway.get_public_ips = mock.MagicMock(
             return_value=['10.18.1.1']
         )
+        return fake_client, fake_ctx
+
+    def test_server_connect_to_nat(self):
+        fake_client, fake_ctx = self._server_connect_to_nat_noexternal()
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -977,6 +1010,33 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         fake_client._vdc_gateway.add_nat_rule.assert_called_with(
             'DNAT', '10.18.1.1', 'any', '1.1.1.1', 'any', 'any'
         )
+        fake_client, fake_ctx = self._server_connect_to_nat_noexternal()
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            self.prepere_gatway_busy_retry(fake_client, fake_ctx)
+            public_nat.server_connect_to_nat(ctx=fake_ctx)
+            self.check_retry_realy_called(fake_ctx)
+
+    def _net_disconnect_from_nat_noexternal(self):
+        fake_client, fake_ctx = self.generate_client_and_context_network()
+        fake_ctx._target.node.properties = {
+            'nat': {
+                'edge_gateway': 'gateway'
+            },
+            'rules': [{
+                'type': 'DNAT'
+            }]
+        }
+        fake_ctx._source.node.properties = {
+            'vcloud_config':
+            {
+                'edge_gateway': 'gateway',
+                'vdc': 'vdc'
+            }
+        }
+        return fake_client, fake_ctx
 
     def test_net_disconnect_from_nat(self):
         # use external
@@ -1002,23 +1062,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
         ):
             public_nat.net_disconnect_from_nat(ctx=fake_ctx)
         # no external
-        fake_client, fake_ctx = self.generate_client_and_context_network()
-        fake_ctx._target.node.properties = {
-            'nat': {
-                'edge_gateway': 'gateway'
-            },
-            'rules': [{
-                'type': 'DNAT'
-            }]
-        }
-        fake_ctx._source.node.properties = {
-            'vcloud_config':
-            {
-                'edge_gateway': 'gateway',
-                'vdc': 'vdc'
-            }
-        }
-
+        fake_client, fake_ctx = self._net_disconnect_from_nat_noexternal()
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -1028,6 +1072,15 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             'DNAT', '192.168.1.1', 'any', '127.1.1.100 - 127.1.1.200',
             'any', 'any'
         )
+        # retry check
+        fake_client, fake_ctx = self._net_disconnect_from_nat_noexternal()
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            self.prepere_gatway_busy_retry(fake_client, fake_ctx)
+            public_nat.net_disconnect_from_nat(ctx=fake_ctx)
+            self.check_retry_realy_called(fake_ctx)
 
     def test_net_connect_to_nat(self):
         # use external
@@ -1078,6 +1131,14 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             'DNAT', '10.18.1.1', 'any', '127.1.1.100 - 127.1.1.200',
             'any', 'any'
         )
+        # retry check
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            self.prepere_gatway_busy_retry(fake_client, fake_ctx)
+            public_nat.net_connect_to_nat(ctx=fake_ctx)
+            self.check_retry_realy_called(fake_ctx)
 
     def test_net_connect_to_nat_preconfigure(self):
         fake_client, fake_ctx = self.generate_client_and_context_network()

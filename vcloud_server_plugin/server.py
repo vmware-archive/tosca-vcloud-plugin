@@ -560,17 +560,23 @@ fi
 
 
 def _get_connected_keypairs():
+    """
+        return public keys connected to node
+    """
     relationships = getattr(ctx.instance, 'relationships', None)
     if relationships:
         return [relationship.target.instance.runtime_properties[PUBLIC_KEY]
                 for relationship in relationships
-                if 'public_key' in
+                if PUBLIC_KEY in
                 relationship.target.instance.runtime_properties]
     else:
         return []
 
 
 def _add_key_script(commands, user, ssh_dir, keys_file, public_key):
+    """
+        return commands for inject public key to node
+    """
     add_key_template = "echo '{0}\n' >> {1}"
     test_ssh_dir_template = """
     if [ ! -d {1} ];then

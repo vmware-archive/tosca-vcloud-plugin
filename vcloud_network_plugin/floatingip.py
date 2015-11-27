@@ -128,7 +128,7 @@ def _floatingip_operation(operation, vca_client, ctx):
             del ctx.target.instance.runtime_properties[PUBLIC_IP]
         if SSH_PUBLIC_IP in ctx.source.instance.runtime_properties:
             del ctx.source.instance.runtime_properties[SSH_PUBLIC_IP]
-        if SSH_PORT in ctx.target.instance.runtime_properties:
+        if SSH_PORT in ctx.source.instance.runtime_properties:
             del ctx.source.instance.runtime_properties[SSH_PORT]
     return True
 

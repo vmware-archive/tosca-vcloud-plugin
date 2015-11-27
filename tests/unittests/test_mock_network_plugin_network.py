@@ -97,12 +97,28 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             fake_client.delete_vdc_network.assert_called_with(
                 'vdc_name', 'secret_network'
             )
+            # retry in save configuration
+            self.prepere_gatway_busy_retry(fake_client, fake_ctx)
+            network.delete(ctx=fake_ctx)
+            self.check_retry_realy_called(fake_ctx)
             # Success in deleted vdc network
+            self.set_services_conf_result(
+                fake_client._vdc_gateway,
+                vcloud_plugin_common.TASK_STATUS_SUCCESS
+            )
             task_delete_vdc = self.generate_task(
                 vcloud_plugin_common.TASK_STATUS_SUCCESS
             )
             fake_client.delete_vdc_network = mock.MagicMock(
                 return_value=(True, task_delete_vdc)
+            )
+            network.delete(ctx=fake_ctx)
+            # in use
+            task_delete_vdc = self.generate_task(
+                vcloud_plugin_common.TASK_STATUS_SUCCESS
+            )
+            fake_client.delete_vdc_network = mock.MagicMock(
+                return_value=(False, network.CANT_DELETE)
             )
             network.delete(ctx=fake_ctx)
 
@@ -151,7 +167,7 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             )
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 network.create(ctx=fake_ctx)
-            # success in create_vdc_network
+            # retry in save configuration
             fake_client.create_vdc_network = mock.MagicMock(
                 return_value=(
                     True, self.generate_task(
@@ -159,6 +175,12 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
                     )
                 )
             )
+            self.prepere_gatway_busy_retry(fake_client, fake_ctx)
+            network.create(ctx=fake_ctx)
+            self.check_retry_realy_called(fake_ctx)
+            runtime_properties = fake_ctx.instance.runtime_properties
+            self.assertTrue(runtime_properties[network.SKIP_CREATE_NETWORK])
+            # success in create_vdc_network
             self.set_services_conf_result(
                 fake_client._vdc_gateway,
                 vcloud_plugin_common.TASK_STATUS_SUCCESS
@@ -221,6 +243,31 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 network.create(ctx=fake_ctx)
 
+    def node_for_check_create_network(self):
+        return self.generate_node_context(
+            properties={
+                'network': {
+                    'dhcp': {
+                        'dhcp_range': "10.1.1.128-10.1.1.255"
+                    },
+                    'static_range': "10.1.1.2-10.1.1.127",
+                    'gateway_ip': "10.1.1.1",
+                    'edge_gateway': 'gateway',
+                    'name': 'secret_network',
+                    "netmask": '255.255.255.0',
+                    "dns": ["8.8.8.8", "4.4.4.4"]
+                },
+                'vcloud_config': {
+                    'vdc': 'vdc_name'
+                },
+                'use_external_resource': False,
+                'resource_id': 'secret_network'
+            },
+            runtime_properties={
+                'vcloud_network_name': 'secret_network'
+            }
+        )
+
     def test_create_exist_same_network(self):
         fake_client = self.generate_client(
             vdc_networks=['secret_network']
@@ -230,32 +277,26 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             # exist same network
-            fake_ctx = self.generate_node_context(
-                properties={
-                    'network': {
-                        'dhcp': {
-                            'dhcp_range': "10.1.1.128-10.1.1.255"
-                        },
-                        'static_range': "10.1.1.2-10.1.1.127",
-                        'gateway_ip': "10.1.1.1",
-                        'edge_gateway': 'gateway',
-                        'name': 'secret_network',
-                        "netmask": '255.255.255.0',
-                        "dns": ["8.8.8.8", "4.4.4.4"]
-                    },
-                    'vcloud_config': {
-                        'vdc': 'vdc_name'
-                    },
-                    'use_external_resource': False,
-                    'resource_id': 'secret_network'
-                },
-                runtime_properties={
-                    'vcloud_network_name': 'secret_network'
-                }
-            )
+            fake_ctx = self.node_for_check_create_network()
             fake_client.get_network = mock.MagicMock(return_value=None)
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 network.create(ctx=fake_ctx)
+
+    def test_dhcp_operation(self):
+        fake_ctx = fake_ctx = self.node_for_check_create_network()
+        fake_client = self.generate_client(
+            vdc_networks=['secret_network']
+        )
+        fake_client._vdc_gateway.is_busy = mock.MagicMock(
+            return_value=True
+        )
+        with mock.patch('vcloud_network_plugin.network.ctx', fake_ctx):
+            with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+                self.assertFalse(
+                    network._dhcp_operation(
+                        fake_client, 'secret_network', network.DELETE_POOL
+                    )
+                )
 
     def test_creation_validation(self):
         fake_client = self.generate_client(
