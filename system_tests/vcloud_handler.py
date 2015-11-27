@@ -23,6 +23,7 @@ import requests
 
 TEST_VDC = "systest"
 
+
 class VcloudCleanupContext(BaseHandler.CleanupContext):
 
     def __init__(self, context_name, env):
@@ -34,9 +35,7 @@ class VcloudCleanupContext(BaseHandler.CleanupContext):
         Cleans *all* resources, including resources that were not
         created by the test
         """
-        import pdb; pdb.set_trace()
-        super(OpenstackCleanupContext, cls).clean_all(env)
-        #delete test VDC
+        super(VcloudCleanupContext, cls).clean_all(env)
 
 
 class CloudifyVcloudInputsConfigReader(BaseCloudifyInputsConfigReader):
@@ -129,6 +128,7 @@ class CloudifyVcloudInputsConfigReader(BaseCloudifyInputsConfigReader):
     @property
     def public_catalog(self):
         return 'Public Catalog'
+
     @property
     def ubuntu_precise_template(self):
         return 'Ubuntu Server 12.04 LTS (amd64 20150127)'
@@ -158,18 +158,20 @@ handler = VcloudHandler
 
 def login(env):
     vca = vcloudair.VCA(
-            host=env['vcloud_url'],
-            username=env['vcloud_username'],
-            service_type=env['vcloud_service_type'],
-            version="5.7",
-            verify=False)
+        host=env['vcloud_url'],
+        username=env['vcloud_username'],
+        service_type=env['vcloud_service_type'],
+        version="5.7",
+        verify=False)
     logined = (vca.login(env['vcloud_password']) and
                vca.login_to_instance(env['vcloud_instance'], env['vcloud_password']) and
-               vca.login_to_instance(env['vcloud_instance'], None, vca.vcloud_session.token, vca.vcloud_session.org_url))
+               vca.login_to_instance(env['vcloud_instance'], None,
+                                     vca.vcloud_session.token, vca.vcloud_session.org_url))
     if logined:
         return vca
     else:
         return None
+
 
 def wait_for_task(vca_client, task):
     TASK_RECHECK_TIMEOUT = 5
@@ -194,4 +196,3 @@ def wait_for_task(vca_client, task):
         task = taskType.parseString(response.content, True)
         status = task.get_status()
     raise RuntimeError("Wait for task timeout.")
-
