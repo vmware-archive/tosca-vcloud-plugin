@@ -96,8 +96,17 @@ class TestBase(unittest.TestCase):
         """
         ctx.operation.retry.assert_called_with(
             message='Waiting for gateway.',
-            retry_after=30
+            retry_after=vcloud_network_plugin.GATEWAY_TIMEOUT
         )
+
+    def prepere_gatway_busy_retry(self, fake_client, fake_ctx):
+        """any operation for save gateway settings will return False"""
+        gateway = fake_client._vdc_gateway
+        self.set_gateway_busy(gateway)
+        self.set_services_conf_result(
+            fake_client._vdc_gateway, None
+        )
+        self.prepare_retry(fake_ctx)
 
     def generate_gateway(
         self, vdc_name="vdc", vms_networks=None, vdc_networks=None

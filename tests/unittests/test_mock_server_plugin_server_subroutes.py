@@ -476,6 +476,33 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                 }])
                 self.assertTrue(server._get_state(fake_client))
 
+    def test_add_key_script(self):
+        commands = []
+        server._add_key_script(commands, "~A~", "~B~", "~C~", "~D~")
+        self.assertTrue(commands)
+        # check create directory .ssh
+        self.assertTrue("~A~" in commands[0])
+        self.assertTrue("~B~" in commands[0])
+        self.assertTrue("~C~" in commands[0])
+        # inject value to key file
+        self.assertTrue("~C~" in commands[0])
+        self.assertTrue("~D~" in commands[1])
+
+    def test_get_connected_keypairs(self):
+        # empty list of relationships
+        fake_ctx = self.generate_node_context()
+        fake_ctx.instance._relationships = None
+        with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
+            self.assertEqual([], server._get_connected_keypairs())
+        # exist some content
+        relationship = self.generate_relation_context()
+        runtime_properties = {'public_key': "a"}
+        relationship.target.instance.runtime_properties = runtime_properties
+        fake_ctx.instance._relationships = [relationship]
+        with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
+            self.assertEqual(
+                server._get_connected_keypairs(), ["a"]
+            )
 
 if __name__ == '__main__':
     unittest.main()

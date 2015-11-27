@@ -355,7 +355,12 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
+            # success case
             security_group.create(ctx=fake_ctx)
+            # with retry
+            self.prepere_gatway_busy_retry(fake_client, fake_ctx)
+            security_group.create(ctx=fake_ctx)
+            self.check_retry_realy_called(fake_ctx)
 
     def test_delete(self):
         fake_ctx = self.generate_context_for_security_group()
@@ -382,7 +387,12 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
+            # successful
             security_group.delete(ctx=fake_ctx)
+            # with retry
+            self.prepere_gatway_busy_retry(fake_client, fake_ctx)
+            security_group.delete(ctx=fake_ctx)
+            self.check_retry_realy_called(fake_ctx)
 
     def check_creation_validation(self, rule):
         fake_client = self.generate_client()

@@ -370,8 +370,7 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             'ssh_public_ip': '1.2.3.1'
         }
         fake_ctx._source.node.properties = {
-            'vcloud_config':
-            {
+            'vcloud_config': {
                 'edge_gateway': 'gateway',
                 'vdc': 'vdc'
             }
@@ -382,6 +381,7 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
                 vcloud_plugin_common.TASK_STATUS_SUCCESS
             )
         )
+        # successfull
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -393,6 +393,23 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
         self.assertFalse(
             vcloud_network_plugin.PUBLIC_IP in runtime_properties
         )
+        runtime_properties = fake_ctx._source.instance.runtime_properties
+        self.assertFalse(
+            vcloud_network_plugin.SSH_PORT in runtime_properties
+        )
+        # with retry
+        fake_ctx._target.instance.runtime_properties = {
+            vcloud_network_plugin.PUBLIC_IP: '10.10.1.2'
+        }
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            self.prepere_gatway_busy_retry(fake_client, fake_ctx)
+            floatingip.disconnect_floatingip(
+                ctx=fake_ctx
+            )
+            self.check_retry_realy_called(fake_ctx)
 
     def test_connect_floatingip(self):
         """
@@ -423,6 +440,7 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
         fake_client._vdc_gateway.get_nat_rules = mock.MagicMock(
             return_value=[]
         )
+        # successfull
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -438,6 +456,16 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             runtime_properties.get(vcloud_network_plugin.PUBLIC_IP),
             '10.10.2.3'
         )
+        # with retry
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            self.prepere_gatway_busy_retry(fake_client, fake_ctx)
+            floatingip.connect_floatingip(
+                ctx=fake_ctx
+            )
+            self.check_retry_realy_called(fake_ctx)
 
     def test_floatingip_operation_create(self):
         """
