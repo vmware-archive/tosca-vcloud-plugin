@@ -131,10 +131,8 @@ def prepare_network_operation(vca_client, operation):
         if not public_ip:
             ctx.logger.info("We dont have public ip. Retrying...")
             return False
+        # if no private ip_range - raised error
         private_ip = _create_ip_range(vca_client, gateway)
-        if not private_ip:
-            ctx.logger.info("We dont have private ip. Retrying...")
-            return False
         for rule in ctx.target.node.properties['rules']:
             rule_type = rule['type']
             nat_network_operation(
@@ -263,7 +261,8 @@ def _save_configuration(gateway, vca_client, operation, public_ip):
 
 def _create_ip_range(vca_client, gateway):
     """
-        return ip range by avaible ranges from gateway and current network
+        return ip range by avaible ranges from gateway and current network,
+        on error - raise error, never return None
     """
     network_name = ctx.source.instance.runtime_properties[VCLOUD_NETWORK_NAME]
     vdc_name = get_vcloud_config()['vdc']

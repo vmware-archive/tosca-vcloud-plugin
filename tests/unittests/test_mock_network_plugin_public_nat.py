@@ -515,11 +515,14 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                 "2.3.4.5", "11", "11", "TCP"
             )
         # run correct operation/rule
-        fake_ctx = self.generate_relation_context()
-        fake_ctx._target.instance.runtime_properties = {
-            public_nat.PORT_REPLACEMENT: {}}
         for operation in [vcloud_network_plugin.DELETE, vcloud_network_plugin.CREATE]:
             for rule_type in ["SNAT", "DNAT"]:
+                # cleanup properties
+                fake_ctx = self.generate_relation_context()
+                fake_ctx._target.instance.runtime_properties = {
+                    public_nat.PORT_REPLACEMENT: {}}
+                fake_ctx._source.instance.runtime_properties = {}
+                # checks
                 with mock.patch(
                     'vcloud_network_plugin.public_nat.ctx', fake_ctx
                 ):
@@ -552,16 +555,47 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                             'SNAT', '2.3.4.5', 'any', '1.2.3.4', 'any',
                             'any'
                         )
+        # cleanup properties
+        fake_ctx = self.generate_relation_context()
+        fake_ctx._target.instance.runtime_properties = {
+            public_nat.PORT_REPLACEMENT: {}}
+        fake_ctx._source.instance.runtime_properties = {}
+        # save ssh port
+        with mock.patch(
+            'vcloud_network_plugin.public_nat.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+                public_nat.nat_network_operation(
+                    fake_client, gateway, vcloud_network_plugin.CREATE,
+                    "DNAT", "1.2.3.4", "2.3.4.5", "43", "22", "TCP"
+                )
+                self.assertEqual(
+                    {'port_replacement': {'1.2.3.4:43': 43}},
+                    fake_ctx._target.instance.runtime_properties
+                )
+                self.assertEqual(
+                    {'ssh_port': '43', 'ssh_public_ip': '1.2.3.4'},
+                    fake_ctx._source.instance.runtime_properties
+                )
+                # error with type
+                with self.assertRaises(cfy_exc.NonRecoverableError):
+                    public_nat.nat_network_operation(
+                        fake_client, gateway, vcloud_network_plugin.CREATE,
+                        "QNAT", "1.2.3.4", "2.3.4.5", "43", "22", "TCP"
+                    )
 
-    def generate_client_and_context_server(self):
+    def generate_client_and_context_server(self, no_vmip=False):
         """
             for test prepare_server_operation based operations
         """
+        vm_ip = '1.1.1.1' if not no_vmip else None
         fake_client = self.generate_client(vms_networks=[{
             'is_connected': True,
             'network_name': 'network_name',
             'is_primary': True,
-            'ip': '1.1.1.1'
+            'ip': vm_ip
         }])
         self.set_network_routed_in_client(fake_client)
         fake_ctx = self.generate_relation_context()
@@ -599,6 +633,59 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                     public_nat.prepare_server_operation(
                         fake_client, vcloud_network_plugin.DELETE
                     )
+        # public ip equal to None in node properties
+        fake_client, fake_ctx = self.generate_client_and_context_server()
+        fake_ctx._target.node.properties = {
+            'nat': {
+                'edge_gateway': 'gateway'
+            },
+            'rules': [{
+                'type': 'DNAT',
+                'protocol': 'TCP',
+                'original_port': "11",
+                'translated_port': "11"
+            }]
+        }
+        fake_ctx._target.instance.runtime_properties = {
+            vcloud_network_plugin.PUBLIC_IP: None
+        }
+        with mock.patch(
+            'vcloud_network_plugin.public_nat.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+                self.assertFalse(
+                    public_nat.prepare_server_operation(
+                        fake_client, vcloud_network_plugin.DELETE
+                    )
+                )
+        # we dont have connected private ip
+        fake_client, fake_ctx = self.generate_client_and_context_server(
+            no_vmip=True
+        )
+        fake_ctx._target.node.properties = {
+            'nat': {
+                'edge_gateway': 'gateway'
+            },
+            'rules': [{
+                'type': 'DNAT',
+                'protocol': 'TCP',
+                'original_port': "11",
+                'translated_port': "11"
+            }]
+        }
+        with mock.patch(
+            'vcloud_network_plugin.public_nat.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+                self.assertFalse(
+                    public_nat.prepare_server_operation(
+                        fake_client, vcloud_network_plugin.DELETE
+                    )
+                )
         # with some rules
         fake_client, fake_ctx = self.generate_client_and_context_server()
         fake_ctx._target.node.properties = {
@@ -726,6 +813,31 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
                     public_nat.prepare_network_operation(
                         fake_client, vcloud_network_plugin.DELETE
                     )
+        # public ip equal to None in node properties
+        fake_client, fake_ctx = self.generate_client_and_context_network()
+        fake_ctx._target.instance.runtime_properties = {
+            vcloud_network_plugin.PUBLIC_IP: None
+        }
+        fake_ctx._target.node.properties = {
+            'nat': {
+                'edge_gateway': 'gateway'
+            },
+            'rules': [{
+                'type': 'DNAT',
+
+            }]
+        }
+        with mock.patch(
+            'vcloud_network_plugin.public_nat.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'vcloud_plugin_common.ctx', fake_ctx
+            ):
+                self.assertFalse(
+                    public_nat.prepare_network_operation(
+                        fake_client, vcloud_network_plugin.DELETE
+                    )
+                )
         # rules with default values
         fake_client, fake_ctx = self.generate_client_and_context_network()
         fake_ctx._target.node.properties = {
