@@ -398,5 +398,58 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
         ):
             volume.detach_volume(ctx=fake_ctx)
 
+    def run_wait_boot(self, fabric_settings, fabric_run, sleep_call=True):
+        sleep_function = mock.MagicMock()
+        with mock.patch(
+            'fabric.api.settings', fabric_settings
+        ):
+            with mock.patch(
+                'fabric.api.run', fabric_run
+            ):
+                with mock.patch(
+                    'time.sleep', sleep_function
+                ):
+                    volume._wait_for_boot()
+        # check for sleep calls
+        if sleep_call:
+            sleep_function.assert_called_with(5)
+
+    def test_wait_for_boot(self):
+        """
+            check that machine is alive
+        """
+        fake_ctx = self.generate_relation_context()
+        fake_ctx._target.instance.runtime_properties['ip'] = 'unknowhost'
+        fabric_context = mock.MagicMock(return_value=None)
+        fabric_context.__exit__ = mock.MagicMock(return_value=None)
+        fabric_context.__enter__ = mock.MagicMock(return_value=None)
+        fabric_settings = mock.MagicMock(return_value=fabric_context)
+        fabric_run = mock.MagicMock(return_value=None)
+        with mock.patch(
+            'vcloud_plugin_common.ctx', fake_ctx
+        ):
+            with mock.patch(
+                'vcloud_storage_plugin.volume.ctx', fake_ctx
+            ):
+                # can't connect and run
+                with self.assertRaises(cfy_exc.NonRecoverableError):
+                    self.run_wait_boot(fabric_settings, fabric_run)
+                # command successfully finished
+
+                def _sysexit(_):
+                    raise SystemExit
+
+                fabric_run = mock.MagicMock(side_effect=_sysexit)
+                self.run_wait_boot(fabric_settings, fabric_run, False)
+                # raised some exception during run
+
+                def _raiseex(_):
+                    raise Exception
+
+                fabric_run = mock.MagicMock(side_effect=_raiseex)
+                with self.assertRaises(cfy_exc.NonRecoverableError):
+                    self.run_wait_boot(fabric_settings, fabric_run)
+
+
 if __name__ == '__main__':
     unittest.main()
