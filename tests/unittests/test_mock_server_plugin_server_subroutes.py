@@ -504,5 +504,38 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                 server._get_connected_keypairs(), ["a"]
             )
 
+    def test_is_primary_connection_has_ip(self):
+        # no network info at all
+        vapp = mock.MagicMock()
+        vapp.get_vms_network_info = mock.MagicMock(return_value=False)
+        self.assertTrue(server._is_primary_connection_has_ip(vapp))
+        # empty list of connections
+        vapp.get_vms_network_info = mock.MagicMock(return_value=[None])
+        self.assertTrue(server._is_primary_connection_has_ip(vapp))
+        # exist connection, but without ip
+        vapp.get_vms_network_info = mock.MagicMock(return_value=[[
+            {'is_connected': False}
+        ]])
+        self.assertFalse(server._is_primary_connection_has_ip(vapp))
+        # everything connected
+        vapp.get_vms_network_info = mock.MagicMock(return_value=[[{
+            'is_connected': True,
+            'is_primary': True,
+            'ip': '127.0.0.1'
+        }]])
+        self.assertTrue(server._is_primary_connection_has_ip(vapp))
+        # connected but to different port
+        vapp.get_vms_network_info = mock.MagicMock(return_value=[[{
+            'is_connected': True,
+            'is_primary': False,
+            'ip': '127.0.0.1'
+        }, {
+            'is_connected': True,
+            'is_primary': True,
+            'ip': None
+        }]])
+        self.assertFalse(server._is_primary_connection_has_ip(vapp))
+
+
 if __name__ == '__main__':
     unittest.main()
