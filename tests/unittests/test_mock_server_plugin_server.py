@@ -660,7 +660,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 server.create(ctx=fake_ctx)
             self.check_create_call(fake_client, fake_ctx)
-        # use external resourse
+        # use external resource
         fake_ctx.node.properties['use_external_resource'] = True
         fake_ctx.node.properties['resource_id'] = 'someresource'
         with mock.patch(
