@@ -302,6 +302,43 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                         }
                     ], connection
                 )
+        # get network name from first avaible but not primary
+        fake_ctx = self.generate_node_context(relation_node_properties={
+            "not_test": "not_test",
+            'port': {
+                'network': 'private_network',
+                'ip_address': "1.1.1.1",
+                'mac_address': "hex",
+                'ip_allocation_mode': 'pool',
+                'primary_interface': False
+            }
+        })
+        fake_client = self.generate_client()
+        fake_ctx.node.properties['management_network'] = None
+        with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
+            with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+                connection = server._create_connections_list(fake_client)
+                self.assertEqual(
+                    [
+                        {
+                            'ip_address': '1.1.1.1',
+                            'ip_allocation_mode': 'POOL',
+                            'mac_address': 'hex',
+                            'network': 'private_network',
+                            'primary_interface': True
+                        }
+                    ], connection
+                )
+        # no connections
+        fake_ctx = self.generate_node_context(relation_node_properties={
+            "not_test": "not_test"
+        })
+        fake_client = self.generate_client()
+        fake_ctx.node.properties['management_network'] = None
+        with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
+            with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+                with self.assertRaises(cfy_exc.NonRecoverableError):
+                    connection = server._create_connections_list(fake_client)
         # one network same as managment + port
         fake_ctx = self.generate_node_context(relation_node_properties={
             "not_test": "not_test",
@@ -535,6 +572,15 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             'ip': None
         }]])
         self.assertFalse(server._is_primary_connection_has_ip(vapp))
+
+    def test_remove_key_script(self):
+        commands = []
+        server._remove_key_script(
+            commands, "super!", ".ssh!", "somekey", "!**! !@^"
+        )
+        self.assertEqual(
+            commands, [' sed -i /!@^/d somekey']
+        )
 
 
 if __name__ == '__main__':

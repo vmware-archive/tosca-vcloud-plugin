@@ -90,13 +90,17 @@ class TestBase(unittest.TestCase):
             return_value=None
         )
 
-    def check_retry_realy_called(self, ctx):
+    def check_retry_realy_called(self, ctx, message=None, timeout=None):
         """
             check that we really call retry
         """
+        if not message:
+            message = 'Waiting for gateway.'
+        if not timeout:
+            timeout = vcloud_network_plugin.GATEWAY_TIMEOUT
         ctx.operation.retry.assert_called_with(
-            message='Waiting for gateway.',
-            retry_after=vcloud_network_plugin.GATEWAY_TIMEOUT
+            message=message,
+            retry_after=timeout
         )
 
     def prepere_gatway_busy_retry(self, fake_client, fake_ctx):
