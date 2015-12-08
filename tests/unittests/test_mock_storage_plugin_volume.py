@@ -99,7 +99,7 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 volume.creation_validation(ctx=fake_ctx)
         fake_client.get_disks.assert_called_with('vdc_name')
-        # internal resourse wit volume and name,
+        # internal resource wit volume and name,
         # but already exist such volume
         fake_ctx = cfy_mocks.MockCloudifyContext(
             node_id='test',
