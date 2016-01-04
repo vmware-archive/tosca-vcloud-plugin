@@ -1,5 +1,8 @@
 https://github.com/cloudify-cosmo/cloudify-dsl-parser/archive/master.zip#egg=cloudify-dsl-parser==3.3.1
 https://github.com/cloudify-cosmo/cloudify-rest-client/archive/master.zip#egg=cloudify-rest-client==3.3.1
 https://github.com/cloudify-cosmo/cloudify-plugins-common/archive/master.zip#egg=cloudify-plugins-common==3.3.1
-pyvcloud>=14rc6
-
+pyvcloud==15rc1
+requests==2.7.0
+IPy==0.81
+PyYAML==3.10
+pycrypto==2.6.1
