@@ -19,6 +19,7 @@ from cloudify import exceptions as cfy_exc
 from cloudify import mocks as cfy_mocks
 from vcloud_server_plugin import server
 from tests.unittests import test_mock_base
+from cloudify.state import current_ctx
 
 
 class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
@@ -105,6 +106,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             },
             provider_context={}
         )
+        current_ctx.set(fake_ctx)
 
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient',
@@ -127,6 +129,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             },
             provider_context={}
         )
+        current_ctx.set(fake_ctx)
 
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient',
@@ -144,6 +147,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             },
             provider_context={}
         )
+        current_ctx.set(fake_ctx)
 
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient',
@@ -163,6 +167,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             },
             provider_context={}
         )
+        current_ctx.set(fake_ctx)
 
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
@@ -183,6 +188,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             },
             provider_context={}
         )
+        current_ctx.set(fake_ctx)
 
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
@@ -203,6 +209,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             },
             provider_context={}
         )
+        current_ctx.set(fake_ctx)
 
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
@@ -226,6 +233,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             },
             provider_context={}
         )
+        current_ctx.set(fake_ctx)
 
         with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
@@ -241,9 +249,11 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
 
     def test_get_connected(self):
 
-        fake_ctx = self.generate_node_context(relation_node_properties={
-            "not_test": "not_test"
-        })
+        fake_ctx = self.generate_node_context_with_current_ctx(
+            relation_node_properties={
+                "not_test": "not_test"
+            }
+        )
 
         self.assertEqual(
             server._get_connected(fake_ctx.instance, "test"), []
@@ -262,19 +272,21 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
     def test_create_connections_list(self):
         # one connection from port, one from network and
         # one managment_network
-        fake_ctx = self.generate_node_context(relation_node_properties={
-            "not_test": "not_test",
-            'port': {
-                'network': 'private_network',
-                'ip_address': "1.1.1.1",
-                'mac_address': "hex",
-                'ip_allocation_mode': 'pool',
-                'primary_interface': True
-            },
-            'network': {
-                'name': 'some_network'
+        fake_ctx = self.generate_node_context_with_current_ctx(
+            relation_node_properties={
+                "not_test": "not_test",
+                'port': {
+                    'network': 'private_network',
+                    'ip_address': "1.1.1.1",
+                    'mac_address': "hex",
+                    'ip_allocation_mode': 'pool',
+                    'primary_interface': True
+                },
+                'network': {
+                    'name': 'some_network'
+                }
             }
-        })
+        )
         fake_client = self.generate_client()
         with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
@@ -303,16 +315,18 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                     ], connection
                 )
         # get network name from first avaible but not primary
-        fake_ctx = self.generate_node_context(relation_node_properties={
-            "not_test": "not_test",
-            'port': {
-                'network': 'private_network',
-                'ip_address': "1.1.1.1",
-                'mac_address': "hex",
-                'ip_allocation_mode': 'pool',
-                'primary_interface': False
+        fake_ctx = self.generate_node_context_with_current_ctx(
+            relation_node_properties={
+                "not_test": "not_test",
+                'port': {
+                    'network': 'private_network',
+                    'ip_address': "1.1.1.1",
+                    'mac_address': "hex",
+                    'ip_allocation_mode': 'pool',
+                    'primary_interface': False
+                }
             }
-        })
+        )
         fake_client = self.generate_client()
         fake_ctx.node.properties['management_network'] = None
         with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
@@ -330,9 +344,11 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                     ], connection
                 )
         # no connections
-        fake_ctx = self.generate_node_context(relation_node_properties={
-            "not_test": "not_test"
-        })
+        fake_ctx = self.generate_node_context_with_current_ctx(
+            relation_node_properties={
+                "not_test": "not_test"
+            }
+        )
         fake_client = self.generate_client()
         fake_ctx.node.properties['management_network'] = None
         with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
@@ -340,19 +356,21 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                 with self.assertRaises(cfy_exc.NonRecoverableError):
                     connection = server._create_connections_list(fake_client)
         # one network same as managment + port
-        fake_ctx = self.generate_node_context(relation_node_properties={
-            "not_test": "not_test",
-            'port': {
-                'network': '_management_network',
-                'ip_address': "1.1.1.1",
-                'mac_address': "hex",
-                'ip_allocation_mode': 'pool',
-                'primary_interface': True
-            },
-            'network': {
-                'name': 'some_network'
+        fake_ctx = self.generate_node_context_with_current_ctx(
+            relation_node_properties={
+                "not_test": "not_test",
+                'port': {
+                    'network': '_management_network',
+                    'ip_address': "1.1.1.1",
+                    'mac_address': "hex",
+                    'ip_allocation_mode': 'pool',
+                    'primary_interface': True
+                },
+                'network': {
+                    'name': 'some_network'
+                }
             }
-        })
+        )
         with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 connection = server._create_connections_list(fake_client)
@@ -375,19 +393,21 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                     ], connection
                 )
         # check dhcp, with no dhcp server
-        fake_ctx = self.generate_node_context(relation_node_properties={
-            "not_test": "not_test",
-            'port': {
-                'network': '_management_network',
-                'ip_address': "1.1.1.1",
-                'mac_address': "hex",
-                'ip_allocation_mode': 'dhcp',
-                'primary_interface': True
-            },
-            'network': {
-                'name': 'some_network'
+        fake_ctx = self.generate_node_context_with_current_ctx(
+            relation_node_properties={
+                "not_test": "not_test",
+                'port': {
+                    'network': '_management_network',
+                    'ip_address': "1.1.1.1",
+                    'mac_address': "hex",
+                    'ip_allocation_mode': 'dhcp',
+                    'primary_interface': True
+                },
+                'network': {
+                    'name': 'some_network'
+                }
             }
-        })
+        )
         with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 with self.assertRaises(cfy_exc.NonRecoverableError):
@@ -478,7 +498,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
         self.assertEqual(None, connection)
 
     def test_get_state(self):
-        fake_ctx = self.generate_node_context()
+        fake_ctx = self.generate_node_context_with_current_ctx()
         with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 # connected network_name
@@ -527,7 +547,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
 
     def test_get_connected_keypairs(self):
         # empty list of relationships
-        fake_ctx = self.generate_node_context()
+        fake_ctx = self.generate_node_context_with_current_ctx()
         fake_ctx.instance._relationships = None
         with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
             self.assertEqual([], server._get_connected_keypairs())

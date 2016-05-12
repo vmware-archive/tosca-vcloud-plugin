@@ -21,9 +21,10 @@ from vcloud_storage_plugin import volume
 import vcloud_plugin_common
 from tests.unittests import test_mock_base
 import vcloud_network_plugin
+from cloudify.state import current_ctx
 
 
-class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
+class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
 
     # vapp name used for tests
     VAPPNAME = "some_other"
@@ -40,6 +41,7 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
                 }
             }
         )
+        current_ctx.set(fake_ctx)
         # use external without resource_id
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
@@ -60,6 +62,7 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
                 }
             }
         )
+        current_ctx.set(fake_ctx)
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -92,6 +95,8 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
                 }
             }
         )
+        current_ctx.set(fake_ctx)
+
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -114,6 +119,7 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
                 }
             }
         )
+        current_ctx.set(fake_ctx)
         fake_client.get_disks = mock.MagicMock(return_value=[
             [
                 self.generate_fake_client_disk('some'),
@@ -140,6 +146,7 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
                 }
             }
         )
+        current_ctx.set(fake_ctx)
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -161,6 +168,7 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
                 }
             }
         )
+        current_ctx.set(fake_ctx)
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -180,6 +188,7 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
                 }
             }
         )
+        current_ctx.set(fake_ctx)
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -200,6 +209,7 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
                 }
             }
         )
+        current_ctx.set(fake_ctx)
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -236,6 +246,7 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
                 }
             }
         )
+        current_ctx.set(fake_ctx)
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -256,6 +267,7 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
                 }
             }
         )
+        current_ctx.set(fake_ctx)
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
@@ -292,6 +304,7 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
                     'vcloud_storage_plugin.volume.ctx', fake_ctx
                 ):
                     volume._volume_operation(fake_client, operation)
+
         # use external resource, no disks
         _run_volume_operation(fake_ctx, fake_client, 'ATTACH')
         fake_client.get_diskRefs.assert_called_with(
@@ -357,7 +370,7 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
 
     def _gen_volume_context_and_client(self):
         fake_client = self.generate_client()
-        fake_ctx = self.generate_relation_context()
+        fake_ctx = self.generate_relation_context_with_current_ctx()
         fake_ctx._target.node.properties = {
             'use_external_resource': True
         }
@@ -418,7 +431,7 @@ class StoaragePluginVolumeMockTestCase(test_mock_base.TestBase):
         """
             check that machine is alive
         """
-        fake_ctx = self.generate_relation_context()
+        fake_ctx = self.generate_relation_context_with_current_ctx()
         fake_ctx._target.instance.runtime_properties['ip'] = 'unknowhost'
         fabric_context = mock.MagicMock(return_value=None)
         fabric_context.__exit__ = mock.MagicMock(return_value=None)

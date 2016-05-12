@@ -402,7 +402,9 @@ def _is_rule_exists(nat_rules, rule_type,
     """
     # gatewayNatRule properties may be None or string
     # convert to str, bacause port can be int
-    cicmp = lambda t: t[1] and (str(t[0]).lower() == str(t[1]).lower())
+    def cicmp(t):
+        return t[1] and (str(t[0]).lower() == str(t[1]).lower())
+
     for natRule in nat_rules:
         gatewayNatRule = natRule.get_GatewayNatRule()
         if (all(map(cicmp, [

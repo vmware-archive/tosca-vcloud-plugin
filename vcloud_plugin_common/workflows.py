@@ -43,9 +43,8 @@ def _get_all_nodes_instances(ctx, token, org_url):
     node_instances = set()
     for node in ctx.nodes:
         for instance in node.instances:
-            if (vcloud_plugin_common.VCLOUD_CONFIG in node.properties
-               and token
-               and org_url):
+            if (vcloud_plugin_common.VCLOUD_CONFIG in node.properties and
+               token and org_url):
                 update(ctx, instance, token, org_url)
             node_instances.add(instance)
     return node_instances

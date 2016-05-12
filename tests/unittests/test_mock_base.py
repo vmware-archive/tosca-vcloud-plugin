@@ -16,6 +16,7 @@ import mock
 import unittest
 from cloudify import mocks as cfy_mocks
 import vcloud_network_plugin
+from cloudify.state import current_ctx
 vcloud_network_plugin.GATEWAY_TRY_COUNT = 2
 vcloud_network_plugin.GATEWAY_TIMEOUT = 1
 
@@ -40,16 +41,6 @@ class MockToscaCloudifyContext(cfy_mocks.MockCloudifyContext):
     @property
     def nodes(self):
         return self._nodes
-
-
-class MockToscaNodeInstanceContext(cfy_mocks.MockNodeInstanceContext):
-    """node instance mock for use with tosca"""
-
-    _relationships = None
-
-    @property
-    def relationships(self):
-        return self._relationships
 
 
 class TestBase(unittest.TestCase):
@@ -388,6 +379,14 @@ class TestBase(unittest.TestCase):
         )
         return fake_ctx
 
+    def generate_relation_context_with_current_ctx(self):
+        # generate new relation context with save such context
+        # to current context that requed by 3.4 cloudify common plugin
+        # changes
+        fake_ctx = self.generate_relation_context()
+        current_ctx.set(fake_ctx)
+        return fake_ctx
+
     def generate_node_context(
         self, relation_node_properties=None, properties=None,
         runtime_properties=None
@@ -412,7 +411,7 @@ class TestBase(unittest.TestCase):
             runtime_properties=runtime_properties
         )
 
-        fake_ctx._instance = MockToscaNodeInstanceContext(
+        fake_ctx._instance = cfy_mocks.MockNodeInstanceContext(
             fake_ctx.instance._id, fake_ctx.instance._runtime_properties
         )
 
@@ -421,3 +420,20 @@ class TestBase(unittest.TestCase):
         fake_ctx.instance._relationships = [relationship]
 
         return fake_ctx
+
+    def generate_node_context_with_current_ctx(
+        self, relation_node_properties=None, properties=None,
+        runtime_properties=None
+    ):
+        # generate new node context with save such context
+        # to current context that requed by 3.4 cloudify common plugin
+        # changes
+        fake_ctx = self.generate_node_context(
+            relation_node_properties, properties,
+            runtime_properties
+        )
+        current_ctx.set(fake_ctx)
+        return fake_ctx
+
+    def tearDown(self):
+        current_ctx.clear()
