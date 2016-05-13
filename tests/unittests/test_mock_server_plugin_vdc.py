@@ -29,14 +29,14 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            fake_ctx = self.generate_node_context(
+            fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={}
             )
             # no vdc name
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 vdc.creation_validation(ctx=fake_ctx)
             # name exist but someone already created this vdc
-            fake_ctx = self.generate_node_context(
+            fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
                     'name': 'not_existed'
                 }
@@ -51,7 +51,7 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
             fake_client.get_vdc = mock.MagicMock(return_value=None)
             vdc.creation_validation(ctx=fake_ctx)
             # external but without name
-            fake_ctx = self.generate_node_context(
+            fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
                     'use_external_resource': True
                 }
@@ -59,7 +59,7 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 vdc.creation_validation(ctx=fake_ctx)
             # use unexisted vdc
-            fake_ctx = self.generate_node_context(
+            fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
                     'use_external_resource': True,
                     'resource_id': 'not_existed'
@@ -84,7 +84,7 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             # tried to create new vdc on subscription
-            fake_ctx = self.generate_node_context(
+            fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
                     'vcloud_config': {
                         'service_type': vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
@@ -95,7 +95,7 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
                 vdc.create(ctx=fake_ctx)
             # use ondemand
             # use external resource without vdc
-            fake_ctx = self.generate_node_context(
+            fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
                     'vcloud_config': {
                         'service_type': vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
@@ -114,7 +114,7 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
             )
             vdc.create(ctx=fake_ctx)
             # no name for vdc
-            fake_ctx = self.generate_node_context(
+            fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
                     'vcloud_config': {
                         'service_type': vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
@@ -125,7 +125,7 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 vdc.create(ctx=fake_ctx)
             # create new vdc for deployment
-            fake_ctx = self.generate_node_context(
+            fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
                     'vcloud_config': {
                         'service_type': vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
@@ -156,7 +156,7 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             # external resorce
-            fake_ctx = self.generate_node_context(
+            fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
                     'vcloud_config': {
                         'service_type': vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
@@ -170,7 +170,7 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
             fake_client.delete_vdc = mock.MagicMock(
                 return_value=(False, None)
             )
-            fake_ctx = self.generate_node_context(
+            fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
                     'vcloud_config': {
                         'service_type': vcloud_plugin_common.ONDEMAND_SERVICE_TYPE

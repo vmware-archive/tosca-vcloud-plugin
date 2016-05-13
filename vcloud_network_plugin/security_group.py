@@ -92,8 +92,8 @@ def creation_validation(vca_client, **kwargs):
         utils.check_protocol(rule.get('protocol'))
 
         action = get_mandatory(rule, "action")
-        if (not isinstance(action, basestring)
-                or action.lower() not in ACTIONS):
+        if (not isinstance(action, basestring) or
+                action.lower() not in ACTIONS):
             raise cfy_exc.NonRecoverableError(
                 "Action must be on of{0}.".format(ACTIONS))
 

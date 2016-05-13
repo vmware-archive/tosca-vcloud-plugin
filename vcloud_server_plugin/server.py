@@ -107,6 +107,7 @@ def create(vca_client, **kwargs):
         'name': ctx.instance.id,
     }
     server.update(ctx.node.properties.get('server', {}))
+    server.update(kwargs.get('server', {}))
     transform_resource_name(server, ctx)
 
     if ctx.node.properties.get('use_external_resource'):
@@ -307,6 +308,7 @@ def configure(vca_client, **kwargs):
         ctx.logger.info("Configure server")
         server = {'name': ctx.instance.id}
         server.update(ctx.node.properties.get('server', {}))
+        server.update(kwargs.get('server', {}))
         ctx.logger.info("Server properties: {0}"
                         .format(str(server)))
         vapp_name = server['name']
@@ -673,8 +675,8 @@ def _create_connections_list(vca_client):
     # in case when we dont have any primary networks
     for conn in connections:
         network_name = conn['network']
-        if (conn['ip_allocation_mode'] == 'DHCP'
-                and not _isDhcpAvailable(vca_client, network_name)):
+        if (conn['ip_allocation_mode'] == 'DHCP' and
+                not _isDhcpAvailable(vca_client, network_name)):
             raise cfy_exc.NonRecoverableError(
                 "DHCP for network {0} is not available"
                 .format(network_name))

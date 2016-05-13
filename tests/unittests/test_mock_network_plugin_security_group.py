@@ -34,7 +34,7 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         )
 
     def test_get_gateway_name_from_ctx(self):
-        fake_ctx = self.generate_node_context(
+        fake_ctx = self.generate_node_context_with_current_ctx(
             properties={
                 'vcloud_config': {
                     'edge_gateway': 'some_edge_gateway'
@@ -50,7 +50,7 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
             )
 
     def generate_context_for_security_group(self):
-        fake_ctx = self.generate_relation_context()
+        fake_ctx = self.generate_relation_context_with_current_ctx()
         fake_ctx._source.node.properties = {
             'vcloud_config': {
                 'edge_gateway': 'some_edge_gateway',
@@ -400,7 +400,7 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            fake_ctx = self.generate_node_context(
+            fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
                     'vcloud_config': {
                         'edge_gateway': 'some_edge_gateway',
@@ -417,7 +417,7 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            fake_ctx = self.generate_node_context(
+            fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
                     'vcloud_config': {
                         'edge_gateway': 'some_edge_gateway',

@@ -25,7 +25,7 @@ from tests.unittests import test_mock_base
 class ServerPluginServerMockTestCase(test_mock_base.TestBase):
 
     def test_delete_external_resource(self):
-        fake_ctx = self.generate_node_context(
+        fake_ctx = self.generate_node_context_with_current_ctx(
             properties={
                 'use_external_resource': True
             }
@@ -42,7 +42,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         )
 
     def test_delete(self):
-        fake_ctx = self.generate_node_context()
+        fake_ctx = self.generate_node_context_with_current_ctx()
         fake_client = self.generate_client()
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
@@ -80,7 +80,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             )
 
     def test_stop_external_resource(self):
-        fake_ctx = self.generate_node_context(
+        fake_ctx = self.generate_node_context_with_current_ctx(
             properties={
                 'use_external_resource': True
             }
@@ -97,7 +97,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         )
 
     def test_stop(self):
-        fake_ctx = self.generate_node_context()
+        fake_ctx = self.generate_node_context_with_current_ctx()
         fake_client = self.generate_client()
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
@@ -140,7 +140,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         )
 
     def test_start(self):
-        fake_ctx = self.generate_node_context()
+        fake_ctx = self.generate_node_context_with_current_ctx()
         fake_client = self.generate_client([{
             'is_connected': True,
             'is_primary': True,
@@ -221,7 +221,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             self.assertEquals(server.start(ctx=fake_ctx), None)
 
         # use external without any power state changes, run retry
-        fake_ctx = self.generate_node_context()
+        fake_ctx = self.generate_node_context_with_current_ctx()
         fake_ctx.node.properties['use_external_resource'] = True
         fake_client = self.generate_client([{
             'is_connected': True,
@@ -244,7 +244,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         """
             start with external resource, as success status used retry
         """
-        fake_ctx = self.generate_node_context(
+        fake_ctx = self.generate_node_context_with_current_ctx(
             properties={
                 'use_external_resource': True,
                 'vcloud_config': {
@@ -269,16 +269,18 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         """
             test server create with default value and error in request
         """
-        fake_ctx = self.generate_node_context(properties={
-            'management_network': '_management_network',
-            'vcloud_config': {
-                'vdc': 'vdc_name'
-            },
-            'server': {
-                'template': 'template',
-                'catalog': 'catalog'
+        fake_ctx = self.generate_node_context_with_current_ctx(
+            properties={
+                'management_network': '_management_network',
+                'vcloud_config': {
+                    'vdc': 'vdc_name'
+                },
+                'server': {
+                    'template': 'template',
+                    'catalog': 'catalog'
+                }
             }
-        })
+        )
         fake_client = self.generate_client()
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
@@ -297,7 +299,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
             check custom cpu/memmory with error in task
         """
         # use existed vm
-        fake_ctx = self.generate_node_context(
+        fake_ctx = self.generate_node_context_with_current_ctx(
             properties={
                 'management_network': '_management_network',
                 'vcloud_config': {
@@ -317,7 +319,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         ):
             server.configure(ctx=fake_ctx)
         # can't get vapp
-        fake_ctx = self.generate_node_context(
+        fake_ctx = self.generate_node_context_with_current_ctx(
             properties={
                 'management_network': '_management_network',
                 'vcloud_config': {
@@ -511,7 +513,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         )
 
     def generate_context_for_create(self):
-        return self.generate_node_context(
+        return self.generate_node_context_with_current_ctx(
             properties={
                 'management_network': '_management_network',
                 'vcloud_config': {
@@ -528,7 +530,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         )
 
     def generate_context_for_customization(self):
-        return self.generate_node_context(
+        return self.generate_node_context_with_current_ctx(
             properties={
                 'management_network': '_management_network',
                 'vcloud_config': {
@@ -555,7 +557,7 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         """
             must run without any errors
         """
-        fake_ctx = self.generate_node_context(
+        fake_ctx = self.generate_node_context_with_current_ctx(
             properties={
                 'use_external_resource': True,
                 'resource_id': 'ServerName',
