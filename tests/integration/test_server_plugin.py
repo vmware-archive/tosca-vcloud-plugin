@@ -70,7 +70,6 @@ class ServerTestCase(TestCase):
     def test_connect_to_many_ports(self):
         self.init('server_to_many_ports.yaml')
         self.install()
-        import pdb; pdb.set_trace()  # XXX BREAKPOINT
         self.uninstall()
 
     @fail_guard

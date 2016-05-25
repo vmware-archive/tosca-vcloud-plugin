@@ -286,19 +286,22 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                             'ip_allocation_mode': 'POOL',
                             'mac_address': 'hex',
                             'network': 'private_network',
-                            'primary_interface': True
+                            'primary_interface': True,
+                            'nic_order': 0
                         }, {
                             'ip_address': None,
                             'ip_allocation_mode': 'POOL',
                             'mac_address': None,
                             'network': 'some_network',
-                            'primary_interface': False
+                            'primary_interface': False,
+                            'nic_order': 0
                         }, {
                             'ip_address': None,
                             'ip_allocation_mode': 'POOL',
                             'mac_address': None,
                             'network': '_management_network',
-                            'primary_interface': False
+                            'primary_interface': False,
+                            'nic_order': 0
                         }
                     ], connection
                 )
@@ -326,14 +329,16 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                             'ip_allocation_mode': 'POOL',
                             'mac_address': 'hex',
                             'network': '_management_network',
-                            'primary_interface': True
+                            'primary_interface': True,
+                            'nic_order': 0
                         },
                         {
                             'ip_address': None,
                             'ip_allocation_mode': 'POOL',
                             'mac_address': None,
                             'network': 'some_network',
-                            'primary_interface': False
+                            'primary_interface': False,
+                            'nic_order': 0
                         }
                     ], connection
                 )
@@ -345,7 +350,8 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                 'ip_address': "1.1.1.1",
                 'mac_address': "hex",
                 'ip_allocation_mode': 'dhcp',
-                'primary_interface': True
+                'primary_interface': True,
+                'nic_order': 0
             },
             'network': {
                 'name': 'some_network'
@@ -366,7 +372,8 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                         'ip_allocation_mode': 'POOL',
                         'mac_address': None,
                         'network': '_management_network',
-                        'primary_interface': True
+                        'primary_interface': True,
+                        'nic_order': 0
                     }],
                     connection
                 )
