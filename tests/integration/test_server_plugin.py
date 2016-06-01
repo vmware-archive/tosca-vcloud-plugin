@@ -67,6 +67,12 @@ class ServerTestCase(TestCase):
         self.uninstall()
 
     @fail_guard
+    def test_connect_to_many_ports(self):
+        self.init('server_to_many_ports.yaml')
+        self.install()
+        self.uninstall()
+
+    @fail_guard
     def test_remove_keys(self):
         self.init('server_remove_keys.yaml')
         self.install()
