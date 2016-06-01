@@ -14,7 +14,7 @@
 
 from cloudify.decorators import workflow
 from cloudify.manager import update_node_instance
-import cloudify.plugins.workflows as default_workflow
+from cloudify.plugins import lifecycle
 import vcloud_plugin_common
 
 
@@ -53,14 +53,14 @@ def _get_all_nodes_instances(ctx, token, org_url):
 @workflow
 def install(ctx, **kwargs):
     """Score install workflow"""
-
-    default_workflow._install_node_instances(
-        ctx,
-        _get_all_nodes_instances(ctx, kwargs.get('session_token'),
-                                 kwargs.get('org_url')),
-        set(),
-        default_workflow.NodeInstallationTasksSequenceCreator(),
-        default_workflow.InstallationTasksGraphFinisher
+    lifecycle.install_node_instances(
+        graph=ctx.graph_mode(),
+        node_instances=set(
+            _get_all_nodes_instances(
+                ctx, kwargs.get('session_token'),
+                kwargs.get('org_url')
+            )
+        )
     )
 
 
@@ -68,11 +68,12 @@ def install(ctx, **kwargs):
 def uninstall(ctx, **kwargs):
     """Score uninstall workflow"""
 
-    default_workflow._uninstall_node_instances(
-        ctx,
-        _get_all_nodes_instances(ctx, kwargs.get('session_token'),
-                                 kwargs.get('org_url')),
-        set(),
-        default_workflow.NodeUninstallationTasksSequenceCreator(),
-        default_workflow.UninstallationTasksGraphFinisher
+    lifecycle.uninstall_node_instances(
+        graph=ctx.graph_mode(),
+        node_instances=set(
+            _get_all_nodes_instances(
+                ctx, kwargs.get('session_token'),
+                kwargs.get('org_url')
+            )
+        )
     )
