@@ -27,7 +27,7 @@ setup(
     description='Cloudify plugin for vmWare vCloud infrastructure.',
     install_requires=[
         'cloudify-plugins-common>=3.4a3',
-        'pyvcloud==15rc1',
+        'pyvcloud==16',
         'requests==2.7.0',
         'IPy==0.81',
         'PyYAML==3.10',
