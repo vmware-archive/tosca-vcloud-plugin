@@ -24,7 +24,8 @@ from vcloud_plugin_common import (get_vcloud_config,
                                   with_vca_client,
                                   error_response,
                                   STATUS_POWERED_ON)
-from vcloud_network_plugin import (get_network_name, get_network, is_network_exists,
+from vcloud_network_plugin import (get_network_name, get_network,
+                                   is_network_exists,
                                    get_vapp_name, GATEWAY_TIMEOUT, RETRY_COUNT)
 from vcloud_network_plugin.keypair import PUBLIC_KEY, SSH_KEY
 
@@ -678,7 +679,7 @@ def _create_connections_list(vca_client):
         network_name = conn['network']
         if (conn['ip_allocation_mode'] == 'DHCP' and
                 not _isDhcpAvailable(vca_client, network_name)):
-            raise cfy_exc.NonRecoverableError(
+            ctx.logger.warning(
                 "DHCP for network {0} is not available"
                 .format(network_name))
         if not primary_iface_set:
