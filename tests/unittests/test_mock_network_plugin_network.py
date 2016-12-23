@@ -485,5 +485,6 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 network.creation_validation(ctx=fake_ctx)
 
+
 if __name__ == '__main__':
     unittest.main()

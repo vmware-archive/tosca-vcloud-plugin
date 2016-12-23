@@ -554,5 +554,6 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             '10.10.2.3'
         )
 
+
 if __name__ == '__main__':
     unittest.main()

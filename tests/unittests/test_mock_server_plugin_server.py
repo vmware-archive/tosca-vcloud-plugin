@@ -829,5 +829,6 @@ class ServerPluginServerMockTestCase(test_mock_base.TestBase):
         ):
             server.configure(ctx=fake_ctx)
 
+
 if __name__ == '__main__':
     unittest.main()

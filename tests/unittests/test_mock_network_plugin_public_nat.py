@@ -1307,5 +1307,6 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 public_nat.net_connect_to_nat_preconfigure(ctx=fake_ctx)
 
+
 if __name__ == '__main__':
     unittest.main()

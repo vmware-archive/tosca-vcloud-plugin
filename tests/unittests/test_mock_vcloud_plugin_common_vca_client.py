@@ -434,5 +434,6 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                             fake_client
                         )
 
+
 if __name__ == '__main__':
     unittest.main()

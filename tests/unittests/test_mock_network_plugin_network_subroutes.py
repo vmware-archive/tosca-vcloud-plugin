@@ -126,5 +126,6 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
                         fake_client, '_management_network', network.ADD_POOL
                     )
 
+
 if __name__ == '__main__':
     unittest.main()

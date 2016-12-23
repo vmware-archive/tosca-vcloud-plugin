@@ -287,5 +287,6 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
             config = vcloud_plugin_common.Config()
             self.assertFalse(config.get())
 
+
 if __name__ == '__main__':
     unittest.main()

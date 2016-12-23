@@ -71,7 +71,7 @@ def create(vca_client, **kwargs):
                 "'use_external_resource' is 'false' or absent"
                 .format(network_name))
 
-        static_range = get_mandatory(net_prop, 'static_range') 
+        static_range = get_mandatory(net_prop, 'static_range')
         ip = _split_adresses(static_range)
         gateway_name = net_prop['edge_gateway']
         get_gateway(vca_client, gateway_name)

@@ -415,10 +415,12 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
                 'name': 'some_network'
             }
         })
+        # we support case when with dhcpd on vm inside network
+        # instead use gateway service,
+        # look to cc676430a1e06e9ac2fd8d0a56b9a414d3232939
         with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
-                with self.assertRaises(cfy_exc.NonRecoverableError):
-                    server._create_connections_list(fake_client)
+                server._create_connections_list(fake_client)
         # only managment node
         fake_ctx.instance._relationships = []
         with mock.patch('vcloud_server_plugin.server.ctx', fake_ctx):
