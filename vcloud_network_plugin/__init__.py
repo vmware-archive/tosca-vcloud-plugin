@@ -376,7 +376,7 @@ def _is_gateway_locked(ctx):
     except KeyError:
         pass
     if rest:
-        node_instances = rest.node_instances.list(ctx.deployment.id)
+        node_instances = rest.node_instances.list(deployment_id=ctx.deployment.id)
     elif ctx.deployment.id == 'local':
         storage = ctx._endpoint.storage
         node_instances = storage.get_node_instances()
@@ -411,7 +411,7 @@ def lock_gateway(f):
             else:
                 # we need gateway_name from vcloud for use this functionality
                 ctx.logger.info(
-                    "'edge_gateway' in vcloud_config is empty." +
+                    "'edge_gateway' in vcloud_config is empty."
                     " Can't check state of gateway correctly."
                 )
             result = f(*args, **kw)
