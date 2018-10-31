@@ -86,8 +86,11 @@ def _floatingip_operation(operation, vca_client, ctx):
     internal_ip = get_vm_ip(vca_client, ctx, gateway)
 
     nat_operation = None
-    public_ip = (ctx.target.instance.runtime_properties.get(PUBLIC_IP) or
-                 ctx.target.node.properties['floatingip'].get(PUBLIC_IP))
+    public_ip = (
+        ctx.target.instance.runtime_properties.get(PUBLIC_IP)
+    ) or (
+        ctx.target.node.properties['floatingip'].get(PUBLIC_IP)
+    )
     if operation == CREATE:
         CheckAssignedInternalIp(internal_ip, gateway)
         if public_ip:

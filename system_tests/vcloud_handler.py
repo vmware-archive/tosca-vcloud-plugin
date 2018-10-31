@@ -153,6 +153,7 @@ class VcloudHandler(BaseHandler):
         else:
             raise RuntimeError("Can't create test VDC")
 
+
 handler = VcloudHandler
 
 

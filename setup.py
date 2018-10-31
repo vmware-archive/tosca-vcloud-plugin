@@ -16,7 +16,7 @@ from setuptools import setup
 setup(
     zip_safe=True,
     name='cloudify-vcloud-plugin',
-    version='1.4.1',
+    version='1.5.0',
     packages=[
         'vcloud_plugin_common',
         'vcloud_server_plugin',
@@ -26,9 +26,9 @@ setup(
     license='LICENSE',
     description='Cloudify plugin for vmWare vCloud infrastructure.',
     install_requires=[
-        'cloudify-plugins-common>=3.4',
+        'cloudify-plugins-common>=3.4.2',
         'pyvcloud==16',
-        'requests==2.7.0',
+        'requests>=2.7.0,<3.0.0',
         'IPy==0.81',
         'PyYAML==3.10',
         'pycrypto==2.6.1'

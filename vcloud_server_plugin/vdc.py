@@ -93,8 +93,8 @@ def create(vca_client, **kwargs):
             raise cfy_exc.NonRecoverableError("'vdc_name' not specified.")
         task = vca_client.create_vdc(vdc_name)
         if not task:
-            raise cfy_exc.NonRecoverableError("Could not create VDC: {0}"
-                                              .format(error_response(vca_client)))
+            raise cfy_exc.NonRecoverableError(
+                "Could not create VDC: {0}".format(error_response(vca_client)))
         wait_for_task(vca_client, task)
 
 
@@ -111,8 +111,8 @@ def delete(vca_client, **kwargs):
         vdc_name = ctx.node.properties.get('name')
         status, task = vca_client.delete_vdc(vdc_name)
         if not status:
-            raise cfy_exc.NonRecoverableError("Could not delete VDC: {0}"
-                                              .format(error_response(vca_client)))
+            raise cfy_exc.NonRecoverableError(
+                "Could not delete VDC: {0}".format(error_response(vca_client)))
         wait_for_task(vca_client, task)
     # clean up runtime_properties
     if VDC_NAME in ctx.instance.runtime_properties:

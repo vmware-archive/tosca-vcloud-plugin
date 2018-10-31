@@ -1,9 +1,9 @@
 plugins:
     vcloud:
         executor: central_deployment_agent
-        source: https://github.com/cloudify-cosmo/tosca-vcloud-plugin/archive/1.4.1.zip
+        source: https://github.com/cloudify-cosmo/tosca-vcloud-plugin/archive/1.5.0.zip
         package_name: cloudify-vcloud-plugin
-        package_version: '1.4.1'
+        package_version: '1.5.0'
 
 node_types:
     cloudify.vcloud.nodes.Server:
@@ -266,7 +266,3 @@ relationships:
                 establish:
                     implementation: vcloud.vcloud_server_plugin.server.remove_keys
                     inputs: {}
-
-workflows:
-    scoreinstall: vcloud.vcloud_plugin_common.workflows.install
-    scoreuninstall: vcloud.vcloud_plugin_common.workflows.uninstall
