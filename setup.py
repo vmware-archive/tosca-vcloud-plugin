@@ -15,7 +15,7 @@ from setuptools import setup
 
 setup(
     zip_safe=True,
-    name='cloudify-vcloud-plugin',
+    name='tosca-vcloud-plugin',
     version='1.5.1',
     packages=[
         'vcloud_plugin_common',
