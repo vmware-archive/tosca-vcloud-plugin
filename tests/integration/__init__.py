@@ -143,9 +143,9 @@ class TestCase(unittest.TestCase):
 def fail_guard(f):
     @wraps(f)
     def wrapper(*args, **kargs):
-            args[0].failed = True
-            f(*args, **kargs)
-            args[0].failed = False
+        args[0].failed = True
+        f(*args, **kargs)
+        args[0].failed = False
     return wrapper
 
 
@@ -166,7 +166,8 @@ def wait_for_task(vca_client, task):
     for attempt in range(MAX_ATTEMPTS):
         print('Attempt: {0}/{1}.'.format(attempt + 1, MAX_ATTEMPTS))
         if status == TASK_STATUS_SUCCESS:
-            print('Task completed in {0} seconds'.format(attempt * TASK_RECHECK_TIMEOUT))
+            print('Task completed in {0} seconds'
+                  ''.format(attempt * TASK_RECHECK_TIMEOUT))
             return
         if status == TASK_STATUS_ERROR:
             error = task.get_Error()
