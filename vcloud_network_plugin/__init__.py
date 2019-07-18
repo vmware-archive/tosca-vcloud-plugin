@@ -383,9 +383,9 @@ def _is_gateway_locked(ctx):
     else:
         return False
     for instance in node_instances:
-            rt_properties = instance['runtime_properties']
-            if rt_properties.get(GATEWAY_LOCK):
-                return True
+        rt_properties = instance['runtime_properties']
+        if rt_properties.get(GATEWAY_LOCK):
+            return True
     return False
 
 

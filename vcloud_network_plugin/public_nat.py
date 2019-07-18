@@ -37,9 +37,9 @@ def net_connect_to_nat_preconfigure(vca_client, **kwargs):
         raise cfy_exc.NonRecoverableError(
             "Rules list must contains only one element")
     if _is_dnat(rules[0]['type']):
-            raise cfy_exc.NonRecoverableError(
-                "In 'cloudify.vcloud.net_connected_to_public_nat' relationship"
-                " you can use only 'SNAT' rule.")
+        raise cfy_exc.NonRecoverableError(
+            "In 'cloudify.vcloud.net_connected_to_public_nat' relationship"
+            " you can use only 'SNAT' rule.")
 
 
 @operation

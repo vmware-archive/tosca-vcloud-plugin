@@ -179,8 +179,8 @@ def creation_validation(vca_client, **kwargs):
                 "Static_range and dhcp_range is overlapped.")
         ips.extend([dhcp_ip.start, dhcp_ip.end])
     if not is_ips_in_same_subnet(ips, netmask):
-            raise cfy_exc.NonRecoverableError(
-                "IP addresses in different subnets.")
+        raise cfy_exc.NonRecoverableError(
+            "IP addresses in different subnets.")
 
 
 def _dhcp_operation(vca_client, network_name, operation):
