@@ -73,8 +73,8 @@ def create(vca_client, **kwargs):
     # Subscription service does not support vdc create,
     # you must use predefined vdc only
     if is_subscription(config['service_type']):
-            raise cfy_exc.NonRecoverableError(
-                "Unable create VDC on subscription service.")
+        raise cfy_exc.NonRecoverableError(
+            "Unable create VDC on subscription service.")
     if ctx.node.properties.get(USE_EXTERNAL_RESOURCE):
         # use external resource, does not create anything
         res_id = ctx.node.properties[RESOURCE_ID]
