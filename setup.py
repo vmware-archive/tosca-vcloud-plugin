@@ -31,6 +31,6 @@ setup(
         'pyvcloud==13rc10',
         'requests==2.4',
         'IPy==0.81',
-        'PyYAML==3.10'
+        'PyYAML==5.1'
     ]
 )
