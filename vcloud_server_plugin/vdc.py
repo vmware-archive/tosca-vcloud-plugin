@@ -28,7 +28,7 @@ RESOURCE_ID = 'resource_id'
 USE_EXTERNAL_RESOURCE = 'use_external_resource'
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
     """check params
@@ -65,7 +65,7 @@ def creation_validation(vca_client, **kwargs):
                 .format(vdc_name))
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def create(vca_client, **kwargs):
     """create vdc"""
@@ -98,7 +98,7 @@ def create(vca_client, **kwargs):
         wait_for_task(vca_client, task)
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def delete(vca_client, **kwargs):
     """delete vdc"""

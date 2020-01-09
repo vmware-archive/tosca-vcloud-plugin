@@ -22,7 +22,7 @@ from vcloud_plugin_common import (wait_for_task, with_vca_client,
 from vcloud_network_plugin import get_vapp_name, SSH_PUBLIC_IP, SSH_PORT
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def create_volume(vca_client, **kwargs):
     """
@@ -53,7 +53,7 @@ def create_volume(vca_client, **kwargs):
             "Disk creation error: {0}".format(disk))
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def delete_volume(vca_client, **kwargs):
     """
@@ -75,7 +75,7 @@ def delete_volume(vca_client, **kwargs):
             "Disk deletion error: {0}".format(task))
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
     """
@@ -99,7 +99,7 @@ def creation_validation(vca_client, **kwargs):
         get_mandatory(volume, 'size')
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def attach_volume(vca_client, **kwargs):
     """attach volume"""
@@ -107,7 +107,7 @@ def attach_volume(vca_client, **kwargs):
     _volume_operation(vca_client, "ATTACH")
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def detach_volume(vca_client, **kwargs):
     """

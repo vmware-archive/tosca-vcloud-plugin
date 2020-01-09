@@ -19,7 +19,7 @@ from vcloud_plugin_common import with_vca_client, get_mandatory
 from vcloud_network_plugin import check_ip
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
     """

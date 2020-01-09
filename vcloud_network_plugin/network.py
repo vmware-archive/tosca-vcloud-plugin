@@ -30,7 +30,7 @@ DELETE_POOL = 2
 CANT_DELETE = "cannot be deleted, because it is in use"
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def create(vca_client, **kwargs):
     """
@@ -106,7 +106,7 @@ def create(vca_client, **kwargs):
         return set_retry(ctx)
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def delete(vca_client, **kwargs):
     """
@@ -136,7 +136,7 @@ def delete(vca_client, **kwargs):
             "Could not delete network '{0}': {1}".format(network_name, task))
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
     """

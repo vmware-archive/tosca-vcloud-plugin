@@ -32,7 +32,7 @@ HOME = 'home'
 SSH_KEY = 'ssh_key'
 
 
-@operation
+@operation(resumable=True)
 def creation_validation(**kwargs):
     """
         check availability of path used in field private_key_path of
@@ -46,7 +46,7 @@ def creation_validation(**kwargs):
                 "Private key file {0} is absent".format(key_path))
 
 
-@operation
+@operation(resumable=True)
 def create(**kwargs):
     ctx.instance.runtime_properties[PUBLIC_KEY] = {}
     ctx.instance.runtime_properties[PRIVATE_KEY] = {}
@@ -77,7 +77,7 @@ def create(**kwargs):
                                ctx.instance.runtime_properties[PRIVATE_KEY][KEY])
 
 
-@operation
+@operation(resumable=True)
 def delete(**kwargs):
     if ctx.node.properties[AUTO_GENERATE]:
         if ctx.node.properties.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
@@ -92,7 +92,7 @@ def delete(**kwargs):
         del ctx.instance.runtime_properties[PUBLIC_KEY]
 
 
-@operation
+@operation(resumable=True)
 def server_connect_to_keypair(**kwargs):
     host_rt_properties = ctx.source.instance.runtime_properties
     target_rt_properties = ctx.target.instance.runtime_properties
@@ -109,7 +109,7 @@ def server_connect_to_keypair(**kwargs):
     ctx.source.instance.update()
 
 
-@operation
+@operation(resumable=True)
 def server_disconnect_from_keypair(**kwargs):
     host_rt_properties = ctx.source.instance.runtime_properties
     if SSH_KEY in host_rt_properties:

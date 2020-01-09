@@ -29,7 +29,7 @@ PORT_REPLACEMENT = 'port_replacement'
 DEFAULT_SSH_PORT = '22'
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def net_connect_to_nat_preconfigure(vca_client, **kwargs):
     rules = ctx.target.node.properties['rules']
@@ -42,7 +42,7 @@ def net_connect_to_nat_preconfigure(vca_client, **kwargs):
             " you can use only 'SNAT' rule.")
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 @lock_gateway
 def net_connect_to_nat(vca_client, **kwargs):
@@ -56,7 +56,7 @@ def net_connect_to_nat(vca_client, **kwargs):
         return set_retry(ctx)
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 @lock_gateway
 def net_disconnect_from_nat(vca_client, **kwargs):
@@ -70,7 +70,7 @@ def net_disconnect_from_nat(vca_client, **kwargs):
         return set_retry(ctx)
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 @lock_gateway
 def server_connect_to_nat(vca_client, **kwargs):
@@ -81,7 +81,7 @@ def server_connect_to_nat(vca_client, **kwargs):
         return set_retry(ctx)
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 @lock_gateway
 def server_disconnect_from_nat(vca_client, **kwargs):
@@ -92,7 +92,7 @@ def server_disconnect_from_nat(vca_client, **kwargs):
         return set_retry(ctx)
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
     """

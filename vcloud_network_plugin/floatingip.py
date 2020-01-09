@@ -26,7 +26,7 @@ from vcloud_network_plugin import (check_ip, CheckAssignedExternalIp,
                                    set_retry, lock_gateway)
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 @lock_gateway
 def connect_floatingip(vca_client, **kwargs):
@@ -37,7 +37,7 @@ def connect_floatingip(vca_client, **kwargs):
         return set_retry(ctx)
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 @lock_gateway
 def disconnect_floatingip(vca_client, **kwargs):
@@ -48,7 +48,7 @@ def disconnect_floatingip(vca_client, **kwargs):
         return set_retry(ctx)
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
     """

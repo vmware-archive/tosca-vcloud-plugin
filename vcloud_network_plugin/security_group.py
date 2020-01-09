@@ -28,7 +28,7 @@ ADDRESS_LITERALS = ("any", "internal", "external", "host")
 ACTIONS = ("allow", "deny")
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 @lock_gateway
 def create(vca_client, **kwargs):
@@ -39,7 +39,7 @@ def create(vca_client, **kwargs):
         return set_retry(ctx)
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 @lock_gateway
 def delete(vca_client, **kwargs):
@@ -50,7 +50,7 @@ def delete(vca_client, **kwargs):
         return set_retry(ctx)
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
     """
