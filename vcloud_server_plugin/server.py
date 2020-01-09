@@ -37,7 +37,7 @@ DEFAULT_USER = "ubuntu"
 DEFAULT_HOME = "/home"
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def creation_validation(vca_client, **kwargs):
     """
@@ -81,7 +81,7 @@ def creation_validation(vca_client, **kwargs):
             format(server_dict['template']))
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def create(vca_client, **kwargs):
     """
@@ -216,7 +216,7 @@ def _power_on_vm(vca_client, vapp, vapp_name):
         wait_for_task(vca_client, task)
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def start(vca_client, **kwargs):
     """
@@ -238,7 +238,7 @@ def start(vca_client, **kwargs):
             retry_after=5)
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def stop(vca_client, **kwargs):
     """
@@ -260,7 +260,7 @@ def stop(vca_client, **kwargs):
         wait_for_task(vca_client, task)
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def delete(vca_client, **kwargs):
     """
@@ -299,7 +299,7 @@ def _is_primary_connection_has_ip(vapp):
     return False
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def configure(vca_client, **kwargs):
 
@@ -397,7 +397,7 @@ def configure(vca_client, **kwargs):
             ctx.logger.info("We dont recieve ip, try next time...")
 
 
-@operation
+@operation(resumable=True)
 @with_vca_client
 def remove_keys(vca_client, **kwargs):
     ctx.logger.info("Remove public keys from VM.")
