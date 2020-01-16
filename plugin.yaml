@@ -1,9 +1,9 @@
 plugins:
     vcloud:
         executor: central_deployment_agent
-        source: https://github.com/cloudify-cosmo/tosca-vcloud-plugin/archive/1.6.0.zip
+        source: https://github.com/cloudify-cosmo/tosca-vcloud-plugin/archive/1.6.1.dev1.zip
         package_name: tosca-vcloud-plugin
-        package_version: '1.6.0'
+        package_version: '1.6.1.dev1'
 
 node_types:
     cloudify.vcloud.nodes.Server:

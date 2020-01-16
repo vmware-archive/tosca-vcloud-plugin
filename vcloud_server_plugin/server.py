@@ -364,6 +364,14 @@ def configure(vca_client, **kwargs):
                 computer_name=computer_name,
                 admin_password=password
             )
+            ctx.logger.debug(
+                "VM {vapp_name} Customized with sript:\n{script}\n"
+                "computer_name:\n{computer_name}\n"
+                "password:\n{password}\n".format(
+                    vapp_name=vapp_name,
+                    script=script,
+                    computer_name=computer_name,
+                    password=password))
             if task is None:
                 raise cfy_exc.NonRecoverableError(
                     "Could not set guest customization parameters. {0}".
