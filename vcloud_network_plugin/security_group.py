@@ -16,6 +16,7 @@ from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, get_mandatory,
+                                  combine_properties, delete_properties,
                                   get_vcloud_config)
 from vcloud_network_plugin import (check_ip, get_vm_ip,
                                    save_gateway_configuration, get_gateway,
@@ -31,12 +32,24 @@ ACTIONS = ("allow", "deny")
 
 @operation(resumable=True)
 @with_vca_client
+def create_node(vca_client, **kwargs):
+    """
+        save properties on create step
+    """
+    # combine properties
+    combine_properties(
+        ctx, kwargs=kwargs, names=['security_group'],
+        properties=['rules'])
+
+
+@operation(resumable=True)
+@with_vca_client
 @lock_gateway
 def create(vca_client, **kwargs):
     """
         create firewall rules for node
     """
-    if not _rule_operation(CREATE_RULE, vca_client):
+    if not _rule_operation(CREATE_RULE, vca_client, kwargs=kwargs):
         return set_retry(ctx)
 
 
@@ -47,8 +60,9 @@ def delete(vca_client, **kwargs):
     """
         drop firewall rules for node
     """
-    if not _rule_operation(DELETE_RULE, vca_client):
+    if not _rule_operation(DELETE_RULE, vca_client, kwargs=kwargs):
         return set_retry(ctx)
+    delete_properties(ctx.target)
 
 
 @operation(resumable=True)
@@ -57,16 +71,16 @@ def creation_validation(vca_client, **kwargs):
     """
         validate firewall rules for node
     """
+    # combine properties
+    obj = combine_properties(
+        ctx, kwargs=kwargs, names=['security_group'],
+        properties=['rules'])
     getaway = get_gateway(
         vca_client, _get_gateway_name(ctx.node.properties)
     )
     if not getaway.is_fw_enabled():
         raise cfy_exc.NonRecoverableError(
             "Gateway firewall is disabled. Please, enable firewall.")
-    # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
     # get rules
     rules = get_mandatory(obj, 'rules')
     for rule in rules:
@@ -110,13 +124,17 @@ def creation_validation(vca_client, **kwargs):
                 "Parameter 'log_traffic' must be boolean.")
 
 
-def _rule_operation(operation, vca_client):
+def _rule_operation(operation, vca_client, kwargs=None):
     """
         create/delete firewall rules in gateway for current node
     """
     gateway_name = _get_gateway_name(ctx.target.node.properties)
     gateway = get_gateway(vca_client, gateway_name)
-    for rule in ctx.target.node.properties['rules']:
+    # combine properties
+    obj = combine_properties(
+        ctx.target, kwargs=kwargs, names=['security_group'],
+        properties=['rules'])
+    for rule in obj['rules']:
         description = rule.get('description', "Rule added by pyvcloud").strip()
         source_ip = rule.get("source", "external")
         if not _is_literal_ip(source_ip):

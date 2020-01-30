@@ -411,6 +411,22 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
             )
             security_group.creation_validation(ctx=fake_ctx)
 
+    def test_create_node(self):
+        fake_client = self.generate_client()
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            fake_ctx = self.generate_node_context_with_current_ctx(
+                properties={
+                    'vcloud_config': {
+                        'edge_gateway': 'some_edge_gateway',
+                        'vdc': 'vdc_name'
+                    }
+                }
+            )
+            security_group.create_node(ctx=fake_ctx)
+
     def test_creation_validation(self):
         fake_client = self.generate_client()
         with mock.patch(
