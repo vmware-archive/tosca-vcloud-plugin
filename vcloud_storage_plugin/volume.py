@@ -35,12 +35,17 @@ def create_volume(vca_client, **kwargs):
             }
         }
     """
-    if ctx.node.properties.get('use_external_resource'):
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get external
+    if obj.get('use_external_resource'):
         ctx.logger.info("External resource has been used")
         return
     vdc_name = get_vcloud_config()['vdc']
-    name = ctx.node.properties['volume']['name']
-    size = ctx.node.properties['volume']['size']
+    name = obj['volume']['name']
+    size = obj['volume']['size']
     size_in_bytes = size * 1024 * 1024
     ctx.logger.info("Create volume '{0}' to '{1}' with size {2}Mb."
                     .format(name, vdc_name, size))
@@ -59,11 +64,16 @@ def delete_volume(vca_client, **kwargs):
     """
         drop volume
     """
-    if ctx.node.properties.get('use_external_resource'):
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get external
+    if obj.get('use_external_resource'):
         ctx.logger.info("External resource has been used")
         return
     vdc_name = get_vcloud_config()['vdc']
-    name = ctx.node.properties['volume']['name']
+    name = obj['volume']['name']
     ctx.logger.info("Delete volume '{0}' from '{1}'."
                     .format(name, vdc_name))
     success, task = vca_client.delete_disk(vdc_name, name)
@@ -85,13 +95,24 @@ def creation_validation(vca_client, **kwargs):
     disks_names = [
         disk.name for [disk, _vms] in vca_client.get_disks(vdc_name)
     ]
-    if ctx.node.properties.get('use_external_resource'):
-        resource_id = get_mandatory(ctx.node.properties, 'resource_id')
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get external resource flag
+    if obj.get('use_external_resource'):
+        # get resource_id
+        resource_id = get_mandatory(obj, 'resource_id')
         if resource_id not in disks_names:
             raise cfy_exc.NonRecoverableError(
                 "Disk {} does't exists".format(resource_id))
     else:
-        volume = get_mandatory(ctx.node.properties, 'volume')
+        # combine properties
+        obj = {}
+        obj.update(ctx.node.properties)
+        obj.update(kwargs)
+        # get volume
+        volume = get_mandatory(obj, 'volume')
         name = get_mandatory(volume, 'name')
         if name in disks_names:
             raise cfy_exc.NonRecoverableError(

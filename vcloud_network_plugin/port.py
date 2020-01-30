@@ -27,7 +27,12 @@ def creation_validation(vca_client, **kwargs):
         ip_allocation_mode must be in 'manual', 'dhcp', 'pool',
         and valid ip_address if set
     """
-    port = get_mandatory(ctx.node.properties, 'port')
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get port
+    port = get_mandatory(obj, 'port')
     ip_allocation_mode = port.get('ip_allocation_mode')
     if ip_allocation_mode:
         if ip_allocation_mode.lower() not in ['manual', 'dhcp', 'pool']:

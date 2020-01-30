@@ -294,7 +294,8 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
             with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
                 self.assertFalse(
                     network._dhcp_operation(
-                        fake_client, 'secret_network', network.DELETE_POOL
+                        fake_client, fake_ctx.node.properties,
+                        'secret_network', network.DELETE_POOL
                     )
                 )
 

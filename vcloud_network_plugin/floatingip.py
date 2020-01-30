@@ -61,7 +61,12 @@ def creation_validation(vca_client, **kwargs):
         also check availability of public ip if set or exist some free
         ip in subscription case
     """
-    floatingip = get_mandatory(ctx.node.properties, 'floatingip')
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get floatingip
+    floatingip = get_mandatory(obj, 'floatingip')
     edge_gateway = get_mandatory(floatingip, 'edge_gateway')
     gateway = get_gateway(vca_client, edge_gateway)
     service_type = get_vcloud_config().get('service_type')

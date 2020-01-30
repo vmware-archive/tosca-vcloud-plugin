@@ -44,18 +44,23 @@ def creation_validation(vca_client, **kwargs):
             }
 
     """
-    if ctx.node.properties.get(USE_EXTERNAL_RESOURCE):
-        if not ctx.node.properties.get(RESOURCE_ID):
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get external
+    if obj.get(USE_EXTERNAL_RESOURCE):
+        if not obj.get(RESOURCE_ID):
             raise cfy_exc.NonRecoverableError(
                 "resource_id server properties must be specified")
-        res_id = ctx.node.properties[RESOURCE_ID]
+        res_id = obj[RESOURCE_ID]
         vdc = vca_client.get_vdc(res_id)
         if not vdc:
             raise cfy_exc.NonRecoverableError(
                 "Unable to find external VDC {0}."
                 .format(res_id))
     else:
-        vdc_name = ctx.node.properties.get('name')
+        vdc_name = obj.get('name')
         if not vdc_name:
             raise cfy_exc.NonRecoverableError("'vdc_name' not specified.")
         vdc = vca_client.get_vdc(vdc_name)
@@ -75,9 +80,14 @@ def create(vca_client, **kwargs):
     if is_subscription(config['service_type']):
         raise cfy_exc.NonRecoverableError(
             "Unable create VDC on subscription service.")
-    if ctx.node.properties.get(USE_EXTERNAL_RESOURCE):
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get external
+    if obj.get(USE_EXTERNAL_RESOURCE):
         # use external resource, does not create anything
-        res_id = ctx.node.properties[RESOURCE_ID]
+        res_id = obj[RESOURCE_ID]
         ctx.instance.runtime_properties[VDC_NAME] = res_id
         vdc = vca_client.get_vdc(res_id)
         if not vdc:
@@ -88,7 +98,7 @@ def create(vca_client, **kwargs):
             "External resource {0} has been used".format(res_id))
     else:
         # create new vdc
-        vdc_name = ctx.node.properties.get('name')
+        vdc_name = obj.get('name')
         if not vdc_name:
             raise cfy_exc.NonRecoverableError("'vdc_name' not specified.")
         task = vca_client.create_vdc(vdc_name)
@@ -102,13 +112,18 @@ def create(vca_client, **kwargs):
 @with_vca_client
 def delete(vca_client, **kwargs):
     """delete vdc"""
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get external
     # external resource - no actions
-    if ctx.node.properties.get(USE_EXTERNAL_RESOURCE):
+    if obj.get(USE_EXTERNAL_RESOURCE):
         ctx.logger.info('Not deleting VDC since an external VDC is '
                         'being used')
     else:
         # created in our workflow
-        vdc_name = ctx.node.properties.get('name')
+        vdc_name = obj.get('name')
         status, task = vca_client.delete_vdc(vdc_name)
         if not status:
             raise cfy_exc.NonRecoverableError(

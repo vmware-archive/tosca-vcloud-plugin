@@ -1,4 +1,5 @@
 plugins:
+
     vcloud:
         executor: central_deployment_agent
         source: https://github.com/cloudify-cosmo/tosca-vcloud-plugin/archive/1.6.1.dev1.zip
@@ -6,6 +7,7 @@ plugins:
         package_version: '1.6.1.dev1'
 
 node_types:
+
     cloudify.vcloud.nodes.Server:
         derived_from: cloudify.nodes.Compute
         properties:
@@ -138,7 +140,6 @@ node_types:
                     implementation: vcloud.vcloud_network_plugin.keypair.delete
                     inputs: {}
 
-
     cloudify.vcloud.nodes.Volume:
         derived_from: cloudify.nodes.Volume
         properties:
@@ -188,6 +189,7 @@ node_types:
                     implementation: vcloud.vcloud_server_plugin.vdc.creation_validation
 
 relationships:
+
     cloudify.vcloud.server_connected_to_floating_ip:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
@@ -198,12 +200,16 @@ relationships:
                 unlink:
                     implementation: vcloud.vcloud_network_plugin.floatingip.disconnect_floatingip
                     inputs: {}
+
     cloudify.vcloud.server_connected_to_network:
         derived_from: cloudify.relationships.connected_to
+
     cloudify.vcloud.port_connected_to_network:
         derived_from: cloudify.relationships.connected_to
+
     cloudify.vcloud.server_connected_to_port:
         derived_from: cloudify.relationships.connected_to
+
     cloudify.vcloud.server_connected_to_security_group:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
@@ -214,6 +220,7 @@ relationships:
                 unlink:
                     implementation: vcloud.vcloud_network_plugin.security_group.delete
                     inputs: {}
+
     cloudify.vcloud.net_connected_to_public_nat:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
@@ -227,6 +234,7 @@ relationships:
                 unlink:
                     implementation: vcloud.vcloud_network_plugin.public_nat.net_disconnect_from_nat
                     inputs: {}
+
     cloudify.vcloud.server_connected_to_public_nat:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
@@ -237,6 +245,7 @@ relationships:
                 unlink:
                     implementation: vcloud.vcloud_network_plugin.public_nat.server_disconnect_from_nat
                     inputs: {}
+
     cloudify.vcloud.volume_attached_to_server:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
@@ -247,6 +256,7 @@ relationships:
                 unlink:
                     implementation: vcloud.vcloud_storage_plugin.volume.detach_volume
                     inputs: {}
+
     cloudify.vcloud.server_connected_to_keypair:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:
@@ -257,8 +267,10 @@ relationships:
                 unlink:
                     implementation: vcloud.vcloud_network_plugin.keypair.server_disconnect_from_keypair
                     inputs: {}
+
     cloudify.vcloud.server_connected_to_vdc:
         derived_from: cloudify.relationships.connected_to
+
     cloudify.vcloud.delete_public_key_from_server:
         derived_from: cloudify.relationships.connected_to
         target_interfaces:

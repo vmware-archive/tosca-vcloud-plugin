@@ -38,7 +38,12 @@ def creation_validation(**kwargs):
         check availability of path used in field private_key_path of
         node properties
     """
-    key_path = ctx.node.properties.get(PRIVATE_KEY, {}).get(PATH)
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get key
+    key_path = obj.get(PRIVATE_KEY, {}).get(PATH)
     if key_path:
         key_path = os.path.expanduser(key_path)
         if not os.path.isfile(key_path):
@@ -54,24 +59,29 @@ def create(**kwargs):
         ctx.node.properties.get(PUBLIC_KEY, {}).get(USER)
     ctx.instance.runtime_properties[PUBLIC_KEY][HOME] = \
         ctx.node.properties.get(PUBLIC_KEY, {}).get(HOME)
-    if ctx.node.properties.get(AUTO_GENERATE):
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get key
+    if obj.get(AUTO_GENERATE):
         ctx.logger.info("Generating ssh keypair")
         public, private = _generate_pair()
         ctx.instance.runtime_properties[PRIVATE_KEY][KEY] = private
         ctx.instance.runtime_properties[PUBLIC_KEY][KEY] = public
-        if ctx.node.properties.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
+        if obj.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
             ctx.instance.runtime_properties[PRIVATE_KEY][PATH] = _create_path()
             _save_key_file(ctx.instance.runtime_properties[PRIVATE_KEY][PATH],
                            ctx.instance.runtime_properties[PRIVATE_KEY][KEY])
     else:
         ctx.instance.runtime_properties[PUBLIC_KEY][KEY] = \
-            ctx.node.properties.get(PUBLIC_KEY, {}).get(KEY)
+            obj.get(PUBLIC_KEY, {}).get(KEY)
         ctx.instance.runtime_properties[PRIVATE_KEY][KEY] = \
-            ctx.node.properties.get(PRIVATE_KEY, {}).get(KEY)
+            obj.get(PRIVATE_KEY, {}).get(KEY)
         ctx.instance.runtime_properties[PRIVATE_KEY][PATH] = \
-            ctx.node.properties.get(PRIVATE_KEY, {}).get(PATH)
-        if ctx.node.properties.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
-            if ctx.node.properties.get(PRIVATE_KEY, {}).get(KEY):
+            obj.get(PRIVATE_KEY, {}).get(PATH)
+        if obj.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
+            if obj.get(PRIVATE_KEY, {}).get(KEY):
                 ctx.instance.runtime_properties[PRIVATE_KEY][PATH] = _create_path()
                 _save_key_file(ctx.instance.runtime_properties[PRIVATE_KEY][PATH],
                                ctx.instance.runtime_properties[PRIVATE_KEY][KEY])
@@ -79,12 +89,17 @@ def create(**kwargs):
 
 @operation(resumable=True)
 def delete(**kwargs):
-    if ctx.node.properties[AUTO_GENERATE]:
-        if ctx.node.properties.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get key
+    if obj[AUTO_GENERATE]:
+        if obj.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
             _delete_key_file(ctx.instance.runtime_properties)
     else:
-        if ctx.node.properties.get(PRIVATE_KEY, {}).get(KEY):
-            if ctx.node.properties.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
+        if obj.get(PRIVATE_KEY, {}).get(KEY):
+            if obj.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
                 _delete_key_file(ctx.instance.runtime_properties)
     if PRIVATE_KEY in ctx.instance.runtime_properties:
         del ctx.instance.runtime_properties[PRIVATE_KEY]

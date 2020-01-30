@@ -54,14 +54,19 @@ def creation_validation(vca_client, **kwargs):
             if template.get_name() == template_name:
                 return template
 
-    if ctx.node.properties.get('use_external_resource'):
-        if not ctx.node.properties.get('resource_id'):
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get external
+    if obj.get('use_external_resource'):
+        if not obj.get('resource_id'):
             raise cfy_exc.NonRecoverableError(
                 "resource_id server properties must be specified"
             )
         return
 
-    server_dict = ctx.node.properties['server']
+    server_dict = obj['server']
     required_params = ('catalog', 'template')
     missed_params = set(required_params) - set(server_dict.keys())
     if len(missed_params) > 0:
@@ -111,8 +116,13 @@ def create(vca_client, **kwargs):
     server.update(kwargs.get('server', {}))
     transform_resource_name(server, ctx)
 
-    if ctx.node.properties.get('use_external_resource'):
-        res_id = ctx.node.properties['resource_id']
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get external
+    if obj.get('use_external_resource'):
+        res_id = obj['resource_id']
         ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = res_id
         vdc = vca_client.get_vdc(config['vdc'])
         if not vca_client.get_vapp(vdc, res_id):
@@ -222,7 +232,12 @@ def start(vca_client, **kwargs):
     """
     power on server and wait network connection availability for host
     """
-    if ctx.node.properties.get('use_external_resource'):
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get external
+    if obj.get('use_external_resource'):
         ctx.logger.info('not starting server since an external server is '
                         'being used')
     else:
@@ -244,7 +259,12 @@ def stop(vca_client, **kwargs):
     """
         poweroff server, if external resource - server stay poweroned
     """
-    if ctx.node.properties.get('use_external_resource'):
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get external
+    if obj.get('use_external_resource'):
         ctx.logger.info('not stopping server since an external server is '
                         'being used')
     else:
@@ -266,7 +286,12 @@ def delete(vca_client, **kwargs):
     """
         delete server
     """
-    if ctx.node.properties.get('use_external_resource'):
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get external
+    if obj.get('use_external_resource'):
         ctx.logger.info('not deleting server since an external server is '
                         'being used')
     else:
@@ -302,8 +327,12 @@ def _is_primary_connection_has_ip(vapp):
 @operation(resumable=True)
 @with_vca_client
 def configure(vca_client, **kwargs):
-
-    if ctx.node.properties.get('use_external_resource'):
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get external
+    if obj.get('use_external_resource'):
         ctx.logger.info('Avoiding external resource configuration.')
     else:
         ctx.logger.info("Configure server")

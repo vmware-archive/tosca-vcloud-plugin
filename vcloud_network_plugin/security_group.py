@@ -62,7 +62,12 @@ def creation_validation(vca_client, **kwargs):
     if not getaway.is_fw_enabled():
         raise cfy_exc.NonRecoverableError(
             "Gateway firewall is disabled. Please, enable firewall.")
-    rules = get_mandatory(ctx.node.properties, 'rules')
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get rules
+    rules = get_mandatory(obj, 'rules')
     for rule in rules:
         description = rule.get("description")
         if description and not isinstance(description, basestring):

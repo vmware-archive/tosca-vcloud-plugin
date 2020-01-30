@@ -98,7 +98,12 @@ def creation_validation(vca_client, **kwargs):
     """
         validate nat rules in node properties
     """
-    nat = get_mandatory(ctx.node.properties, 'nat')
+    # combine properties
+    obj = {}
+    obj.update(ctx.node.properties)
+    obj.update(kwargs)
+    # get net
+    nat = get_mandatory(obj, 'nat')
     gateway = get_gateway(vca_client, get_mandatory(nat, 'edge_gateway'))
     service_type = get_vcloud_config().get('service_type')
     public_ip = nat.get(PUBLIC_IP)
@@ -107,7 +112,9 @@ def creation_validation(vca_client, **kwargs):
     else:
         if is_subscription(service_type):
             getFreeIP(gateway)
-    for rule in get_mandatory(ctx.node.properties, 'rules'):
+    # get rules
+    rules = get_mandatory(obj, 'rules')
+    for rule in rules:
         if _is_dnat(rule['type']):
             utils.check_protocol(rule.get('protocol'))
             original_port = rule.get('original_port')
