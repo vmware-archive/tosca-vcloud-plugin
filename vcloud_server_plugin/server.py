@@ -23,6 +23,8 @@ from vcloud_plugin_common import (get_vcloud_config,
                                   wait_for_task,
                                   with_vca_client,
                                   error_response,
+                                  combine_properties,
+                                  delete_properties,
                                   STATUS_POWERED_ON)
 from vcloud_network_plugin import (get_network_name, get_network,
                                    is_network_exists,
@@ -55,9 +57,9 @@ def creation_validation(vca_client, **kwargs):
                 return template
 
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(
+        ctx, kwargs=kwargs, names=['server'],
+        properties=[VCLOUD_VAPP_NAME, 'management_network'])
     # get external
     if obj.get('use_external_resource'):
         if not obj.get('resource_id'):
@@ -112,14 +114,12 @@ def create(vca_client, **kwargs):
     server = {
         'name': ctx.instance.id,
     }
-    server.update(ctx.node.properties.get('server', {}))
-    server.update(kwargs.get('server', {}))
-    transform_resource_name(server, ctx)
-
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(
+        ctx, kwargs=kwargs, names=['server'],
+        properties=[VCLOUD_VAPP_NAME, 'management_network'])
+    server.update(obj.get('server', {}))
+    transform_resource_name(server, ctx)
     # get external
     if obj.get('use_external_resource'):
         res_id = obj['resource_id']
@@ -233,9 +233,9 @@ def start(vca_client, **kwargs):
     power on server and wait network connection availability for host
     """
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(
+        ctx, kwargs=kwargs, names=['server'],
+        properties=[VCLOUD_VAPP_NAME, 'management_network'])
     # get external
     if obj.get('use_external_resource'):
         ctx.logger.info('not starting server since an external server is '
@@ -260,9 +260,9 @@ def stop(vca_client, **kwargs):
         poweroff server, if external resource - server stay poweroned
     """
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(
+        ctx, kwargs=kwargs, names=['server'],
+        properties=[VCLOUD_VAPP_NAME, 'management_network'])
     # get external
     if obj.get('use_external_resource'):
         ctx.logger.info('not stopping server since an external server is '
@@ -287,9 +287,9 @@ def delete(vca_client, **kwargs):
         delete server
     """
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(
+        ctx, kwargs=kwargs, names=['server'],
+        properties=[VCLOUD_VAPP_NAME, 'management_network'])
     # get external
     if obj.get('use_external_resource'):
         ctx.logger.info('not deleting server since an external server is '
@@ -306,7 +306,7 @@ def delete(vca_client, **kwargs):
                                               format(error_response(vapp)))
         wait_for_task(vca_client, task)
 
-    del ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
+    delete_properties(ctx)
 
 
 def _is_primary_connection_has_ip(vapp):
@@ -328,9 +328,9 @@ def _is_primary_connection_has_ip(vapp):
 @with_vca_client
 def configure(vca_client, **kwargs):
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(
+        ctx, kwargs=kwargs, names=['server'],
+        properties=[VCLOUD_VAPP_NAME, 'management_network'])
     # get external
     if obj.get('use_external_resource'):
         ctx.logger.info('Avoiding external resource configuration.')
@@ -671,7 +671,8 @@ def _create_connections_list(vca_client):
     management_network_name = ctx.node.properties.get('management_network')
 
     for port in ports:
-        port_properties = port.node.properties['port']
+        obj = combine_properties(port, names=['port'])
+        port_properties = obj['port']
         connections.append(
             _create_connection(port_properties['network'],
                                port_properties.get('ip_address'),
@@ -683,6 +684,7 @@ def _create_connections_list(vca_client):
         )
 
     for net in networks:
+        obj = combine_properties(net, names=['network'])
         connections.append(
             _create_connection(get_network_name(net.node.properties),
                                None, None, 'POOL'))
