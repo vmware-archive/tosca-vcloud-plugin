@@ -397,7 +397,9 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
         with mock.patch('vcloud_plugin_common.VcloudAirClient.get',
                         mock.MagicMock(return_value=fake_client)):
             with mock.patch(
-                    'vcloud_storage_plugin.volume._wait_for_boot', mock.MagicMock()):
+                'vcloud_storage_plugin.volume._wait_for_boot',
+                mock.MagicMock()
+            ):
                 volume.attach_volume(ctx=fake_ctx)
 
     def test_detach_volume(self):

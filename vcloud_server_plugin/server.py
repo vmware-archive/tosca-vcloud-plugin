@@ -167,7 +167,7 @@ def _create(vca_client, config, server):
     task = vapp.modify_vm_name(1, vapp_name)
     if not task:
         raise cfy_exc.NonRecoverableError(
-            "Can't modyfy VM name".format(vapp_name))
+            "Can't modyfy VM name: {0}".format(vapp_name))
     wait_for_task(vca_client, task)
     ctx.logger.info("VM '{0}' has been renamed.".format(vapp_name))
 

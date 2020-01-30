@@ -6,4 +6,5 @@ tox>=1.9
 coverage
 pyflakes
 flake8
-fabric
+fabric==1.14.1
+pylint

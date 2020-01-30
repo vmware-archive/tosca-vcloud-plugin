@@ -21,9 +21,10 @@ from vcloud_network_plugin import (check_ip, CheckAssignedExternalIp,
                                    CheckAssignedInternalIp, get_vm_ip,
                                    save_gateway_configuration, getFreeIP,
                                    CREATE, DELETE, PUBLIC_IP, get_gateway,
-                                   SSH_PUBLIC_IP, SSH_PORT, save_ssh_parameters,
-                                   get_public_ip, del_ondemand_public_ip,
-                                   set_retry, lock_gateway)
+                                   SSH_PUBLIC_IP, SSH_PORT,
+                                   save_ssh_parameters, get_public_ip,
+                                   del_ondemand_public_ip, set_retry,
+                                   lock_gateway)
 
 
 @operation(resumable=True)
@@ -106,7 +107,7 @@ def _floatingip_operation(operation, vca_client, ctx):
         nat_operation = _add_nat_rule
     elif operation == DELETE:
         if not public_ip:
-            ctx.logger.info("Can't get external IP".format(public_ip))
+            ctx.logger.info("Can't get external IP {0}".format(public_ip))
             return True
         nat_operation = _del_nat_rule
     else:

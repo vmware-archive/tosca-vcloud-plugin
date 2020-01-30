@@ -113,7 +113,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             self.generate_vca()
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                server.creation_validation(ctx=fake_ctx)
+                server.creation_validation(ctx=fake_ctx, vca_client=None)
 
     def test_creation_validation_external_resource(self):
         """
@@ -136,7 +136,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             self.generate_vca()
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                server.creation_validation(ctx=fake_ctx)
+                server.creation_validation(ctx=fake_ctx, vca_client=None)
         # with resource_id
         fake_ctx = cfy_mocks.MockCloudifyContext(
             node_id='test',
@@ -153,7 +153,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient',
             self.generate_vca()
         ):
-            server.creation_validation(ctx=fake_ctx)
+            server.creation_validation(ctx=fake_ctx, vca_client=None)
 
     def test_creation_validation_settings_wrong_catalog(self):
         fake_ctx = cfy_mocks.MockCloudifyContext(
@@ -174,7 +174,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             self.generate_vca()
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                server.creation_validation(ctx=fake_ctx)
+                server.creation_validation(ctx=fake_ctx, vca_client=None)
 
     def test_creation_validation_settings_wrong_template(self):
         fake_ctx = cfy_mocks.MockCloudifyContext(
@@ -195,7 +195,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             self.generate_vca()
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                server.creation_validation(ctx=fake_ctx)
+                server.creation_validation(ctx=fake_ctx, vca_client=None)
 
     def test_creation_validation_settings(self):
         fake_ctx = cfy_mocks.MockCloudifyContext(
@@ -215,7 +215,7 @@ class ServerPluginServerSubRoutesMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             self.generate_vca()
         ):
-            server.creation_validation(ctx=fake_ctx)
+            server.creation_validation(ctx=fake_ctx, vca_client=None)
 
     def test_isDhcpAvailable(self):
         client = self.generate_client()

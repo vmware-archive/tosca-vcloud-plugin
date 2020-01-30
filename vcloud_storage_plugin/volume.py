@@ -152,12 +152,14 @@ def _volume_operation(vca_client, operation):
     for ref in vca_client.get_diskRefs(vdc):
         if ref.name == volumeName:
             if operation == 'ATTACH':
-                ctx.logger.info("Attach volume node '{0}'.".format(volumeName))
+                ctx.logger.info("Attach volume node '{0}'."
+                                .format(volumeName))
                 task = vapp.attach_disk_to_vm(vmName, ref)
                 if task:
                     wait_for_task(vca_client, task)
                     ctx.logger.info(
-                        "Volume node '{0}' has been attached".format(volumeName))
+                        "Volume node '{0}' has been attached"
+                        .format(volumeName))
                 else:
                     raise cfy_exc.NonRecoverableError(
                         "Can't attach disk: '{0}' with error: {1}".

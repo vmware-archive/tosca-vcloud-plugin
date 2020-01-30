@@ -87,7 +87,8 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
             fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
                     'vcloud_config': {
-                        'service_type': vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
+                        'service_type':
+                            vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
                     }
                 }
             )
@@ -98,7 +99,8 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
             fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
                     'vcloud_config': {
-                        'service_type': vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
+                        'service_type':
+                            vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
                     },
                     'use_external_resource': True,
                     'resource_id': 'not_existed'
@@ -117,7 +119,8 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
             fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
                     'vcloud_config': {
-                        'service_type': vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
+                        'service_type':
+                            vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
                     },
                     'use_external_resource': False,
                 }
@@ -128,7 +131,8 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
             fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
                     'vcloud_config': {
-                        'service_type': vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
+                        'service_type':
+                            vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
                     },
                     'use_external_resource': False,
                     'name': "something"
@@ -159,7 +163,8 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
             fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
                     'vcloud_config': {
-                        'service_type': vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
+                        'service_type':
+                            vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
                     },
                     'use_external_resource': True,
                     'resource_id': 'not_existed'
@@ -173,7 +178,8 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
             fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
                     'vcloud_config': {
-                        'service_type': vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
+                        'service_type':
+                            vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
                     },
                     'use_external_resource': False,
                     'name': "something"

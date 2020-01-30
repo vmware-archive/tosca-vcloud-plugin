@@ -82,9 +82,11 @@ def create(**kwargs):
             obj.get(PRIVATE_KEY, {}).get(PATH)
         if obj.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
             if obj.get(PRIVATE_KEY, {}).get(KEY):
-                ctx.instance.runtime_properties[PRIVATE_KEY][PATH] = _create_path()
-                _save_key_file(ctx.instance.runtime_properties[PRIVATE_KEY][PATH],
-                               ctx.instance.runtime_properties[PRIVATE_KEY][KEY])
+                ctx.instance.runtime_properties[
+                    PRIVATE_KEY][PATH] = _create_path()
+                _save_key_file(
+                    ctx.instance.runtime_properties[PRIVATE_KEY][PATH],
+                    ctx.instance.runtime_properties[PRIVATE_KEY][KEY])
 
 
 @operation(resumable=True)
@@ -114,13 +116,17 @@ def server_connect_to_keypair(**kwargs):
     if SSH_KEY not in host_rt_properties:
         host_rt_properties[SSH_KEY] = {}
     if PRIVATE_KEY in target_rt_properties:
-        host_rt_properties[SSH_KEY][PATH] = target_rt_properties[PRIVATE_KEY].get(PATH)
-        host_rt_properties[SSH_KEY][KEY] = target_rt_properties[PRIVATE_KEY].get(KEY)
+        host_rt_properties[SSH_KEY][PATH] = target_rt_properties[
+            PRIVATE_KEY].get(PATH)
+        host_rt_properties[SSH_KEY][KEY] = target_rt_properties[
+            PRIVATE_KEY].get(KEY)
     if PUBLIC_KEY in target_rt_properties:
-        host_rt_properties[SSH_KEY][USER] = target_rt_properties[PUBLIC_KEY].get(USER)
+        host_rt_properties[SSH_KEY][USER] = target_rt_properties[
+            PUBLIC_KEY].get(USER)
     if target_rt_properties[PRIVATE_KEY].get(PATH):
         host_rt_properties[CLOUDIFY_AGENT] = {}
-        host_rt_properties[CLOUDIFY_AGENT][KEY] = target_rt_properties[PRIVATE_KEY].get(PATH)
+        host_rt_properties[CLOUDIFY_AGENT][KEY] = target_rt_properties[
+            PRIVATE_KEY].get(PATH)
     ctx.source.instance.update()
 
 

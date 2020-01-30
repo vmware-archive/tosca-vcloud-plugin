@@ -27,12 +27,14 @@ class VolumeTestCase(TestCase):
 
     @fail_guard
     def test_use_external(self):
-        status, disk = self.vca_client.add_disk(self.conf.vdc, self.conf.volume_name, self.conf.volume_size_Mb)
+        status, disk = self.vca_client.add_disk(
+            self.conf.vdc, self.conf.volume_name, self.conf.volume_size_Mb)
         self.init('volume_use_external.yaml')
         self.install()
         self.uninstall()
         self.vca_client = self.get_client()
-        status, task = self.vca_client.delete_disk(self.conf.vdc, self.conf.volume_name)
+        status, task = self.vca_client.delete_disk(
+            self.conf.vdc, self.conf.volume_name)
         if status:
             wait_for_task(self.vca_client, task)
 

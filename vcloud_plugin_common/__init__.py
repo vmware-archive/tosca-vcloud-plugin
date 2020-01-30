@@ -166,7 +166,9 @@ class VcloudAirClient(object):
         api_version = cfg.get('api_version', '5.6')
         session_token = cfg.get(SESSION_TOKEN)
         org_url = cfg.get(ORG_URL)
-        if not (all([url, token]) or all([url, username, password]) or session_token):
+        if not (all([url, token]) or
+           all([url, username, password])
+           or session_token):
             raise cfy_exc.NonRecoverableError(
                 "Login credentials must be specified.")
         if (service_type == SUBSCRIPTION_SERVICE_TYPE and not (
@@ -211,7 +213,8 @@ class VcloudAirClient(object):
             if vca:
                 return vca
             else:
-                raise cfy_exc.NonRecoverableError("Invalid session credentials")
+                raise cfy_exc.NonRecoverableError(
+                    "Invalid session credentials")
 
         global local_org_url
         global local_session_token
@@ -276,7 +279,8 @@ class VcloudAirClient(object):
             if vca:
                 return vca
             else:
-                raise cfy_exc.NonRecoverableError("Invalid session credentials")
+                raise cfy_exc.NonRecoverableError(
+                    "Invalid session credentials")
 
         global local_org_url
         global local_session_token

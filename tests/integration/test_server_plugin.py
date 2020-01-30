@@ -33,9 +33,10 @@ class ServerTestCase(TestCase):
 
     @fail_guard
     def test_use_external(self):
-        task = self.vca_client.create_vapp(self.conf.vdc, self.conf.server_name, self.conf.template,
-                                           self.conf.catalog, network_name=self.conf.network_name,
-                                           vm_name=self.conf.server_name, deploy='false', poweron='false')
+        task = self.vca_client.create_vapp(
+            self.conf.vdc, self.conf.server_name, self.conf.template,
+            self.conf.catalog, network_name=self.conf.network_name,
+            vm_name=self.conf.server_name, deploy='false', poweron='false')
         if task:
             wait_for_task(self.vca_client, task)
         else:
