@@ -15,6 +15,7 @@
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
+from vcloud_plugin_common import (combine_properties, delete_properties)
 import os.path
 from os import chmod
 from Crypto.PublicKey import RSA
@@ -39,9 +40,9 @@ def creation_validation(**kwargs):
         node properties
     """
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(ctx, kwargs=kwargs,
+                             names=[PRIVATE_KEY, PUBLIC_KEY],
+                             properties=['auto_generate'])
     # get key
     key_path = obj.get(PRIVATE_KEY, {}).get(PATH)
     if key_path:
@@ -60,9 +61,9 @@ def create(**kwargs):
     ctx.instance.runtime_properties[PUBLIC_KEY][HOME] = \
         ctx.node.properties.get(PUBLIC_KEY, {}).get(HOME)
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(ctx, kwargs=kwargs,
+                             names=[PRIVATE_KEY, PUBLIC_KEY],
+                             properties=['auto_generate'])
     # get key
     if obj.get(AUTO_GENERATE):
         ctx.logger.info("Generating ssh keypair")
@@ -92,9 +93,9 @@ def create(**kwargs):
 @operation(resumable=True)
 def delete(**kwargs):
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(ctx, kwargs=kwargs,
+                             names=[PRIVATE_KEY, PUBLIC_KEY],
+                             properties=['auto_generate'])
     # get key
     if obj[AUTO_GENERATE]:
         if obj.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
@@ -107,6 +108,7 @@ def delete(**kwargs):
         del ctx.instance.runtime_properties[PRIVATE_KEY]
     if PUBLIC_KEY in ctx.instance.runtime_properties:
         del ctx.instance.runtime_properties[PUBLIC_KEY]
+    delete_properties(ctx)
 
 
 @operation(resumable=True)
