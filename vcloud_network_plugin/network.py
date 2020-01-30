@@ -54,6 +54,7 @@ def create(vca_client, **kwargs):
         }
     """
     vdc_name = get_vcloud_config()['vdc']
+    # combine properties
     obj = combine_properties(ctx, kwargs=kwargs, names=['network'])
     # check external resource
     if obj['use_external_resource']:
@@ -117,9 +118,7 @@ def delete(vca_client, **kwargs):
         delete vcloud air network
     """
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(ctx, kwargs=kwargs, names=['network'])
     # check external resource
     if obj['use_external_resource'] is True:
         del ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME]
@@ -153,9 +152,7 @@ def creation_validation(vca_client, **kwargs):
         check network description from node description
     """
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(ctx, kwargs=kwargs, names=['network'])
     # check external resource
     network_name = get_network_name(obj)
     ctx.logger.info("Validation cloudify.vcloud.nodes.Network node: {0}"
