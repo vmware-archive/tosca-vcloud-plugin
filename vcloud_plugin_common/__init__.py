@@ -559,3 +559,49 @@ def login_with_retry(function, arguments, message):
             ctx.logger.info("{0} successful.".format(message))
             return True
     return False
+
+
+def delete_properties(ctx):
+    # cleanup runtime properties
+    # need to convert generaton to list, python 3
+    keys = [key for key in ctx.instance.runtime_properties.keys()]
+    for key in keys:
+        del ctx.instance.runtime_properties[key]
+
+
+def combine_properties(ctx, kwargs=None, names=None, properties=None):
+    """combine properties + runtime properties + kwargs"""
+    if not kwargs:
+        kwargs = {}
+    if not properties:
+        properties = []
+    # add default properties names (uncombined things)
+    properties += ["use_external_resource", "resource_id"]
+    obj = {}
+    # use node properties as base
+    obj.update(ctx.node.properties)
+    if names:
+        # update base properties with runtime properties
+        for name in names:
+            prop_value = obj.get(name, {})
+            prop_value.update(ctx.instance.runtime_properties.get(name, {}))
+            obj[name] = prop_value
+        # update base properties with kwargs
+        for name in names:
+            prop_value = obj.get(name, {})
+            prop_value.update(kwargs.get(name, {}))
+            obj[name] = prop_value
+    # combine by priority
+    for name in ["use_external_resource", "resource_id"]:
+        obj[name] = kwargs.get(
+            name,
+            ctx.instance.runtime_properties.get(
+                name,
+                ctx.node.properties.get(name)
+            )
+        )
+    # update runtime properties back
+    for name in obj:
+        if "vcloud_config" != name:
+            ctx.instance.runtime_properties[name] = obj[name]
+    return obj
