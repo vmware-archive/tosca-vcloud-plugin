@@ -20,6 +20,8 @@ from vcloud_plugin_common import (get_vcloud_config,
                                   wait_for_task,
                                   with_vca_client,
                                   is_subscription,
+                                  combine_properties,
+                                  delete_properties,
                                   error_response)
 
 VDC_NAME = 'vdc_name'
@@ -44,9 +46,7 @@ def creation_validation(vca_client, **kwargs):
 
     """
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(ctx, kwargs=kwargs, properties=['name'])
     # get external
     if obj.get(USE_EXTERNAL_RESOURCE):
         if not obj.get(RESOURCE_ID):
@@ -80,9 +80,7 @@ def create(vca_client, **kwargs):
         raise cfy_exc.NonRecoverableError(
             "Unable create VDC on subscription service.")
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(ctx, kwargs=kwargs, properties=['name'])
     # get external
     if obj.get(USE_EXTERNAL_RESOURCE):
         # use external resource, does not create anything
@@ -112,9 +110,7 @@ def create(vca_client, **kwargs):
 def delete(vca_client, **kwargs):
     """delete vdc"""
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(ctx, kwargs=kwargs, properties=['name'])
     # get external
     # external resource - no actions
     if obj.get(USE_EXTERNAL_RESOURCE):
@@ -129,5 +125,4 @@ def delete(vca_client, **kwargs):
                 "Could not delete VDC: {0}".format(error_response(vca_client)))
         wait_for_task(vca_client, task)
     # clean up runtime_properties
-    if VDC_NAME in ctx.instance.runtime_properties:
-        del ctx.instance.runtime_properties[VDC_NAME]
+    delete_properties(ctx)
