@@ -15,7 +15,8 @@
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
-from vcloud_plugin_common import with_vca_client, get_mandatory
+from vcloud_plugin_common import (with_vca_client, get_mandatory,
+                                  combine_properties, delete_properties)
 from vcloud_network_plugin import check_ip
 
 
@@ -28,9 +29,7 @@ def creation_validation(vca_client, **kwargs):
         and valid ip_address if set
     """
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(ctx, kwargs=kwargs, names=['port'])
     # get port
     port = get_mandatory(obj, 'port')
     ip_allocation_mode = port.get('ip_allocation_mode')
@@ -41,3 +40,15 @@ def creation_validation(vca_client, **kwargs):
         ip_address = port.get('ip_address')
         if ip_address:
             check_ip(ip_address)
+
+
+@operation(resumable=True)
+@with_vca_client
+def create(vca_client, **kwargs):
+    combine_properties(ctx, kwargs=kwargs, names=['port'])
+
+
+@operation(resumable=True)
+@with_vca_client
+def delete(vca_client, **kwargs):
+    delete_properties(ctx)
