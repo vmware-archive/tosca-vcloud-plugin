@@ -16,7 +16,8 @@ from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, wait_for_task,
-                                  get_vcloud_config, get_mandatory)
+                                  get_vcloud_config, get_mandatory,
+                                  delete_properties, combine_properties)
 import collections
 from vcloud_network_plugin import (check_ip, is_valid_ip_range,
                                    is_separate_ranges, is_ips_in_same_subnet,
@@ -53,10 +54,7 @@ def create(vca_client, **kwargs):
         }
     """
     vdc_name = get_vcloud_config()['vdc']
-    # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(ctx, kwargs=kwargs, names=['network'])
     # check external resource
     if obj['use_external_resource']:
         network_name = obj['resource_id']
@@ -145,6 +143,7 @@ def delete(vca_client, **kwargs):
             return
         raise cfy_exc.NonRecoverableError(
             "Could not delete network '{0}': {1}".format(network_name, task))
+    delete_properties(ctx)
 
 
 @operation(resumable=True)
