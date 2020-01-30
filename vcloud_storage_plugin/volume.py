@@ -18,6 +18,7 @@ from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (wait_for_task, with_vca_client,
                                   get_vcloud_config, get_mandatory,
+                                  combine_properties, delete_properties,
                                   error_response)
 from vcloud_network_plugin import get_vapp_name, SSH_PUBLIC_IP, SSH_PORT
 
@@ -36,9 +37,8 @@ def create_volume(vca_client, **kwargs):
         }
     """
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(ctx, kwargs=kwargs, names=['volume'],
+                             properties=['device_name'])
     # get external
     if obj.get('use_external_resource'):
         ctx.logger.info("External resource has been used")
@@ -65,9 +65,8 @@ def delete_volume(vca_client, **kwargs):
         drop volume
     """
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(ctx, kwargs=kwargs, names=['volume'],
+                             properties=['device_name'])
     # get external
     if obj.get('use_external_resource'):
         ctx.logger.info("External resource has been used")
@@ -83,6 +82,7 @@ def delete_volume(vca_client, **kwargs):
     else:
         raise cfy_exc.NonRecoverableError(
             "Disk deletion error: {0}".format(task))
+    delete_properties(ctx)
 
 
 @operation(resumable=True)
@@ -96,9 +96,8 @@ def creation_validation(vca_client, **kwargs):
         disk.name for [disk, _vms] in vca_client.get_disks(vdc_name)
     ]
     # combine properties
-    obj = {}
-    obj.update(ctx.node.properties)
-    obj.update(kwargs)
+    obj = combine_properties(ctx, kwargs=kwargs, names=['volume'],
+                             properties=['device_name'])
     # get external resource flag
     if obj.get('use_external_resource'):
         # get resource_id
@@ -107,10 +106,6 @@ def creation_validation(vca_client, **kwargs):
             raise cfy_exc.NonRecoverableError(
                 "Disk {} does't exists".format(resource_id))
     else:
-        # combine properties
-        obj = {}
-        obj.update(ctx.node.properties)
-        obj.update(kwargs)
         # get volume
         volume = get_mandatory(obj, 'volume')
         name = get_mandatory(volume, 'name')
