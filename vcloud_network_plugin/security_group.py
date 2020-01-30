@@ -49,7 +49,7 @@ def create(vca_client, **kwargs):
     """
         create firewall rules for node
     """
-    if not _rule_operation(CREATE_RULE, vca_client, kwargs=kwargs):
+    if not _rule_operation(CREATE_RULE, vca_client):
         return set_retry(ctx)
 
 
@@ -60,7 +60,7 @@ def delete(vca_client, **kwargs):
     """
         drop firewall rules for node
     """
-    if not _rule_operation(DELETE_RULE, vca_client, kwargs=kwargs):
+    if not _rule_operation(DELETE_RULE, vca_client):
         return set_retry(ctx)
     delete_properties(ctx.target)
 
@@ -124,7 +124,7 @@ def creation_validation(vca_client, **kwargs):
                 "Parameter 'log_traffic' must be boolean.")
 
 
-def _rule_operation(operation, vca_client, kwargs=None):
+def _rule_operation(operation, vca_client):
     """
         create/delete firewall rules in gateway for current node
     """
@@ -132,8 +132,7 @@ def _rule_operation(operation, vca_client, kwargs=None):
     gateway = get_gateway(vca_client, gateway_name)
     # combine properties
     obj = combine_properties(
-        ctx.target, kwargs=kwargs, names=['security_group'],
-        properties=['rules'])
+        ctx.target, names=['security_group'], properties=['rules'])
     for rule in obj['rules']:
         description = rule.get('description', "Rule added by pyvcloud").strip()
         source_ip = rule.get("source", "external")
