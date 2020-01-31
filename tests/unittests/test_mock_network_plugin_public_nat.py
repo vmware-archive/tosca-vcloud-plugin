@@ -1118,7 +1118,8 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            public_nat.server_disconnect_from_nat(ctx=fake_ctx)
+            public_nat.server_disconnect_from_nat(ctx=fake_ctx,
+                                                  vca_client=None)
         fake_client._vdc_gateway.del_nat_rule.assert_called_with(
             'DNAT', '192.168.1.1', 'any', '1.1.1.1', 'any', 'any'
         )
@@ -1129,7 +1130,8 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             self.prepere_gatway_busy_retry(fake_client, fake_ctx)
-            public_nat.server_disconnect_from_nat(ctx=fake_ctx)
+            public_nat.server_disconnect_from_nat(ctx=fake_ctx,
+                                                  vca_client=None)
             self.check_retry_realy_called(fake_ctx)
 
     def _server_connect_to_nat_noexternal(self):
@@ -1168,7 +1170,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            public_nat.server_connect_to_nat(ctx=fake_ctx)
+            public_nat.server_connect_to_nat(ctx=fake_ctx, vca_client=None)
         fake_client._vdc_gateway.add_nat_rule.assert_called_with(
             'DNAT', '10.18.1.1', 'any', '1.1.1.1', 'any', 'any'
         )
@@ -1178,7 +1180,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             self.prepere_gatway_busy_retry(fake_client, fake_ctx)
-            public_nat.server_connect_to_nat(ctx=fake_ctx)
+            public_nat.server_connect_to_nat(ctx=fake_ctx, vca_client=None)
             self.check_retry_realy_called(fake_ctx)
 
     def _net_disconnect_from_nat_noexternal(self):
@@ -1222,14 +1224,15 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            public_nat.net_disconnect_from_nat(ctx=fake_ctx)
+            public_nat.net_disconnect_from_nat(ctx=fake_ctx,
+                                               vca_client=fake_client)
         # no external
         fake_client, fake_ctx = self._net_disconnect_from_nat_noexternal()
         with mock.patch(
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            public_nat.net_disconnect_from_nat(ctx=fake_ctx)
+            public_nat.net_disconnect_from_nat(ctx=fake_ctx, vca_client=None)
         fake_client._vdc_gateway.del_nat_rule.assert_called_with(
             'DNAT', '192.168.1.1', 'any', '127.1.1.100 - 127.1.1.200',
             'any', 'any'
@@ -1241,7 +1244,7 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             self.prepere_gatway_busy_retry(fake_client, fake_ctx)
-            public_nat.net_disconnect_from_nat(ctx=fake_ctx)
+            public_nat.net_disconnect_from_nat(ctx=fake_ctx, vca_client=None)
             self.check_retry_realy_called(fake_ctx)
 
     def test_net_connect_to_nat(self):

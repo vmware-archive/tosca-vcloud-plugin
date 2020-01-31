@@ -356,10 +356,10 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             # success case
-            security_group.create(ctx=fake_ctx)
+            security_group.create(ctx=fake_ctx, vca_client=None)
             # with retry
             self.prepere_gatway_busy_retry(fake_client, fake_ctx)
-            security_group.create(ctx=fake_ctx)
+            security_group.create(ctx=fake_ctx, vca_client=None)
             self.check_retry_realy_called(fake_ctx)
 
     def test_delete(self):
@@ -388,10 +388,10 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             # successful
-            security_group.delete(ctx=fake_ctx)
+            security_group.delete(ctx=fake_ctx, vca_client=None)
             # with retry
             self.prepere_gatway_busy_retry(fake_client, fake_ctx)
-            security_group.delete(ctx=fake_ctx)
+            security_group.delete(ctx=fake_ctx, vca_client=None)
             self.check_retry_realy_called(fake_ctx)
 
     def check_creation_validation(self, rule):
@@ -409,7 +409,8 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
                     'rules': [rule]
                 }
             )
-            security_group.creation_validation(ctx=fake_ctx)
+            security_group.creation_validation(ctx=fake_ctx,
+                                               vca_client=None)
 
     def test_create_node(self):
         fake_client = self.generate_client()
@@ -425,7 +426,7 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
                     }
                 }
             )
-            security_group.create_node(ctx=fake_ctx)
+            security_group.create_node(ctx=fake_ctx, vca_client=None)
 
     def test_creation_validation(self):
         fake_client = self.generate_client()
@@ -446,13 +447,15 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
             )
             #  Gateway firewall is disabled
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                security_group.creation_validation(ctx=fake_ctx)
+                security_group.creation_validation(ctx=fake_ctx,
+                                                   vca_client=None)
             fake_client._vdc_gateway.is_fw_enabled = mock.MagicMock(
                 return_value=True
             )
             # no rules
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                security_group.creation_validation(ctx=fake_ctx)
+                security_group.creation_validation(ctx=fake_ctx,
+                                                   vca_client=None)
             # wrong description
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 self.check_creation_validation({
@@ -465,7 +468,8 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
                     "source": 11
                 })
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                security_group.creation_validation(ctx=fake_ctx)
+                security_group.creation_validation(ctx=fake_ctx,
+                                                   vca_client=None)
             # wrong ip
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 self.check_creation_validation({

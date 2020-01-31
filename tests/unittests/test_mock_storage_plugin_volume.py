@@ -300,10 +300,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
             with mock.patch(
                 'vcloud_plugin_common.ctx', fake_ctx
             ):
-                with mock.patch(
-                    'vcloud_storage_plugin.volume.ctx', fake_ctx
-                ):
-                    volume._volume_operation(fake_client, operation)
+                volume._volume_operation(fake_ctx, fake_client, operation)
 
         # use external resource, no disks
         _run_volume_operation(fake_ctx, fake_client, 'ATTACH')
@@ -414,7 +411,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
             volume.detach_volume(ctx=fake_ctx)
 
     @unittest.skip("Fabric changed api, skip for now")
-    def run_wait_boot(self, fabric_settings, fabric_run, sleep_call=True):
+    def run_wait_boot(self, fabric_settings, fabric_run, ctx, sleep_call=True):
         sleep_function = mock.MagicMock()
         with mock.patch(
             'fabric.api.settings', fabric_settings
@@ -425,7 +422,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
                 with mock.patch(
                     'time.sleep', sleep_function
                 ):
-                    volume._wait_for_boot()
+                    volume._wait_for_boot(ctx)
         # check for sleep calls
         if sleep_call:
             sleep_function.assert_called_with(5)
@@ -444,27 +441,27 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
         with mock.patch(
             'vcloud_plugin_common.ctx', fake_ctx
         ):
-            with mock.patch(
-                'vcloud_storage_plugin.volume.ctx', fake_ctx
-            ):
-                # can't connect and run
-                with self.assertRaises(cfy_exc.NonRecoverableError):
-                    self.run_wait_boot(fabric_settings, fabric_run)
-                # command successfully finished
+            # can't connect and run
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                self.run_wait_boot(fabric_settings, fabric_run,
+                                   ctx=fake_ctx)
+            # command successfully finished
 
-                def _sysexit(_):
-                    raise SystemExit
+            def _sysexit(_):
+                raise SystemExit
 
-                fabric_run = mock.MagicMock(side_effect=_sysexit)
-                self.run_wait_boot(fabric_settings, fabric_run, False)
-                # raised some exception during run
+            fabric_run = mock.MagicMock(side_effect=_sysexit)
+            self.run_wait_boot(fabric_settings, fabric_run,
+                               sleep_call=False, ctx=fake_ctx)
+            # raised some exception during run
 
-                def _raiseex(_):
-                    raise Exception
+            def _raiseex(_):
+                raise Exception
 
-                fabric_run = mock.MagicMock(side_effect=_raiseex)
-                with self.assertRaises(cfy_exc.NonRecoverableError):
-                    self.run_wait_boot(fabric_settings, fabric_run)
+            fabric_run = mock.MagicMock(side_effect=_raiseex)
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                self.run_wait_boot(fabric_settings, fabric_run,
+                                   ctx=fake_ctx)
 
 
 if __name__ == '__main__':
