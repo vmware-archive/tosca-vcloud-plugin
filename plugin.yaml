@@ -41,6 +41,7 @@ node_types:
             cloudify.interfaces.validation:
                 creation:
                     implementation: vcloud.vcloud_server_plugin.server.creation_validation
+                    inputs: {}
 
     cloudify.vcloud.nodes.Network:
         derived_from: cloudify.nodes.Network
@@ -64,6 +65,7 @@ node_types:
             cloudify.interfaces.validation:
                 creation:
                     implementation: vcloud.vcloud_network_plugin.network.creation_validation
+                    inputs: {}
 
     cloudify.vcloud.nodes.Port:
         derived_from: cloudify.nodes.Port
@@ -75,14 +77,11 @@ node_types:
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
-                    implementation: vcloud.vcloud_network_plugin.port.create
+                    implementation: vcloud.vcloud_network_plugin.port.creation_validation
                     inputs: {}
                 delete:
                     implementation: vcloud.vcloud_network_plugin.port.delete
                     inputs: {}
-            cloudify.interfaces.validation:
-                creation:
-                    implementation: vcloud.vcloud_network_plugin.port.creation_validation
 
     cloudify.vcloud.nodes.FloatingIP:
         derived_from: cloudify.nodes.VirtualIP
@@ -92,9 +91,10 @@ node_types:
             vcloud_config:
                 default: {}
         interfaces:
-            cloudify.interfaces.validation:
-                creation:
+            cloudify.interfaces.lifecycle:
+                create:
                     implementation: vcloud.vcloud_network_plugin.floatingip.creation_validation
+                    inputs: {}
 
     cloudify.vcloud.nodes.PublicNAT:
         derived_from: cloudify.nodes.VirtualIP
@@ -108,9 +108,10 @@ node_types:
             vcloud_config:
                 default: {}
         interfaces:
-            cloudify.interfaces.validation:
-                creation:
+            cloudify.interfaces.lifecycle:
+                create:
                     implementation: vcloud.vcloud_network_plugin.public_nat.creation_validation
+                    inputs: {}
 
     cloudify.vcloud.nodes.SecurityGroup:
         derived_from: cloudify.nodes.SecurityGroup
@@ -140,6 +141,7 @@ node_types:
             cloudify.interfaces.validation:
                 creation:
                     implementation: vcloud.vcloud_network_plugin.keypair.creation_validation
+                    inputs: {}
             cloudify.interfaces.lifecycle:
                 create:
                     implementation: vcloud.vcloud_network_plugin.keypair.create
@@ -172,6 +174,7 @@ node_types:
             cloudify.interfaces.validation:
                 creation:
                     implementation: vcloud.vcloud_storage_plugin.volume.creation_validation
+                    inputs: {}
 
     cloudify.vcloud.nodes.VDC:
         derived_from: cloudify.nodes.Root
@@ -195,6 +198,7 @@ node_types:
             cloudify.interfaces.validation:
                 creation:
                     implementation: vcloud.vcloud_server_plugin.vdc.creation_validation
+                    inputs: {}
 
 relationships:
 

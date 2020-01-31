@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, get_mandatory,
@@ -22,7 +21,7 @@ from vcloud_network_plugin import check_ip
 
 @operation(resumable=True)
 @with_vca_client
-def creation_validation(vca_client, **kwargs):
+def creation_validation(ctx, vca_client, **kwargs):
     """
         validate port settings,
         ip_allocation_mode must be in 'manual', 'dhcp', 'pool',
@@ -44,11 +43,5 @@ def creation_validation(vca_client, **kwargs):
 
 @operation(resumable=True)
 @with_vca_client
-def create(vca_client, **kwargs):
-    combine_properties(ctx, kwargs=kwargs, names=['port'])
-
-
-@operation(resumable=True)
-@with_vca_client
-def delete(vca_client, **kwargs):
+def delete(ctx, vca_client, **kwargs):
     delete_properties(ctx)

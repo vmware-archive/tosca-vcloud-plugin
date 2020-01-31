@@ -22,18 +22,6 @@ from vcloud_network_plugin import port
 
 class NetworkPluginPortMockTestCase(test_mock_base.TestBase):
 
-    def test_create(self):
-        fake_client = self.generate_client()
-        with mock.patch(
-            'vcloud_plugin_common.VcloudAirClient.get',
-            mock.MagicMock(return_value=fake_client)
-        ):
-            # no port
-            fake_ctx = self.generate_node_context_with_current_ctx(
-                properties={}
-            )
-            port.create(ctx=fake_ctx)
-
     def test_delete(self):
         fake_client = self.generate_client()
         with mock.patch(
