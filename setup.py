@@ -1,4 +1,4 @@
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2015-2020 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ from setuptools import setup
 setup(
     zip_safe=True,
     name='tosca-vcloud-plugin',
-    version='1.6.0',
+    version='1.6.1.dev1',
     packages=[
         'vcloud_plugin_common',
         'vcloud_server_plugin',
@@ -29,6 +29,9 @@ setup(
         'cloudify-common>=4.5.0',
         'pyvcloud==18.2.2',
         'IPy==1.00',
-        'pycrypto==2.6.1'
+        'pycrypto==2.6.1',
+        # used in volume creation
+        'paramiko>=1.18.3',
+        'fabric>=1.13.1,<2.0', # 2+ branch has API changes
     ]
 )

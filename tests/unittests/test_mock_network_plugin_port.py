@@ -1,4 +1,4 @@
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2014-2020 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,30 @@ from vcloud_network_plugin import port
 
 
 class NetworkPluginPortMockTestCase(test_mock_base.TestBase):
+
+    def test_create(self):
+        fake_client = self.generate_client()
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            # no port
+            fake_ctx = self.generate_node_context_with_current_ctx(
+                properties={}
+            )
+            port.create(ctx=fake_ctx)
+
+    def test_delete(self):
+        fake_client = self.generate_client()
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            # no port
+            fake_ctx = self.generate_node_context_with_current_ctx(
+                properties={}
+            )
+            port.delete(ctx=fake_ctx)
 
     def test_creation_validation(self):
         fake_client = self.generate_client()

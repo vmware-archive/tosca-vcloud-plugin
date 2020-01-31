@@ -1,4 +1,4 @@
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2015-2020 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,9 +16,11 @@ from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, get_mandatory,
+                                  combine_properties, delete_properties,
                                   get_vcloud_config)
-from vcloud_network_plugin import (check_ip, get_vm_ip, save_gateway_configuration,
-                                   get_gateway, utils, set_retry, lock_gateway)
+from vcloud_network_plugin import (check_ip, get_vm_ip,
+                                   save_gateway_configuration, get_gateway,
+                                   utils, set_retry, lock_gateway)
 
 
 CREATE_RULE = 1
@@ -26,6 +28,18 @@ DELETE_RULE = 2
 
 ADDRESS_LITERALS = ("any", "internal", "external", "host")
 ACTIONS = ("allow", "deny")
+
+
+@operation(resumable=True)
+@with_vca_client
+def create_node(vca_client, **kwargs):
+    """
+        save properties on create step
+    """
+    # combine properties
+    combine_properties(
+        ctx, kwargs=kwargs, names=['security_group'],
+        properties=['rules'])
 
 
 @operation(resumable=True)
@@ -48,6 +62,7 @@ def delete(vca_client, **kwargs):
     """
     if not _rule_operation(DELETE_RULE, vca_client):
         return set_retry(ctx)
+    delete_properties(ctx.target)
 
 
 @operation(resumable=True)
@@ -56,13 +71,18 @@ def creation_validation(vca_client, **kwargs):
     """
         validate firewall rules for node
     """
+    # combine properties
+    obj = combine_properties(
+        ctx, kwargs=kwargs, names=['security_group'],
+        properties=['rules'])
     getaway = get_gateway(
         vca_client, _get_gateway_name(ctx.node.properties)
     )
     if not getaway.is_fw_enabled():
         raise cfy_exc.NonRecoverableError(
             "Gateway firewall is disabled. Please, enable firewall.")
-    rules = get_mandatory(ctx.node.properties, 'rules')
+    # get rules
+    rules = get_mandatory(obj, 'rules')
     for rule in rules:
         description = rule.get("description")
         if description and not isinstance(description, basestring):
@@ -110,7 +130,10 @@ def _rule_operation(operation, vca_client):
     """
     gateway_name = _get_gateway_name(ctx.target.node.properties)
     gateway = get_gateway(vca_client, gateway_name)
-    for rule in ctx.target.node.properties['rules']:
+    # combine properties
+    obj = combine_properties(
+        ctx.target, names=['security_group'], properties=['rules'])
+    for rule in obj['rules']:
         description = rule.get('description', "Rule added by pyvcloud").strip()
         source_ip = rule.get("source", "external")
         if not _is_literal_ip(source_ip):

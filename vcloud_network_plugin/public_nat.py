@@ -1,4 +1,4 @@
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2014-2020 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,12 +16,14 @@ from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, get_vcloud_config,
-                                  get_mandatory, is_subscription, is_ondemand)
+                                  get_mandatory, is_subscription,
+                                  combine_properties, is_ondemand)
 from vcloud_network_plugin import (check_ip, save_gateway_configuration,
                                    get_vm_ip, get_public_ip,
-                                   get_gateway, getFreeIP, CREATE, DELETE, PUBLIC_IP,
-                                   SSH_PUBLIC_IP, SSH_PORT, save_ssh_parameters,
-                                   del_ondemand_public_ip, utils, set_retry, lock_gateway)
+                                   get_gateway, getFreeIP, CREATE, DELETE,
+                                   PUBLIC_IP, SSH_PUBLIC_IP, SSH_PORT,
+                                   save_ssh_parameters, del_ondemand_public_ip,
+                                   utils, set_retry, lock_gateway)
 from vcloud_network_plugin.network import VCLOUD_NETWORK_NAME
 from IPy import IP
 
@@ -32,7 +34,10 @@ DEFAULT_SSH_PORT = '22'
 @operation(resumable=True)
 @with_vca_client
 def net_connect_to_nat_preconfigure(vca_client, **kwargs):
-    rules = ctx.target.node.properties['rules']
+    # combine properties
+    obj = combine_properties(
+        ctx.target, names=['nat'], properties=['rules'])
+    rules = obj['rules']
     if not rules or len(rules) != 1:
         raise cfy_exc.NonRecoverableError(
             "Rules list must contains only one element")
@@ -49,7 +54,10 @@ def net_connect_to_nat(vca_client, **kwargs):
     """
         create nat rule for current node
     """
-    if ctx.target.node.properties.get('use_external_resource', False):
+    # combine properties
+    obj = combine_properties(
+        ctx.target, names=['nat'], properties=['rules'])
+    if obj.get('use_external_resource', False):
         ctx.logger.info("Using existing Public NAT.")
         return
     if not prepare_network_operation(vca_client, CREATE):
@@ -63,7 +71,10 @@ def net_disconnect_from_nat(vca_client, **kwargs):
     """
         drop nat rule for current node
     """
-    if ctx.target.node.properties.get('use_external_resource', False):
+    # combine properties
+    obj = combine_properties(
+        ctx.target, names=['nat'], properties=['rules'])
+    if obj.get('use_external_resource', False):
         ctx.logger.info("Using existing Public NAT.")
         return
     if not prepare_network_operation(vca_client, DELETE):
@@ -94,11 +105,26 @@ def server_disconnect_from_nat(vca_client, **kwargs):
 
 @operation(resumable=True)
 @with_vca_client
+def create_node(vca_client, **kwargs):
+    """
+        save properties on create step
+    """
+    # combine properties
+    combine_properties(
+        ctx, kwargs=kwargs, names=['nat'], properties=['rules'])
+
+
+@operation(resumable=True)
+@with_vca_client
 def creation_validation(vca_client, **kwargs):
     """
         validate nat rules in node properties
     """
-    nat = get_mandatory(ctx.node.properties, 'nat')
+    # combine properties
+    obj = combine_properties(
+        ctx, kwargs=kwargs, names=['nat'], properties=['rules'])
+    # get net
+    nat = get_mandatory(obj, 'nat')
     gateway = get_gateway(vca_client, get_mandatory(nat, 'edge_gateway'))
     service_type = get_vcloud_config().get('service_type')
     public_ip = nat.get(PUBLIC_IP)
@@ -107,7 +133,9 @@ def creation_validation(vca_client, **kwargs):
     else:
         if is_subscription(service_type):
             getFreeIP(gateway)
-    for rule in get_mandatory(ctx.node.properties, 'rules'):
+    # get rules
+    rules = get_mandatory(obj, 'rules')
+    for rule in rules:
         if _is_dnat(rule['type']):
             utils.check_protocol(rule.get('protocol'))
             original_port = rule.get('original_port')
@@ -151,8 +179,11 @@ def prepare_server_operation(vca_client, operation):
         generate nat rules by current list of rules in node
     """
     try:
+        # combine properties
+        obj = combine_properties(
+            ctx.target, names=['nat'], properties=['rules'])
         gateway = get_gateway(
-            vca_client, ctx.target.node.properties['nat']['edge_gateway'])
+            vca_client, obj['nat']['edge_gateway'])
         public_ip = _obtain_public_ip(vca_client, ctx, gateway, operation)
         if not public_ip:
             ctx.logger.info("We dont have public ip. Retrying...")
@@ -162,7 +193,7 @@ def prepare_server_operation(vca_client, operation):
             ctx.logger.info("We dont have private ip. Retrying...")
             return False
         has_snat = False
-        for rule in ctx.target.node.properties['rules']:
+        for rule in obj['rules']:
             rule_type = rule['type']
             if has_snat and _is_snat(rule_type):
                 ctx.logger.info("Rules list must contains only one SNAT rule.")

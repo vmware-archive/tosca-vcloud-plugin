@@ -1,4 +1,4 @@
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2014-2020 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -410,6 +410,22 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
                 }
             )
             security_group.creation_validation(ctx=fake_ctx)
+
+    def test_create_node(self):
+        fake_client = self.generate_client()
+        with mock.patch(
+            'vcloud_plugin_common.VcloudAirClient.get',
+            mock.MagicMock(return_value=fake_client)
+        ):
+            fake_ctx = self.generate_node_context_with_current_ctx(
+                properties={
+                    'vcloud_config': {
+                        'edge_gateway': 'some_edge_gateway',
+                        'vdc': 'vdc_name'
+                    }
+                }
+            )
+            security_group.create_node(ctx=fake_ctx)
 
     def test_creation_validation(self):
         fake_client = self.generate_client()

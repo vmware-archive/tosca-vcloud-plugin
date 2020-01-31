@@ -1,4 +1,4 @@
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2014-2020 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ from vcloud_plugin_common import (get_vcloud_config,
                                   wait_for_task,
                                   with_vca_client,
                                   error_response,
+                                  combine_properties,
+                                  delete_properties,
                                   STATUS_POWERED_ON)
 from vcloud_network_plugin import (get_network_name, get_network,
                                    is_network_exists,
@@ -54,14 +56,19 @@ def creation_validation(vca_client, **kwargs):
             if template.get_name() == template_name:
                 return template
 
-    if ctx.node.properties.get('use_external_resource'):
-        if not ctx.node.properties.get('resource_id'):
+    # combine properties
+    obj = combine_properties(
+        ctx, kwargs=kwargs, names=['server'],
+        properties=[VCLOUD_VAPP_NAME, 'management_network'])
+    # get external
+    if obj.get('use_external_resource'):
+        if not obj.get('resource_id'):
             raise cfy_exc.NonRecoverableError(
                 "resource_id server properties must be specified"
             )
         return
 
-    server_dict = ctx.node.properties['server']
+    server_dict = obj['server']
     required_params = ('catalog', 'template')
     missed_params = set(required_params) - set(server_dict.keys())
     if len(missed_params) > 0:
@@ -107,12 +114,15 @@ def create(vca_client, **kwargs):
     server = {
         'name': ctx.instance.id,
     }
-    server.update(ctx.node.properties.get('server', {}))
-    server.update(kwargs.get('server', {}))
+    # combine properties
+    obj = combine_properties(
+        ctx, kwargs=kwargs, names=['server'],
+        properties=[VCLOUD_VAPP_NAME, 'management_network'])
+    server.update(obj.get('server', {}))
     transform_resource_name(server, ctx)
-
-    if ctx.node.properties.get('use_external_resource'):
-        res_id = ctx.node.properties['resource_id']
+    # get external
+    if obj.get('use_external_resource'):
+        res_id = obj['resource_id']
         ctx.instance.runtime_properties[VCLOUD_VAPP_NAME] = res_id
         vdc = vca_client.get_vdc(config['vdc'])
         if not vca_client.get_vapp(vdc, res_id):
@@ -157,7 +167,7 @@ def _create(vca_client, config, server):
     task = vapp.modify_vm_name(1, vapp_name)
     if not task:
         raise cfy_exc.NonRecoverableError(
-            "Can't modyfy VM name".format(vapp_name))
+            "Can't modyfy VM name: {0}".format(vapp_name))
     wait_for_task(vca_client, task)
     ctx.logger.info("VM '{0}' has been renamed.".format(vapp_name))
 
@@ -222,7 +232,12 @@ def start(vca_client, **kwargs):
     """
     power on server and wait network connection availability for host
     """
-    if ctx.node.properties.get('use_external_resource'):
+    # combine properties
+    obj = combine_properties(
+        ctx, kwargs=kwargs, names=['server'],
+        properties=[VCLOUD_VAPP_NAME, 'management_network'])
+    # get external
+    if obj.get('use_external_resource'):
         ctx.logger.info('not starting server since an external server is '
                         'being used')
     else:
@@ -244,7 +259,12 @@ def stop(vca_client, **kwargs):
     """
         poweroff server, if external resource - server stay poweroned
     """
-    if ctx.node.properties.get('use_external_resource'):
+    # combine properties
+    obj = combine_properties(
+        ctx, kwargs=kwargs, names=['server'],
+        properties=[VCLOUD_VAPP_NAME, 'management_network'])
+    # get external
+    if obj.get('use_external_resource'):
         ctx.logger.info('not stopping server since an external server is '
                         'being used')
     else:
@@ -266,7 +286,12 @@ def delete(vca_client, **kwargs):
     """
         delete server
     """
-    if ctx.node.properties.get('use_external_resource'):
+    # combine properties
+    obj = combine_properties(
+        ctx, kwargs=kwargs, names=['server'],
+        properties=[VCLOUD_VAPP_NAME, 'management_network'])
+    # get external
+    if obj.get('use_external_resource'):
         ctx.logger.info('not deleting server since an external server is '
                         'being used')
     else:
@@ -281,7 +306,7 @@ def delete(vca_client, **kwargs):
                                               format(error_response(vapp)))
         wait_for_task(vca_client, task)
 
-    del ctx.instance.runtime_properties[VCLOUD_VAPP_NAME]
+    delete_properties(ctx)
 
 
 def _is_primary_connection_has_ip(vapp):
@@ -302,8 +327,12 @@ def _is_primary_connection_has_ip(vapp):
 @operation(resumable=True)
 @with_vca_client
 def configure(vca_client, **kwargs):
-
-    if ctx.node.properties.get('use_external_resource'):
+    # combine properties
+    obj = combine_properties(
+        ctx, kwargs=kwargs, names=['server'],
+        properties=[VCLOUD_VAPP_NAME, 'management_network'])
+    # get external
+    if obj.get('use_external_resource'):
         ctx.logger.info('Avoiding external resource configuration.')
     else:
         ctx.logger.info("Configure server")
@@ -364,6 +393,14 @@ def configure(vca_client, **kwargs):
                 computer_name=computer_name,
                 admin_password=password
             )
+            ctx.logger.debug(
+                "VM {vapp_name} Customized with sript:\n{script}\n"
+                "computer_name:\n{computer_name}\n"
+                "password:\n{password}\n".format(
+                    vapp_name=vapp_name,
+                    script=script,
+                    computer_name=computer_name,
+                    password=password))
             if task is None:
                 raise cfy_exc.NonRecoverableError(
                     "Could not set guest customization parameters. {0}".
@@ -634,7 +671,8 @@ def _create_connections_list(vca_client):
     management_network_name = ctx.node.properties.get('management_network')
 
     for port in ports:
-        port_properties = port.node.properties['port']
+        obj = combine_properties(port, names=['port'])
+        port_properties = obj['port']
         connections.append(
             _create_connection(port_properties['network'],
                                port_properties.get('ip_address'),
@@ -646,6 +684,7 @@ def _create_connections_list(vca_client):
         )
 
     for net in networks:
+        obj = combine_properties(net, names=['network'])
         connections.append(
             _create_connection(get_network_name(net.node.properties),
                                None, None, 'POOL'))

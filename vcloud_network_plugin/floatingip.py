@@ -1,4 +1,4 @@
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2015-2020 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,14 +16,16 @@ from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, get_vcloud_config,
-                                  is_subscription, is_ondemand, get_mandatory)
+                                  is_subscription, is_ondemand, get_mandatory,
+                                  combine_properties)
 from vcloud_network_plugin import (check_ip, CheckAssignedExternalIp,
                                    CheckAssignedInternalIp, get_vm_ip,
                                    save_gateway_configuration, getFreeIP,
                                    CREATE, DELETE, PUBLIC_IP, get_gateway,
-                                   SSH_PUBLIC_IP, SSH_PORT, save_ssh_parameters,
-                                   get_public_ip, del_ondemand_public_ip,
-                                   set_retry, lock_gateway)
+                                   SSH_PUBLIC_IP, SSH_PORT,
+                                   save_ssh_parameters, get_public_ip,
+                                   del_ondemand_public_ip, set_retry,
+                                   lock_gateway)
 
 
 @operation(resumable=True)
@@ -61,7 +63,10 @@ def creation_validation(vca_client, **kwargs):
         also check availability of public ip if set or exist some free
         ip in subscription case
     """
-    floatingip = get_mandatory(ctx.node.properties, 'floatingip')
+    # combine properties
+    obj = combine_properties(ctx, kwargs=kwargs, names=['floatingip'])
+    # get floatingip
+    floatingip = get_mandatory(obj, 'floatingip')
     edge_gateway = get_mandatory(floatingip, 'edge_gateway')
     gateway = get_gateway(vca_client, edge_gateway)
     service_type = get_vcloud_config().get('service_type')
@@ -81,15 +86,18 @@ def _floatingip_operation(operation, vca_client, ctx):
         save selected public_ip in runtime properties
     """
     service_type = get_vcloud_config().get('service_type')
+    # combine properties
+    obj = combine_properties(ctx.target, names=['floatingip'])
+
     gateway = get_gateway(
-        vca_client, ctx.target.node.properties['floatingip']['edge_gateway'])
+        vca_client, obj['floatingip']['edge_gateway'])
     internal_ip = get_vm_ip(vca_client, ctx, gateway)
 
     nat_operation = None
     public_ip = (
         ctx.target.instance.runtime_properties.get(PUBLIC_IP)
     ) or (
-        ctx.target.node.properties['floatingip'].get(PUBLIC_IP)
+        obj['floatingip'].get(PUBLIC_IP)
     )
     if operation == CREATE:
         CheckAssignedInternalIp(internal_ip, gateway)
@@ -101,7 +109,7 @@ def _floatingip_operation(operation, vca_client, ctx):
         nat_operation = _add_nat_rule
     elif operation == DELETE:
         if not public_ip:
-            ctx.logger.info("Can't get external IP".format(public_ip))
+            ctx.logger.info("Can't get external IP {0}".format(public_ip))
             return True
         nat_operation = _del_nat_rule
     else:
@@ -121,7 +129,7 @@ def _floatingip_operation(operation, vca_client, ctx):
         save_ssh_parameters(ctx, '22', external_ip)
     else:
         if is_ondemand(service_type):
-            if not ctx.target.node.properties['floatingip'].get(PUBLIC_IP):
+            if not obj['floatingip'].get(PUBLIC_IP):
                 del_ondemand_public_ip(
                     vca_client,
                     gateway,

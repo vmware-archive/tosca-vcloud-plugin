@@ -1,4 +1,4 @@
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2014-2020 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -161,7 +161,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
         fake_ctx = self.generate_node_context()
         # can't deallocate ip
         gateway.deallocate_public_ip = mock.MagicMock(return_value=None)
-        with mock.patch('vcloud_network_plugin.wait_for_gateway', mock.MagicMock()):
+        with mock.patch(
+            'vcloud_network_plugin.wait_for_gateway', mock.MagicMock()
+        ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 vcloud_network_plugin.del_ondemand_public_ip(
                     fake_client, gateway, '127.0.0.1', fake_ctx)
@@ -173,7 +175,9 @@ class NetworkPluginMockTestCase(test_mock_base.TestBase):
             )
         )
         with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
-            with mock.patch('vcloud_network_plugin.wait_for_gateway', mock.MagicMock()):
+            with mock.patch(
+                'vcloud_network_plugin.wait_for_gateway', mock.MagicMock()
+            ):
                 vcloud_network_plugin.del_ondemand_public_ip(
                     fake_client, gateway, '127.0.0.1', fake_ctx)
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2014-2020 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,12 +27,14 @@ class VolumeTestCase(TestCase):
 
     @fail_guard
     def test_use_external(self):
-        status, disk = self.vca_client.add_disk(self.conf.vdc, self.conf.volume_name, self.conf.volume_size_Mb)
+        status, disk = self.vca_client.add_disk(
+            self.conf.vdc, self.conf.volume_name, self.conf.volume_size_Mb)
         self.init('volume_use_external.yaml')
         self.install()
         self.uninstall()
         self.vca_client = self.get_client()
-        status, task = self.vca_client.delete_disk(self.conf.vdc, self.conf.volume_name)
+        status, task = self.vca_client.delete_disk(
+            self.conf.vdc, self.conf.volume_name)
         if status:
             wait_for_task(self.vca_client, task)
 

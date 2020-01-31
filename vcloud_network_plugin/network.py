@@ -1,4 +1,4 @@
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2014-2020 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,10 +16,12 @@ from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, wait_for_task,
-                                  get_vcloud_config, get_mandatory)
+                                  get_vcloud_config, get_mandatory,
+                                  delete_properties, combine_properties)
 import collections
-from vcloud_network_plugin import (check_ip, is_valid_ip_range, is_separate_ranges,
-                                   is_ips_in_same_subnet, save_gateway_configuration,
+from vcloud_network_plugin import (check_ip, is_valid_ip_range,
+                                   is_separate_ranges, is_ips_in_same_subnet,
+                                   save_gateway_configuration,
                                    get_network_name, is_network_exists,
                                    get_gateway, set_retry)
 
@@ -52,8 +54,11 @@ def create(vca_client, **kwargs):
         }
     """
     vdc_name = get_vcloud_config()['vdc']
-    if ctx.node.properties['use_external_resource']:
-        network_name = ctx.node.properties['resource_id']
+    # combine properties
+    obj = combine_properties(ctx, kwargs=kwargs, names=['network'])
+    # check external resource
+    if obj['use_external_resource']:
+        network_name = obj['resource_id']
         if not is_network_exists(vca_client, network_name):
             raise cfy_exc.NonRecoverableError(
                 "Can't find external resource: {0}".format(network_name))
@@ -61,9 +66,9 @@ def create(vca_client, **kwargs):
         ctx.logger.info(
             "External resource {0} has been used".format(network_name))
         return
-    network_name = get_network_name(ctx.node.properties)
+    network_name = get_network_name(obj)
     if not ctx.instance.runtime_properties.get(SKIP_CREATE_NETWORK):
-        net_prop = ctx.node.properties["network"]
+        net_prop = obj["network"]
         if network_name in _get_network_list(vca_client,
                                              get_vcloud_config()['vdc']):
             raise cfy_exc.NonRecoverableError(
@@ -101,7 +106,7 @@ def create(vca_client, **kwargs):
                 "Could not create network {0}: {1}".
                 format(network_name, result))
         ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = network_name
-    if not _dhcp_operation(vca_client, network_name, ADD_POOL):
+    if not _dhcp_operation(vca_client, obj, network_name, ADD_POOL):
         ctx.instance.runtime_properties[SKIP_CREATE_NETWORK] = True
         return set_retry(ctx)
 
@@ -112,13 +117,16 @@ def delete(vca_client, **kwargs):
     """
         delete vcloud air network
     """
-    if ctx.node.properties['use_external_resource'] is True:
+    # combine properties
+    obj = combine_properties(ctx, kwargs=kwargs, names=['network'])
+    # check external resource
+    if obj['use_external_resource'] is True:
         del ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME]
         ctx.logger.info("Network was not deleted - external resource has"
                         " been used")
         return
-    network_name = get_network_name(ctx.node.properties)
-    if not _dhcp_operation(vca_client, network_name, DELETE_POOL):
+    network_name = get_network_name(obj)
+    if not _dhcp_operation(vca_client, obj, network_name, DELETE_POOL):
         return set_retry(ctx)
     ctx.logger.info("Delete network '{0}'".format(network_name))
     success, task = vca_client.delete_vdc_network(
@@ -134,6 +142,7 @@ def delete(vca_client, **kwargs):
             return
         raise cfy_exc.NonRecoverableError(
             "Could not delete network '{0}': {1}".format(network_name, task))
+    delete_properties(ctx)
 
 
 @operation(resumable=True)
@@ -142,7 +151,10 @@ def creation_validation(vca_client, **kwargs):
     """
         check network description from node description
     """
-    network_name = get_network_name(ctx.node.properties)
+    # combine properties
+    obj = combine_properties(ctx, kwargs=kwargs, names=['network'])
+    # check external resource
+    network_name = get_network_name(obj)
     ctx.logger.info("Validation cloudify.vcloud.nodes.Network node: {0}"
                     .format(network_name))
     if is_network_exists(vca_client, network_name):
@@ -153,7 +165,8 @@ def creation_validation(vca_client, **kwargs):
             raise cfy_exc.NonRecoverableError(
                 "Network already exsists: {0}".format(network_name))
 
-    net_prop = get_mandatory(ctx.node.properties, "network")
+    # get net
+    net_prop = get_mandatory(obj, "network")
     gateway_name = get_mandatory(net_prop, 'edge_gateway')
     if not vca_client.get_gateway(get_vcloud_config()['vdc'], gateway_name):
         raise cfy_exc.NonRecoverableError(
@@ -183,14 +196,14 @@ def creation_validation(vca_client, **kwargs):
             "IP addresses in different subnets.")
 
 
-def _dhcp_operation(vca_client, network_name, operation):
+def _dhcp_operation(vca_client, obj, network_name, operation):
     """
         update dhcp setting for network
     """
-    dhcp_settings = ctx.node.properties['network'].get('dhcp')
+    dhcp_settings = obj['network'].get('dhcp')
     if dhcp_settings is None:
         return True
-    gateway_name = ctx.node.properties["network"]['edge_gateway']
+    gateway_name = obj["network"]['edge_gateway']
     gateway = get_gateway(vca_client, gateway_name)
     if gateway.is_busy():
         return False

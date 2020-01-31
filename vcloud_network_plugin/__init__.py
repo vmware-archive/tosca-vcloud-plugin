@@ -1,4 +1,4 @@
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2015-2020 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -242,7 +242,7 @@ def get_network(vca_client, network_name):
     """
     if not network_name:
         raise cfy_exc.NonRecoverableError(
-            "Network name is empty".format(network_name))
+            "Network name is empty: {0}".format(network_name))
     network = vca_client.get_network(get_vcloud_config()['vdc'], network_name)
     if not network:
         raise cfy_exc.NonRecoverableError(
@@ -376,7 +376,8 @@ def _is_gateway_locked(ctx):
     except KeyError:
         pass
     if rest:
-        node_instances = rest.node_instances.list(deployment_id=ctx.deployment.id)
+        node_instances = rest.node_instances.list(
+            deployment_id=ctx.deployment.id)
     elif ctx.deployment.id == 'local':
         storage = ctx._endpoint.storage
         node_instances = storage.get_node_instances()

@@ -1,4 +1,4 @@
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2014-2020 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,10 +54,12 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                         'vcloud_plugin_common.ctx', fake_ctx
                     ):
                         with mock.patch(
-                                'pyvcloud.vcloudair.VCS',
-                                mock.MagicMock()):
-                            with mock.patch('vcloud_plugin_common.local_session_token',
-                                            None):
+                            'pyvcloud.vcloudair.VCS', mock.MagicMock()
+                        ):
+                            with mock.patch(
+                                'vcloud_plugin_common.local_session_token',
+                                None
+                            ):
                                 return client._subscription_login(
                                     url, username, password, token, service,
                                     org_name)
@@ -129,12 +131,15 @@ class VcloudPluginCommonVcaClientMockTestCase(test_mock_base.TestBase):
                         'vcloud_plugin_common.ctx', fake_ctx
                     ):
                         with mock.patch(
-                                'pyvcloud.vcloudair.VCS',
-                                mock.MagicMock()):
-                            with mock.patch('vcloud_plugin_common.local_session_token',
-                                            None):
+                            'pyvcloud.vcloudair.VCS', mock.MagicMock()
+                        ):
+                            with mock.patch(
+                                'vcloud_plugin_common.local_session_token',
+                                None
+                            ):
                                 return client._ondemand_login(
-                                    url, username, password, token, instance_id)
+                                    url, username, password, token,
+                                    instance_id)
         # bad case without instance
         with self.assertRaises(cfy_exc.NonRecoverableError):
             _run(

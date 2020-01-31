@@ -1,4 +1,4 @@
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2015-2020 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (wait_for_task, with_vca_client,
                                   get_vcloud_config, get_mandatory,
+                                  combine_properties, delete_properties,
                                   error_response)
 from vcloud_network_plugin import get_vapp_name, SSH_PUBLIC_IP, SSH_PORT
 
@@ -35,12 +36,16 @@ def create_volume(vca_client, **kwargs):
             }
         }
     """
-    if ctx.node.properties.get('use_external_resource'):
+    # combine properties
+    obj = combine_properties(ctx, kwargs=kwargs, names=['volume'],
+                             properties=['device_name'])
+    # get external
+    if obj.get('use_external_resource'):
         ctx.logger.info("External resource has been used")
         return
     vdc_name = get_vcloud_config()['vdc']
-    name = ctx.node.properties['volume']['name']
-    size = ctx.node.properties['volume']['size']
+    name = obj['volume']['name']
+    size = obj['volume']['size']
     size_in_bytes = size * 1024 * 1024
     ctx.logger.info("Create volume '{0}' to '{1}' with size {2}Mb."
                     .format(name, vdc_name, size))
@@ -59,11 +64,15 @@ def delete_volume(vca_client, **kwargs):
     """
         drop volume
     """
-    if ctx.node.properties.get('use_external_resource'):
+    # combine properties
+    obj = combine_properties(ctx, kwargs=kwargs, names=['volume'],
+                             properties=['device_name'])
+    # get external
+    if obj.get('use_external_resource'):
         ctx.logger.info("External resource has been used")
         return
     vdc_name = get_vcloud_config()['vdc']
-    name = ctx.node.properties['volume']['name']
+    name = obj['volume']['name']
     ctx.logger.info("Delete volume '{0}' from '{1}'."
                     .format(name, vdc_name))
     success, task = vca_client.delete_disk(vdc_name, name)
@@ -73,6 +82,7 @@ def delete_volume(vca_client, **kwargs):
     else:
         raise cfy_exc.NonRecoverableError(
             "Disk deletion error: {0}".format(task))
+    delete_properties(ctx)
 
 
 @operation(resumable=True)
@@ -85,13 +95,19 @@ def creation_validation(vca_client, **kwargs):
     disks_names = [
         disk.name for [disk, _vms] in vca_client.get_disks(vdc_name)
     ]
-    if ctx.node.properties.get('use_external_resource'):
-        resource_id = get_mandatory(ctx.node.properties, 'resource_id')
+    # combine properties
+    obj = combine_properties(ctx, kwargs=kwargs, names=['volume'],
+                             properties=['device_name'])
+    # get external resource flag
+    if obj.get('use_external_resource'):
+        # get resource_id
+        resource_id = get_mandatory(obj, 'resource_id')
         if resource_id not in disks_names:
             raise cfy_exc.NonRecoverableError(
                 "Disk {} does't exists".format(resource_id))
     else:
-        volume = get_mandatory(ctx.node.properties, 'volume')
+        # get volume
+        volume = get_mandatory(obj, 'volume')
         name = get_mandatory(volume, 'name')
         if name in disks_names:
             raise cfy_exc.NonRecoverableError(
@@ -131,12 +147,14 @@ def _volume_operation(vca_client, operation):
     for ref in vca_client.get_diskRefs(vdc):
         if ref.name == volumeName:
             if operation == 'ATTACH':
-                ctx.logger.info("Attach volume node '{0}'.".format(volumeName))
+                ctx.logger.info("Attach volume node '{0}'."
+                                .format(volumeName))
                 task = vapp.attach_disk_to_vm(vmName, ref)
                 if task:
                     wait_for_task(vca_client, task)
                     ctx.logger.info(
-                        "Volume node '{0}' has been attached".format(volumeName))
+                        "Volume node '{0}' has been attached"
+                        .format(volumeName))
                 else:
                     raise cfy_exc.NonRecoverableError(
                         "Can't attach disk: '{0}' with error: {1}".

@@ -1,4 +1,4 @@
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2015-2020 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
+from vcloud_plugin_common import (combine_properties, delete_properties)
 import os.path
 from os import chmod
 from Crypto.PublicKey import RSA
@@ -38,7 +39,12 @@ def creation_validation(**kwargs):
         check availability of path used in field private_key_path of
         node properties
     """
-    key_path = ctx.node.properties.get(PRIVATE_KEY, {}).get(PATH)
+    # combine properties
+    obj = combine_properties(ctx, kwargs=kwargs,
+                             names=[PRIVATE_KEY, PUBLIC_KEY],
+                             properties=['auto_generate'])
+    # get key
+    key_path = obj.get(PRIVATE_KEY, {}).get(PATH)
     if key_path:
         key_path = os.path.expanduser(key_path)
         if not os.path.isfile(key_path):
@@ -54,42 +60,55 @@ def create(**kwargs):
         ctx.node.properties.get(PUBLIC_KEY, {}).get(USER)
     ctx.instance.runtime_properties[PUBLIC_KEY][HOME] = \
         ctx.node.properties.get(PUBLIC_KEY, {}).get(HOME)
-    if ctx.node.properties.get(AUTO_GENERATE):
+    # combine properties
+    obj = combine_properties(ctx, kwargs=kwargs,
+                             names=[PRIVATE_KEY, PUBLIC_KEY],
+                             properties=['auto_generate'])
+    # get key
+    if obj.get(AUTO_GENERATE):
         ctx.logger.info("Generating ssh keypair")
         public, private = _generate_pair()
         ctx.instance.runtime_properties[PRIVATE_KEY][KEY] = private
         ctx.instance.runtime_properties[PUBLIC_KEY][KEY] = public
-        if ctx.node.properties.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
+        if obj.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
             ctx.instance.runtime_properties[PRIVATE_KEY][PATH] = _create_path()
             _save_key_file(ctx.instance.runtime_properties[PRIVATE_KEY][PATH],
                            ctx.instance.runtime_properties[PRIVATE_KEY][KEY])
     else:
         ctx.instance.runtime_properties[PUBLIC_KEY][KEY] = \
-            ctx.node.properties.get(PUBLIC_KEY, {}).get(KEY)
+            obj.get(PUBLIC_KEY, {}).get(KEY)
         ctx.instance.runtime_properties[PRIVATE_KEY][KEY] = \
-            ctx.node.properties.get(PRIVATE_KEY, {}).get(KEY)
+            obj.get(PRIVATE_KEY, {}).get(KEY)
         ctx.instance.runtime_properties[PRIVATE_KEY][PATH] = \
-            ctx.node.properties.get(PRIVATE_KEY, {}).get(PATH)
-        if ctx.node.properties.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
-            if ctx.node.properties.get(PRIVATE_KEY, {}).get(KEY):
-                ctx.instance.runtime_properties[PRIVATE_KEY][PATH] = _create_path()
-                _save_key_file(ctx.instance.runtime_properties[PRIVATE_KEY][PATH],
-                               ctx.instance.runtime_properties[PRIVATE_KEY][KEY])
+            obj.get(PRIVATE_KEY, {}).get(PATH)
+        if obj.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
+            if obj.get(PRIVATE_KEY, {}).get(KEY):
+                ctx.instance.runtime_properties[
+                    PRIVATE_KEY][PATH] = _create_path()
+                _save_key_file(
+                    ctx.instance.runtime_properties[PRIVATE_KEY][PATH],
+                    ctx.instance.runtime_properties[PRIVATE_KEY][KEY])
 
 
 @operation(resumable=True)
 def delete(**kwargs):
-    if ctx.node.properties[AUTO_GENERATE]:
-        if ctx.node.properties.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
+    # combine properties
+    obj = combine_properties(ctx, kwargs=kwargs,
+                             names=[PRIVATE_KEY, PUBLIC_KEY],
+                             properties=['auto_generate'])
+    # get key
+    if obj[AUTO_GENERATE]:
+        if obj.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
             _delete_key_file(ctx.instance.runtime_properties)
     else:
-        if ctx.node.properties.get(PRIVATE_KEY, {}).get(KEY):
-            if ctx.node.properties.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
+        if obj.get(PRIVATE_KEY, {}).get(KEY):
+            if obj.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
                 _delete_key_file(ctx.instance.runtime_properties)
     if PRIVATE_KEY in ctx.instance.runtime_properties:
         del ctx.instance.runtime_properties[PRIVATE_KEY]
     if PUBLIC_KEY in ctx.instance.runtime_properties:
         del ctx.instance.runtime_properties[PUBLIC_KEY]
+    delete_properties(ctx)
 
 
 @operation(resumable=True)
@@ -99,13 +118,17 @@ def server_connect_to_keypair(**kwargs):
     if SSH_KEY not in host_rt_properties:
         host_rt_properties[SSH_KEY] = {}
     if PRIVATE_KEY in target_rt_properties:
-        host_rt_properties[SSH_KEY][PATH] = target_rt_properties[PRIVATE_KEY].get(PATH)
-        host_rt_properties[SSH_KEY][KEY] = target_rt_properties[PRIVATE_KEY].get(KEY)
+        host_rt_properties[SSH_KEY][PATH] = target_rt_properties[
+            PRIVATE_KEY].get(PATH)
+        host_rt_properties[SSH_KEY][KEY] = target_rt_properties[
+            PRIVATE_KEY].get(KEY)
     if PUBLIC_KEY in target_rt_properties:
-        host_rt_properties[SSH_KEY][USER] = target_rt_properties[PUBLIC_KEY].get(USER)
+        host_rt_properties[SSH_KEY][USER] = target_rt_properties[
+            PUBLIC_KEY].get(USER)
     if target_rt_properties[PRIVATE_KEY].get(PATH):
         host_rt_properties[CLOUDIFY_AGENT] = {}
-        host_rt_properties[CLOUDIFY_AGENT][KEY] = target_rt_properties[PRIVATE_KEY].get(PATH)
+        host_rt_properties[CLOUDIFY_AGENT][KEY] = target_rt_properties[
+            PRIVATE_KEY].get(PATH)
     ctx.source.instance.update()
 
 

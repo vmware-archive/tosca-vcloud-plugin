@@ -1,4 +1,4 @@
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2014-2020 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -135,7 +135,8 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
                 },
                 'floatingip': {
                     'edge_gateway': 'gateway',
-                    'service_type': vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
+                    'service_type':
+                        vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
                 }
             }
         )
@@ -156,7 +157,8 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
                 'floatingip': {
                     'edge_gateway': 'gateway',
                     vcloud_network_plugin.PUBLIC_IP: '10.10.1.2',
-                    'service_type': vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
+                    'service_type':
+                        vcloud_plugin_common.SUBSCRIPTION_SERVICE_TYPE
                 }
             }
         )
