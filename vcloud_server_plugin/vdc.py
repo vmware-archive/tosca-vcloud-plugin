@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cloudify import ctx
 from cloudify.decorators import operation
 from cloudify import exceptions as cfy_exc
 
@@ -31,7 +30,7 @@ USE_EXTERNAL_RESOURCE = 'use_external_resource'
 
 @operation(resumable=True)
 @with_vca_client
-def creation_validation(vca_client, **kwargs):
+def creation_validation(ctx, vca_client, **kwargs):
     """check params
 
         e.g.:
@@ -71,7 +70,7 @@ def creation_validation(vca_client, **kwargs):
 
 @operation(resumable=True)
 @with_vca_client
-def create(vca_client, **kwargs):
+def create(ctx, vca_client, **kwargs):
     """create vdc"""
     config = get_vcloud_config()
     # Subscription service does not support vdc create,
@@ -107,7 +106,7 @@ def create(vca_client, **kwargs):
 
 @operation(resumable=True)
 @with_vca_client
-def delete(vca_client, **kwargs):
+def delete(ctx, vca_client, **kwargs):
     """delete vdc"""
     # combine properties
     obj = combine_properties(ctx, kwargs=kwargs, properties=['name'])
