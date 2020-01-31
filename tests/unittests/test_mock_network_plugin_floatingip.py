@@ -91,7 +91,7 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                floatingip.creation_validation(ctx=fake_ctx)
+                floatingip.creation_validation(ctx=fake_ctx, vca_client=None)
         # no edge gateway
         fake_ctx = self.generate_node_context_with_current_ctx(
             properties={
@@ -108,7 +108,7 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                floatingip.creation_validation(ctx=fake_ctx)
+                floatingip.creation_validation(ctx=fake_ctx, vca_client=None)
         # with edge gateway, but wrong ip
         fake_ctx = self.generate_node_context_with_current_ctx(
             properties={
@@ -126,7 +126,7 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                floatingip.creation_validation(ctx=fake_ctx)
+                floatingip.creation_validation(ctx=fake_ctx, vca_client=None)
         # with edge gateway, ip from pool
         fake_ctx = self.generate_node_context_with_current_ctx(
             properties={
@@ -147,7 +147,7 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            floatingip.creation_validation(ctx=fake_ctx)
+            floatingip.creation_validation(ctx=fake_ctx, vca_client=None)
         # with some free ip
         fake_ctx = self.generate_node_context_with_current_ctx(
             properties={
@@ -175,7 +175,7 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            floatingip.creation_validation(ctx=fake_ctx)
+            floatingip.creation_validation(ctx=fake_ctx, vca_client=None)
 
     def generate_client_and_context_floating_ip(
         self, service_type=vcloud_plugin_common.ONDEMAND_SERVICE_TYPE
@@ -396,9 +396,7 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            floatingip.disconnect_floatingip(
-                ctx=fake_ctx
-            )
+            floatingip.disconnect_floatingip(ctx=fake_ctx, vca_client=None)
         runtime_properties = fake_ctx._target.instance.runtime_properties
         self.assertFalse(
             vcloud_network_plugin.PUBLIC_IP in runtime_properties
@@ -416,9 +414,7 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             self.prepere_gatway_busy_retry(fake_client, fake_ctx)
-            floatingip.disconnect_floatingip(
-                ctx=fake_ctx
-            )
+            floatingip.disconnect_floatingip(ctx=fake_ctx, vca_client=None)
             self.check_retry_realy_called(fake_ctx)
 
     def test_connect_floatingip(self):
@@ -456,9 +452,7 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            floatingip.connect_floatingip(
-                ctx=fake_ctx
-            )
+            floatingip.connect_floatingip(ctx=fake_ctx, vca_client=None)
         runtime_properties = fake_ctx._target.instance.runtime_properties
         self.assertTrue(
             vcloud_network_plugin.PUBLIC_IP in runtime_properties
@@ -473,9 +467,7 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             self.prepere_gatway_busy_retry(fake_client, fake_ctx)
-            floatingip.connect_floatingip(
-                ctx=fake_ctx
-            )
+            floatingip.connect_floatingip(ctx=fake_ctx, vca_client=None)
             self.check_retry_realy_called(fake_ctx)
 
     def test_floatingip_operation_create(self):

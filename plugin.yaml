@@ -124,11 +124,8 @@ node_types:
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
-                    implementation: vcloud.vcloud_network_plugin.security_group.create_node
-                    inputs: {}
-            cloudify.interfaces.validation:
-                creation:
                     implementation: vcloud.vcloud_network_plugin.security_group.creation_validation
+                    inputs: {}
 
     cloudify.vcloud.nodes.KeyPair:
         derived_from: cloudify.nodes.Root
