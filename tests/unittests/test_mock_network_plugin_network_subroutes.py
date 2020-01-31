@@ -57,12 +57,11 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
                 'vdc': 'vdc_name'
             }
         })
-        with mock.patch('vcloud_network_plugin.network.ctx', fake_ctx):
-            with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
-                network._dhcp_operation(
-                    fake_client, fake_ctx.node.properties,
-                    '_management_network', network.ADD_POOL
-                )
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            network._dhcp_operation(
+                fake_ctx, fake_client, fake_ctx.node.properties,
+                '_management_network', network.ADD_POOL
+            )
         # wrong dhcp_range
         fake_ctx = self.generate_node_context(properties={
             'network': {
@@ -75,13 +74,12 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
                 'vdc': 'vdc_name'
             }
         })
-        with mock.patch('vcloud_network_plugin.network.ctx', fake_ctx):
-            with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
-                with self.assertRaises(cfy_exc.NonRecoverableError):
-                    network._dhcp_operation(
-                        fake_client, fake_ctx.node.properties,
-                        '_management_network', network.ADD_POOL
-                    )
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                network._dhcp_operation(
+                    fake_ctx, fake_client, fake_ctx.node.properties,
+                    '_management_network', network.ADD_POOL
+                )
 
         fake_ctx = self.generate_node_context(properties={
             'network': {
@@ -95,41 +93,40 @@ class NetworkPluginNetworkSubroutesMockTestCase(test_mock_base.TestBase):
             }
         })
 
-        with mock.patch('vcloud_network_plugin.network.ctx', fake_ctx):
-            with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
-                # returned error/None from server
-                with self.assertRaises(cfy_exc.NonRecoverableError):
-                    network._dhcp_operation(
-                        fake_client, fake_ctx.node.properties,
-                        '_management_network', network.ADD_POOL
-                    )
-                fake_client.get_gateway.assert_called_with(
-                    'vdc_name', 'gateway'
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            # returned error/None from server
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                network._dhcp_operation(
+                    fake_ctx, fake_client, fake_ctx.node.properties,
+                    '_management_network', network.ADD_POOL
+                )
+            fake_client.get_gateway.assert_called_with(
+                'vdc_name', 'gateway'
+            )
+
+            # returned error/None from server delete
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                network._dhcp_operation(
+                    fake_ctx, fake_client, fake_ctx.node.properties,
+                    '_management_network', network.DELETE_POOL
                 )
 
-                # returned error/None from server delete
-                with self.assertRaises(cfy_exc.NonRecoverableError):
-                    network._dhcp_operation(
-                        fake_client, fake_ctx.node.properties,
-                        '_management_network', network.DELETE_POOL
-                    )
+            # returned busy, try next time
+            self.set_gateway_busy(fake_client._vdc_gateway)
+            self.prepare_retry(fake_ctx)
 
-                # returned busy, try next time
-                self.set_gateway_busy(fake_client._vdc_gateway)
-                self.prepare_retry(fake_ctx)
+            self.assertFalse(network._dhcp_operation(
+                fake_ctx, fake_client, fake_ctx.node.properties,
+                '_management_network', network.DELETE_POOL
+            ))
 
-                self.assertFalse(network._dhcp_operation(
-                    fake_client, fake_ctx.node.properties,
-                    '_management_network', network.DELETE_POOL
-                ))
-
-                # no such gateway
-                fake_client.get_gateway = mock.MagicMock(return_value=None)
-                with self.assertRaises(cfy_exc.NonRecoverableError):
-                    network._dhcp_operation(
-                        fake_client, fake_ctx.node.properties,
-                        '_management_network', network.ADD_POOL
-                    )
+            # no such gateway
+            fake_client.get_gateway = mock.MagicMock(return_value=None)
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                network._dhcp_operation(
+                    fake_ctx, fake_client, fake_ctx.node.properties,
+                    '_management_network', network.ADD_POOL
+                )
 
 
 if __name__ == '__main__':

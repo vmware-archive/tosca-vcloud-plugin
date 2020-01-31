@@ -290,14 +290,13 @@ class NetworkPluginNetworkMockTestCase(test_mock_base.TestBase):
         fake_client._vdc_gateway.is_busy = mock.MagicMock(
             return_value=True
         )
-        with mock.patch('vcloud_network_plugin.network.ctx', fake_ctx):
-            with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
-                self.assertFalse(
-                    network._dhcp_operation(
-                        fake_client, fake_ctx.node.properties,
-                        'secret_network', network.DELETE_POOL
-                    )
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            self.assertFalse(
+                network._dhcp_operation(
+                    fake_ctx, fake_client, fake_ctx.node.properties,
+                    'secret_network', network.DELETE_POOL
                 )
+            )
 
     def test_creation_validation(self):
         fake_client = self.generate_client(
