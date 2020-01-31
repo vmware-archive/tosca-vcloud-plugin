@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, get_vcloud_config,
@@ -31,7 +30,7 @@ from vcloud_network_plugin import (check_ip, CheckAssignedExternalIp,
 @operation(resumable=True)
 @with_vca_client
 @lock_gateway
-def connect_floatingip(vca_client, **kwargs):
+def connect_floatingip(ctx, vca_client, **kwargs):
     """
         create new floating ip for node
     """
@@ -42,7 +41,7 @@ def connect_floatingip(vca_client, **kwargs):
 @operation(resumable=True)
 @with_vca_client
 @lock_gateway
-def disconnect_floatingip(vca_client, **kwargs):
+def disconnect_floatingip(ctx, vca_client, **kwargs):
     """
         release floating ip
     """
@@ -52,7 +51,7 @@ def disconnect_floatingip(vca_client, **kwargs):
 
 @operation(resumable=True)
 @with_vca_client
-def creation_validation(vca_client, **kwargs):
+def creation_validation(ctx, vca_client, **kwargs):
     """
         validate node context,
         fields from floatingip dict:
@@ -119,8 +118,8 @@ def _floatingip_operation(operation, vca_client, ctx):
 
     external_ip = check_ip(public_ip)
 
-    nat_operation(gateway, "SNAT", internal_ip, external_ip)
-    nat_operation(gateway, "DNAT", external_ip, internal_ip)
+    nat_operation(ctx, gateway, "SNAT", internal_ip, external_ip)
+    nat_operation(ctx, gateway, "DNAT", external_ip, internal_ip)
     success = save_gateway_configuration(gateway, vca_client, ctx)
     if not success:
         return False
@@ -144,7 +143,7 @@ def _floatingip_operation(operation, vca_client, ctx):
     return True
 
 
-def _add_nat_rule(gateway, rule_type, original_ip, translated_ip):
+def _add_nat_rule(ctx, gateway, rule_type, original_ip, translated_ip):
     """
         add nat rule with enable any types of trafic from translated_ip
         to origin_ip
@@ -159,7 +158,7 @@ def _add_nat_rule(gateway, rule_type, original_ip, translated_ip):
         rule_type, original_ip, any_type, translated_ip, any_type, any_type)
 
 
-def _del_nat_rule(gateway, rule_type, original_ip, translated_ip):
+def _del_nat_rule(ctx, gateway, rule_type, original_ip, translated_ip):
     """
         drop rule created by add_nat_rule
     """

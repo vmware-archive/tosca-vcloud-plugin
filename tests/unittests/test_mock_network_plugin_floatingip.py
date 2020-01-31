@@ -27,54 +27,50 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
     def test_add_nat_rule_snat(self):
         fake_ctx = self.generate_node_context_with_current_ctx()
 
-        with mock.patch('vcloud_network_plugin.floatingip.ctx', fake_ctx):
-            gateway = mock.Mock()
-            gateway._add_nat_rule = mock.MagicMock(return_value=None)
-            floatingip._add_nat_rule(
-                gateway, 'SNAT', 'internal', 'external'
-            )
-            gateway.add_nat_rule.assert_called_with(
-                'SNAT', 'internal', 'any', 'external', 'any', 'any'
-            )
+        gateway = mock.Mock()
+        gateway._add_nat_rule = mock.MagicMock(return_value=None)
+        floatingip._add_nat_rule(
+            fake_ctx, gateway, 'SNAT', 'internal', 'external'
+        )
+        gateway.add_nat_rule.assert_called_with(
+            'SNAT', 'internal', 'any', 'external', 'any', 'any'
+        )
 
     def test_add_nat_rule_dnat(self):
         fake_ctx = self.generate_node_context_with_current_ctx()
 
-        with mock.patch('vcloud_network_plugin.floatingip.ctx', fake_ctx):
-            gateway = mock.Mock()
-            gateway._add_nat_rule = mock.MagicMock(return_value=None)
-            floatingip._add_nat_rule(
-                gateway, 'DNAT', 'internal', 'external'
-            )
-            gateway.add_nat_rule.assert_called_with(
-                'DNAT', 'internal', 'any', 'external', 'any', 'any'
-            )
+        gateway = mock.Mock()
+        gateway._add_nat_rule = mock.MagicMock(return_value=None)
+        floatingip._add_nat_rule(
+            fake_ctx, gateway, 'DNAT', 'internal', 'external'
+        )
+        gateway.add_nat_rule.assert_called_with(
+            'DNAT', 'internal', 'any', 'external', 'any', 'any'
+        )
 
     def test_del_nat_rule_snat(self):
         fake_ctx = self.generate_node_context_with_current_ctx()
 
-        with mock.patch('vcloud_network_plugin.floatingip.ctx', fake_ctx):
-            gateway = mock.Mock()
-            gateway.del_nat_rule = mock.MagicMock(return_value=None)
-            floatingip._del_nat_rule(
-                gateway, 'SNAT', 'internal', 'external'
-            )
-            gateway.del_nat_rule.assert_called_with(
-                'SNAT', 'internal', 'any', 'external', 'any', 'any'
-            )
+        gateway = mock.Mock()
+        gateway.del_nat_rule = mock.MagicMock(return_value=None)
+        floatingip._del_nat_rule(
+            fake_ctx, gateway, 'SNAT', 'internal', 'external'
+        )
+        gateway.del_nat_rule.assert_called_with(
+            'SNAT', 'internal', 'any', 'external', 'any', 'any'
+        )
 
     def test_del_nat_rule_dnat(self):
         fake_ctx = self.generate_node_context_with_current_ctx()
 
-        with mock.patch('vcloud_network_plugin.floatingip.ctx', fake_ctx):
-            gateway = mock.Mock()
-            gateway.del_nat_rule = mock.MagicMock(return_value=None)
-            floatingip._del_nat_rule(
-                gateway, 'DNAT', 'internal', 'external'
-            )
-            gateway.del_nat_rule.assert_called_with(
-                'DNAT', 'internal', 'any', 'external', 'any', 'any'
-            )
+        gateway = mock.Mock()
+        gateway.del_nat_rule = mock.MagicMock(return_value=None)
+        floatingip._del_nat_rule(
+            fake_ctx, gateway, 'DNAT', 'internal', 'external'
+        )
+        gateway.del_nat_rule.assert_called_with(
+            'DNAT', 'internal', 'any', 'external', 'any', 'any'
+        )
 
     def test_creation_validation(self):
         fake_client = self.generate_client()
@@ -224,12 +220,9 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
         with mock.patch(
             'vcloud_plugin_common.ctx', fake_ctx
         ):
-            with mock.patch(
-                'vcloud_network_plugin.floatingip.ctx', fake_ctx
-            ):
-                floatingip._floatingip_operation(
-                    vcloud_network_plugin.DELETE, fake_client, fake_ctx
-                )
+            floatingip._floatingip_operation(
+                vcloud_network_plugin.DELETE, fake_client, ctx=fake_ctx
+            )
         # busy in save with ip in node_properties
         fake_client, fake_ctx = self.generate_client_and_context_floating_ip()
         self.set_services_conf_result(
@@ -246,12 +239,9 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
         with mock.patch(
                 'vcloud_plugin_common.ctx', fake_ctx
         ):
-            with mock.patch(
-                'vcloud_network_plugin.floatingip.ctx', fake_ctx
-            ):
-                self.assertFalse(floatingip._floatingip_operation(
-                    vcloud_network_plugin.DELETE, fake_client, fake_ctx
-                ))
+            self.assertFalse(floatingip._floatingip_operation(
+                vcloud_network_plugin.DELETE, fake_client, ctx=fake_ctx
+            ))
         # busy in save with ip in runtime_properties
         fake_client, fake_ctx = self.generate_client_and_context_floating_ip()
         self.set_services_conf_result(
@@ -270,12 +260,9 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
         with mock.patch(
                 'vcloud_plugin_common.ctx', fake_ctx
         ):
-            with mock.patch(
-                'vcloud_network_plugin.floatingip.ctx', fake_ctx
-            ):
-                self.assertFalse(floatingip._floatingip_operation(
-                    vcloud_network_plugin.DELETE, fake_client, fake_ctx
-                ))
+            self.assertFalse(floatingip._floatingip_operation(
+                vcloud_network_plugin.DELETE, fake_client, ctx=fake_ctx
+            ))
         # unknow operation
         fake_client, fake_ctx = self.generate_client_and_context_floating_ip()
         fake_ctx._target.node.properties = {
@@ -287,13 +274,10 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
         with mock.patch(
                 'vcloud_plugin_common.ctx', fake_ctx
         ):
-            with mock.patch(
-                'vcloud_network_plugin.floatingip.ctx', fake_ctx
-            ):
-                with self.assertRaises(cfy_exc.NonRecoverableError):
-                    floatingip._floatingip_operation(
-                        "unknow", fake_client, fake_ctx
-                    )
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                floatingip._floatingip_operation(
+                    "unknow", fake_client, ctx=fake_ctx
+                )
         # delete to end, ondemand
         fake_client, fake_ctx = self.generate_client_and_context_floating_ip()
         fake_ctx._target.node.properties = {
@@ -318,12 +302,9 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
         with mock.patch(
                 'vcloud_plugin_common.ctx', fake_ctx
         ):
-            with mock.patch(
-                'vcloud_network_plugin.floatingip.ctx', fake_ctx
-            ):
-                floatingip._floatingip_operation(
-                    vcloud_network_plugin.DELETE, fake_client, fake_ctx
-                )
+            floatingip._floatingip_operation(
+                vcloud_network_plugin.DELETE, fake_client, ctx=fake_ctx
+            )
         runtime_properties = fake_ctx._target.instance.runtime_properties
         self.assertFalse(
             vcloud_network_plugin.PUBLIC_IP in runtime_properties
@@ -353,12 +334,9 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
         with mock.patch(
                 'vcloud_plugin_common.ctx', fake_ctx
         ):
-            with mock.patch(
-                'vcloud_network_plugin.floatingip.ctx', fake_ctx
-            ):
-                floatingip._floatingip_operation(
-                    vcloud_network_plugin.DELETE, fake_client, fake_ctx
-                )
+            floatingip._floatingip_operation(
+                vcloud_network_plugin.DELETE, fake_client, ctx=fake_ctx
+            )
         runtime_properties = fake_ctx._target.instance.runtime_properties
         self.assertFalse(
             vcloud_network_plugin.PUBLIC_IP in runtime_properties
@@ -496,12 +474,9 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
         with mock.patch(
                 'vcloud_plugin_common.ctx', fake_ctx
         ):
-            with mock.patch(
-                'vcloud_network_plugin.floatingip.ctx', fake_ctx
-            ):
-                floatingip._floatingip_operation(
-                    vcloud_network_plugin.CREATE, fake_client, fake_ctx
-                )
+            floatingip._floatingip_operation(
+                vcloud_network_plugin.CREATE, fake_client, ctx=fake_ctx
+            )
         runtime_properties = fake_ctx._target.instance.runtime_properties
         self.assertTrue(
             vcloud_network_plugin.PUBLIC_IP in runtime_properties
@@ -533,12 +508,9 @@ class NetworkPluginFloatingIpMockTestCase(test_mock_base.TestBase):
         with mock.patch(
                 'vcloud_plugin_common.ctx', fake_ctx
         ):
-            with mock.patch(
-                'vcloud_network_plugin.floatingip.ctx', fake_ctx
-            ):
-                floatingip._floatingip_operation(
-                    vcloud_network_plugin.CREATE, fake_client, fake_ctx
-                )
+            floatingip._floatingip_operation(
+                vcloud_network_plugin.CREATE, fake_client, ctx=fake_ctx
+            )
         runtime_properties = fake_ctx._target.instance.runtime_properties
         self.assertTrue(
             vcloud_network_plugin.PUBLIC_IP in runtime_properties

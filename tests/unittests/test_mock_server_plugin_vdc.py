@@ -34,7 +34,7 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
             )
             # no vdc name
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                vdc.creation_validation(ctx=fake_ctx)
+                vdc.creation_validation(ctx=fake_ctx, vca_client=None)
             # name exist but someone already created this vdc
             fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
@@ -45,11 +45,11 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
                 return_value=mock.MagicMock()
             )
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                vdc.creation_validation(ctx=fake_ctx)
+                vdc.creation_validation(ctx=fake_ctx, vca_client=None)
             fake_client.get_vdc.assert_called_with('not_existed')
             # everthing fine
             fake_client.get_vdc = mock.MagicMock(return_value=None)
-            vdc.creation_validation(ctx=fake_ctx)
+            vdc.creation_validation(ctx=fake_ctx, vca_client=None)
             # external but without name
             fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
@@ -57,7 +57,7 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
                 }
             )
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                vdc.creation_validation(ctx=fake_ctx)
+                vdc.creation_validation(ctx=fake_ctx, vca_client=None)
             # use unexisted vdc
             fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
@@ -67,13 +67,13 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
             )
             fake_client.get_vdc = mock.MagicMock(return_value=None)
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                vdc.creation_validation(ctx=fake_ctx)
+                vdc.creation_validation(ctx=fake_ctx, vca_client=None)
             fake_client.get_vdc.assert_called_with('not_existed')
             # exist everything
             fake_client.get_vdc = mock.MagicMock(
                 return_value=mock.MagicMock()
             )
-            vdc.creation_validation(ctx=fake_ctx)
+            vdc.creation_validation(ctx=fake_ctx, vca_client=None)
             fake_client.get_vdc.assert_called_with('not_existed')
 
     def test_create(self):
@@ -93,7 +93,7 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
                 }
             )
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                vdc.create(ctx=fake_ctx)
+                vdc.create(ctx=fake_ctx, vca_client=None)
             # use ondemand
             # use external resource without vdc
             fake_ctx = self.generate_node_context_with_current_ctx(
@@ -108,13 +108,13 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
             )
             fake_client.get_vdc = mock.MagicMock(return_value=None)
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                vdc.create(ctx=fake_ctx)
+                vdc.create(ctx=fake_ctx, vca_client=None)
             fake_client.get_vdc.assert_called_with('not_existed')
             # successful for create on external resource
             fake_client.get_vdc = mock.MagicMock(
                 return_value=mock.MagicMock()
             )
-            vdc.create(ctx=fake_ctx)
+            vdc.create(ctx=fake_ctx, vca_client=None)
             # no name for vdc
             fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
@@ -126,7 +126,7 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
                 }
             )
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                vdc.create(ctx=fake_ctx)
+                vdc.create(ctx=fake_ctx, vca_client=None)
             # create new vdc for deployment
             fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
@@ -143,14 +143,14 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
                 return_value=None
             )
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                vdc.create(ctx=fake_ctx)
+                vdc.create(ctx=fake_ctx, vca_client=None)
             # everything fine
             fake_client.create_vdc = mock.MagicMock(
                 return_value=self.generate_task(
                     vcloud_plugin_common.TASK_STATUS_SUCCESS
                 )
             )
-            vdc.create(ctx=fake_ctx)
+            vdc.create(ctx=fake_ctx, vca_client=None)
 
     def test_delete(self):
         """check vdc deletion operation"""
@@ -170,7 +170,7 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
                     'resource_id': 'not_existed'
                 }
             )
-            vdc.delete(ctx=fake_ctx)
+            vdc.delete(ctx=fake_ctx, vca_client=None)
             # return fail from delete vdc
             fake_client.delete_vdc = mock.MagicMock(
                 return_value=(False, None)
@@ -189,7 +189,7 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
                 }
             )
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                vdc.delete(ctx=fake_ctx)
+                vdc.delete(ctx=fake_ctx, vca_client=None)
             fake_client.delete_vdc.assert_called_with("something")
             self.assertTrue(
                 vdc.VDC_NAME in fake_ctx.instance.runtime_properties
@@ -200,7 +200,7 @@ class ServerPluginVdcMockTestCase(test_mock_base.TestBase):
                     vcloud_plugin_common.TASK_STATUS_SUCCESS
                 ))
             )
-            vdc.delete(ctx=fake_ctx)
+            vdc.delete(ctx=fake_ctx, vca_client=None)
             self.assertFalse(
                 vdc.VDC_NAME in fake_ctx.instance.runtime_properties
             )
