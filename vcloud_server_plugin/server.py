@@ -359,28 +359,31 @@ def configure(ctx, vca_client, **kwargs):
             memory = hardware.get('memory')
             _check_hardware(cpu, memory)
             if memory:
+                task = None
                 try:
                     ctx.logger.info(
                         "Customize VM memory: '{0}'.".format(memory)
                     )
                     task = vapp.modify_vm_memory(vapp_name, memory)
                     wait_for_task(vca_client, task)
-                except Exception:
+                except Exception as e:
                     raise cfy_exc.NonRecoverableError(
-                        "Customize VM memory failed: '{0}'. {1}".
-                        format(task, error_response(vapp)))
+                        "Customize VM memory failed: {task}. "
+                        "Vapp: {app} Error: {e} ".
+                        format(e=e, task=task, app=error_response(vapp)))
             if cpu:
+                task = None
                 try:
                     ctx.logger.info(
                         "Customize VM cpu: '{0}'.".format(cpu)
                     )
                     task = vapp.modify_vm_cpu(vapp_name, cpu)
                     wait_for_task(vca_client, task)
-                except Exception:
+                except Exception as e:
                     raise cfy_exc.NonRecoverableError(
-                        "Customize VM cpu failed: '{0}'. {1}".
-                        format(task, error_response(vapp)))
-
+                        "Customize VM cpu failed: {task}. "
+                        "Vapp: {app} Error: {e} ".
+                        format(e=e, task=task, app=error_response(vapp)))
         if custom or public_keys:
             script = _build_script(custom, public_keys)
             password = custom.get('admin_password')
