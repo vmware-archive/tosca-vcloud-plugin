@@ -569,7 +569,8 @@ def delete_properties(ctx):
         del ctx.instance.runtime_properties[key]
 
 
-def combine_properties(ctx, kwargs=None, names=None, properties=None):
+def combine_properties(ctx, kwargs=None, names=None, properties=None,
+                       copy_back=True):
     """combine properties + runtime properties + kwargs"""
     if not kwargs:
         kwargs = {}
@@ -600,8 +601,9 @@ def combine_properties(ctx, kwargs=None, names=None, properties=None):
                 ctx.node.properties.get(name)
             )
         )
-    # update runtime properties back
-    for name in obj:
-        if "vcloud_config" != name:
-            ctx.instance.runtime_properties[name] = obj[name]
+    if copy_back:
+        # update runtime properties back
+        for name in obj:
+            if "vcloud_config" != name:
+                ctx.instance.runtime_properties[name] = obj[name]
     return obj

@@ -35,7 +35,7 @@ DEFAULT_SSH_PORT = '22'
 def net_connect_to_nat_preconfigure(ctx, vca_client, **kwargs):
     # combine properties
     obj = combine_properties(
-        ctx.target, names=['nat'], properties=['rules'])
+        ctx.target, names=['nat'], properties=['rules'], copy_back=False)
     rules = obj['rules']
     if not rules or len(rules) != 1:
         raise cfy_exc.NonRecoverableError(
@@ -55,7 +55,7 @@ def net_connect_to_nat(ctx, vca_client, **kwargs):
     """
     # combine properties
     obj = combine_properties(
-        ctx.target, names=['nat'], properties=['rules'])
+        ctx.target, names=['nat'], properties=['rules'], copy_back=False)
     if obj.get('use_external_resource', False):
         ctx.logger.info("Using existing Public NAT.")
         return
@@ -72,7 +72,7 @@ def net_disconnect_from_nat(ctx, vca_client, **kwargs):
     """
     # combine properties
     obj = combine_properties(
-        ctx.target, names=['nat'], properties=['rules'])
+        ctx.target, names=['nat'], properties=['rules'], copy_back=False)
     if obj.get('use_external_resource', False):
         ctx.logger.info("Using existing Public NAT.")
         return
@@ -100,17 +100,6 @@ def server_disconnect_from_nat(ctx, vca_client, **kwargs):
     """
     if not prepare_server_operation(ctx, vca_client, DELETE):
         return set_retry(ctx)
-
-
-@operation(resumable=True)
-@with_vca_client
-def create_node(ctx, vca_client, **kwargs):
-    """
-        save properties on create step
-    """
-    # combine properties
-    combine_properties(
-        ctx, kwargs=kwargs, names=['nat'], properties=['rules'])
 
 
 @operation(resumable=True)
@@ -180,7 +169,7 @@ def prepare_server_operation(ctx, vca_client, operation):
     try:
         # combine properties
         obj = combine_properties(
-            ctx.target, names=['nat'], properties=['rules'])
+            ctx.target, names=['nat'], properties=['rules'], copy_back=False)
         gateway = get_gateway(
             vca_client, obj['nat']['edge_gateway'])
         public_ip = _obtain_public_ip(vca_client, ctx, gateway, operation)

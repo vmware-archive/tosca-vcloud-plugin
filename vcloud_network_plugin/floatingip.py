@@ -86,7 +86,7 @@ def _floatingip_operation(operation, vca_client, ctx):
     """
     service_type = get_vcloud_config().get('service_type')
     # combine properties
-    obj = combine_properties(ctx.target, names=['floatingip'])
+    obj = combine_properties(ctx.target, names=['floatingip'], copy_back=False)
 
     gateway = get_gateway(
         vca_client, obj['floatingip']['edge_gateway'])

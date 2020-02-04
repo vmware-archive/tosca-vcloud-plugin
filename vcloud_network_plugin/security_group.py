@@ -119,7 +119,8 @@ def _rule_operation(ctx, operation, vca_client):
     gateway = get_gateway(vca_client, gateway_name)
     # combine properties
     obj = combine_properties(
-        ctx.target, names=['security_group'], properties=['rules'])
+        ctx.target, names=['security_group'], properties=['rules'],
+        copy_back=False)
     for rule in obj['rules']:
         description = rule.get('description', "Rule added by pyvcloud").strip()
         source_ip = rule.get("source", "external")

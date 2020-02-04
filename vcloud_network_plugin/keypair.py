@@ -35,7 +35,7 @@ SSH_KEY = 'ssh_key'
 @operation(resumable=True)
 def creation_validation(ctx, **kwargs):
     """
-        check availability of path used in field private_key_path of
+        check availability of path used in field private key path of
         node properties
     """
     # combine properties

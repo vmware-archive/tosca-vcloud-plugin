@@ -673,7 +673,7 @@ def _create_connections_list(ctx, vca_client):
     management_network_name = ctx.node.properties.get('management_network')
 
     for port in ports:
-        obj = combine_properties(port, names=['port'])
+        obj = combine_properties(port, names=['port'], copy_back=False)
         port_properties = obj['port']
         connections.append(
             _create_connection(port_properties['network'],
@@ -686,7 +686,7 @@ def _create_connections_list(ctx, vca_client):
         )
 
     for net in networks:
-        obj = combine_properties(net, names=['network'])
+        obj = combine_properties(net, names=['network'], copy_back=False)
         connections.append(
             _create_connection(get_network_name(net.node.properties),
                                None, None, 'POOL'))

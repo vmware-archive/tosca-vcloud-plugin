@@ -410,7 +410,6 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
         ):
             volume.detach_volume(ctx=fake_ctx, vca_client=None)
 
-    @unittest.skip("Fabric changed api, skip for now")
     def run_wait_boot(self, fabric_settings, fabric_run, ctx, sleep_call=True):
         sleep_function = mock.MagicMock()
         with mock.patch(

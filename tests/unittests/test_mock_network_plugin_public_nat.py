@@ -809,22 +809,6 @@ class NetworkPluginPublicNatMockTestCase(test_mock_base.TestBase):
             'any', 'any'
         )
 
-    def test_create(self):
-        fake_client = self.generate_client()
-        # no nat
-        fake_ctx = self.generate_node_context_with_current_ctx(
-            properties={
-                'vcloud_config': {
-                    'vdc': 'vdc_name'
-                }
-            }
-        )
-        with mock.patch(
-            'vcloud_plugin_common.VcloudAirClient.get',
-            mock.MagicMock(return_value=fake_client)
-        ):
-            public_nat.create_node(ctx=fake_ctx, vca_client=None)
-
     def test_creation_validation(self):
         fake_client = self.generate_client()
         # no nat

@@ -6,21 +6,350 @@ plugins:
         package_name: tosca-vcloud-plugin
         package_version: '1.6.1.dev1'
 
+data_types:
+
+  cloudify.datatypes.vlcoud.config:
+    properties:
+      username:
+        type: string
+        required: false
+        description: >
+          The vCloud account username.
+      password:
+        type: string
+        required: false
+        description: >
+          The vCloud account password.
+      url:
+        type: string
+        required: false
+        description: >
+          The vCloud URL.
+      org:
+        type: string
+        required: false
+        description: >
+          The organization name. Required only for the ondemand and
+          subscription service types.
+      instance:
+        type: string
+        required: false
+        description: >
+          The instance UUID. Required only for the ondemand service type.
+      vdc:
+        type: string
+        required: false
+        description: >
+          The virtual datacenter name.
+      service:
+        type: string
+        required: false
+        description: >
+         The vCloud service name.
+      service_type:
+        type: string
+        default: subscription
+        description: >
+          The service type. Can be subscription, ondemand, vcd or private.
+          Private is an alias for vcd and both types can be used with a
+          private vCloud environment without any difference. Defaults to subscription.
+      api_version:
+        type: string
+        default: 5.7
+        description: >
+          The vCloud API version. For Subscription, defaults to 5.6. For
+          OnDemand, defaults to 5.7.
+      region:
+        type: string
+        required: false
+        description: >
+          The region name. Applies to OnDemand.
+      org_url:
+        type: string
+        required: false
+        description: >
+         The organization URL. Required only for private service type.
+      edge_gateway:
+        type: string
+        required: false
+        description: >
+          The Edge gateway name.
+      ssl_verify:
+        type: boolean
+        default: true
+        description: >
+          A boolean flag for disabling the SSL certificate check.
+          Only applicable for a private cloud service with self-signed
+          certificates. Defaults to True
+
+  cloudify.datatypes.vlcoud.server_key:
+    properties:
+      key:
+        type: string
+        required: false
+        description: >
+          The public SSH key.
+      user:
+        type: string
+        required: false
+        description: >
+          The user name.
+
+  cloudify.datatypes.vlcoud.server_customization:
+    properties:
+      public_keys:
+        type: string
+        required: false
+        description: >
+           The public keys to be injected. A list of key-value configurations.
+      computer_name:
+        type: string
+        required: false
+        description: >
+          The VM hostname.
+      admin_password:
+        type: string
+        required: false
+        description: >
+          The root password.
+      pre_script:
+        type: string
+        required: false
+        description: >
+          A pre-customization script.
+      post_script:
+        type: string
+        required: false
+        description: >
+          A pPost-customization script.
+      script_executor:
+        type: string
+        default: /bin/bash
+        description: >
+          The script executor. The default is /bin/bash.
+
+  cloudify.datatypes.vlcoud.server_hardware:
+    properties:
+      cpu:
+        type: integer
+        required: false
+        description: >
+          The VM CPU count.
+      memory:
+        type: integer
+        required: false
+        description: >
+          The VM memory size, in MB.
+
+  cloudify.datatypes.vlcoud.server:
+    properties:
+      name:
+        type: string
+        required: false
+        description: >
+           The server name.
+      template:
+        type: string
+        required: false
+        description: >
+          The vApp template from which the server is spawned.
+      catalog:
+        type: string
+        required: false
+        description: >
+          The vApp templates catalog.
+      guest_customization:
+        type: cloudify.datatypes.vlcoud.server_customization
+        required: false
+        description: >
+           The guest customization section
+      hardware:
+        type: cloudify.datatypes.vlcoud.server_hardware
+        required: false
+        description: >
+          The key-value hardware customization section, including:
+
+  cloudify.datatypes.vlcoud.network_dhcp:
+    properties:
+      dhcp_range:
+        type: string
+        required: false
+        description: >
+          The DHCP pool range.
+      default_lease:
+        type: string
+        required: false
+        description: >
+          The default lease in seconds.
+      max_lease:
+        type: string
+        required: false
+        description: >
+          The maximum lease, in seconds.
+
+  cloudify.datatypes.vlcoud.network:
+    properties:
+      edge_gateway:
+        type: string
+        required: false
+        description: >
+          The Edge gateway name.
+      name:
+        type: string
+        required: false
+        description: >
+         The network name.
+      static_range:
+        type: string
+        required: false
+        description: >
+          The static IP allocation pool range.
+      netmask:
+        type: string
+        required: false
+        description: >
+          The network netmask.
+      gateway_ip:
+        type: string
+        required: false
+        description: >
+          The network gateway.
+      dns:
+        required: false
+        description: >
+          The list of DNS IP addresses.
+      dns_suffix:
+        type: string
+        required: false
+        description: >
+          The DNS suffix.
+      dhcp:
+        type: cloudify.datatypes.vlcoud.network_dhcp
+        description: >
+          The DHCP settings.
+
+  cloudify.datatypes.vlcoud.port:
+    properties:
+      network:
+        type: string
+        required: false
+        description: >
+          The network name.
+      ip_allocation_mode:
+        type: string
+        required: false
+        description: >
+          The IP allocation mode. Can be dhcp, pool or manual.
+      ip_address:
+        type: string
+        required: false
+        description: >
+          The IP address if the IP allocation mode is manual.
+      mac_address:
+        type: string
+        required: false
+        description: >
+          The interface MAC address.
+      primary_interface:
+        type: boolean
+        default: false
+        description: >
+          Specifies whether the interface is the primary interface (true or
+          false).
+
+  cloudify.datatypes.vlcoud.floatingip:
+    properties:
+      edge_gateway:
+        type: string
+        required: false
+        description: >
+         The vCloud gateway name.
+      public_ip:
+        type: string
+        required: false
+        description: >
+          The public IP address. If not specified, the public IP is allocated
+          from the pool of free public IPs.
+
+  cloudify.datatypes.vlcoud.nat:
+    properties:
+      edge_gateway:
+        type: string
+        required: false
+        description: >
+          The vCloud gateway name.
+      public_ip:
+        type: string
+        required: false
+        description: >
+          The public IP. If not specified, the public IP is allocated from
+          the pool of free public IPs.
+
+  cloudify.datatypes.vlcoud.security_group:
+    properties:
+      edge_gateway:
+        type: string
+        required: false
+        description: >
+          The vCloud gateway name.
+
+  cloudify.datatypes.vlcoud.volume:
+    properties:
+      name:
+        type: string
+        required: false
+        description: >
+          Volume name
+      size:
+        type: integer
+        required: false
+        description: >
+          Volume size
+
+  cloudify.datatypes.vlcoud.private_key:
+    properties:
+      create_file:
+        type: string
+        required: false
+        description: >
+          Whether to save the file. Use with auto_generate: true.
+
+  cloudify.datatypes.vlcoud.public_key:
+    properties:
+      key:
+        type: string
+        required: false
+        description: >
+          The SSH public key.
+      user:
+        type: string
+        required: false
+        description: >
+          The user name.
+
 node_types:
 
     cloudify.vcloud.nodes.Server:
         derived_from: cloudify.nodes.Compute
         properties:
             use_external_resource:
+                type: boolean
                 default: false
+                description: >
+                   Use predefined resource
             resource_id:
-                default: ''
+                default: false
+                description: >
+                   Resource Id
             server:
-                default: {}
+                type: cloudify.datatypes.vlcoud.server
             management_network:
-                default: ''
+                type: string
+                default: ""
+                description: >
+                  The management network name.
             vcloud_config:
-                default: {}
+                type: cloudify.datatypes.vlcoud.config
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
@@ -47,13 +376,18 @@ node_types:
         derived_from: cloudify.nodes.Network
         properties:
             network:
-                default: {}
+                type: cloudify.datatypes.vlcoud.network
             use_external_resource:
+                type: boolean
                 default: false
+                description: >
+                   Use predefined resource
             resource_id:
-                default: ''
+                default: false
+                description: >
+                   Resource Id
             vcloud_config:
-                default: {}
+                type: cloudify.datatypes.vlcoud.config
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
@@ -71,14 +405,16 @@ node_types:
         derived_from: cloudify.nodes.Port
         properties:
             port:
-                default: {}
+                type: cloudify.datatypes.vlcoud.port
             vcloud_config:
-                default: {}
+                type: cloudify.datatypes.vlcoud.config
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
                     implementation: vcloud.vcloud_network_plugin.port.creation_validation
-                    inputs: {}
+                    inputs:
+                      port:
+                        default: { get_property: [SELF, port]}
                 delete:
                     implementation: vcloud.vcloud_network_plugin.port.delete
                     inputs: {}
@@ -87,56 +423,104 @@ node_types:
         derived_from: cloudify.nodes.VirtualIP
         properties:
             floatingip:
-                default: {}
+                type: cloudify.datatypes.vlcoud.floatingip
             vcloud_config:
-                default: {}
+                type: cloudify.datatypes.vlcoud.config
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
                     implementation: vcloud.vcloud_network_plugin.floatingip.creation_validation
-                    inputs: {}
+                    inputs:
+                      floatingip:
+                        default: { get_property: [SELF, floatingip]}
 
     cloudify.vcloud.nodes.PublicNAT:
         derived_from: cloudify.nodes.VirtualIP
         properties:
             use_external_resource:
+                type: boolean
                 default: false
+                description: >
+                   Use predefined resource
             nat:
-                default: {}
+                type: cloudify.datatypes.vlcoud.nat
+                description: >
+                  The key-value NAT configuration.
             rules:
                 default: []
+                description: >
+                  The key-value NAT rules configuration:
+                    protocol - The network protocol. Can be tcp, udp or any.
+                      Applies only for DNAT.
+                    original_port - The original port. Applies only for DNAT.
+                    translated_port - The translated port. Applies only for
+                      DNAT.
+                    type - The list of NAT types. Can be SNAT, DNAT or both.
             vcloud_config:
-                default: {}
+                type: cloudify.datatypes.vlcoud.config
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
                     implementation: vcloud.vcloud_network_plugin.public_nat.creation_validation
-                    inputs: {}
+                    inputs:
+                      use_external_resource:
+                        default: { get_property: [SELF, use_external_resource]}
+                      nat:
+                        default: { get_property: [SELF, nat]}
+                      rules:
+                        default: { get_property: [SELF, rules]}
 
     cloudify.vcloud.nodes.SecurityGroup:
         derived_from: cloudify.nodes.SecurityGroup
         properties:
             security_group:
-                default: {}
+                type: cloudify.datatypes.vlcoud.security_group
+                description: >
+                  The key-value SecurityGroup configuration
             rules:
                 default: []
+                description: >
+                  The security group rules. A list of key-value configurations.
+                    protocol - tcp, udp, icmp or any.
+                    source - The source of traffic on which to apply the
+                      firewall. Can be internal, external, host, any, the IP
+                      address or IP range.
+                    source_port - The port number or any.
+                    destination - The destination of traffic on which to apply
+                      the firewall rule. Can be internal, external, host, any,
+                      the IP address or IP range.
+                    destination_port - The port number or any.
+                    action - allow or deny.
+                    log_traffic - Used to capture traffic. true or false.
+                    description - The rule description.
             vcloud_config:
-                default: {}
+                type: cloudify.datatypes.vlcoud.config
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
                     implementation: vcloud.vcloud_network_plugin.security_group.creation_validation
-                    inputs: {}
+                    inputs:
+                      security_group:
+                        default: { get_property: [SELF, security_group]}
+                      rules:
+                        default: { get_property: [SELF, rules]}
 
     cloudify.vcloud.nodes.KeyPair:
         derived_from: cloudify.nodes.Root
         properties:
             auto_generate:
+                type: boolean
                 default: false
+                description: >
+                  Use to auto-generate the key.
             private_key:
-                default: {}
+                type: cloudify.datatypes.vlcoud.private_key
+                description: >
+                  The key-value private key configuration
             public_key:
-                default: {}
+                type: cloudify.datatypes.vlcoud.public_key
+                description: >
+                  The key-value public key configuration
         interfaces:
             cloudify.interfaces.validation:
                 creation:
@@ -154,15 +538,26 @@ node_types:
         derived_from: cloudify.nodes.Volume
         properties:
             device_name:
+                type: string
                 default: ''
+                description: >
+                   Device name
             volume:
+                type: cloudify.datatypes.vlcoud.volume
+                description: >
+                  The key-value volume configuration
                 default: {}
             use_external_resource:
+                type: boolean
                 default: false
+                description: >
+                   Use predefined resource
             resource_id:
-                default: ''
+                default: false
+                description: >
+                   Resource Id
             vcloud_config:
-                default: {}
+                type: cloudify.datatypes.vlcoud.config
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
@@ -180,13 +575,21 @@ node_types:
         derived_from: cloudify.nodes.Root
         properties:
             name:
+                type: string
                 default: ''
+                description: >
+                   VDC name
             use_external_resource:
+                type: boolean
                 default: false
+                description: >
+                   Use predefined resource
             resource_id:
-                default: ''
+                default: false
+                description: >
+                   Resource Id
             vcloud_config:
-                default: {}
+                type: cloudify.datatypes.vlcoud.config
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
