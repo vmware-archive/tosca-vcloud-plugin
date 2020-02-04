@@ -14,7 +14,6 @@
 
 import time
 
-from cloudify import ctx
 from cloudify.decorators import operation
 from cloudify import exceptions as cfy_exc
 
@@ -41,7 +40,7 @@ DEFAULT_HOME = "/home"
 
 @operation(resumable=True)
 @with_vca_client
-def creation_validation(vca_client, **kwargs):
+def creation_validation(ctx, vca_client, **kwargs):
     """
         validate server settings, look to template in catalog
     """
@@ -90,7 +89,7 @@ def creation_validation(vca_client, **kwargs):
 
 @operation(resumable=True)
 @with_vca_client
-def create(vca_client, **kwargs):
+def create(ctx, vca_client, **kwargs):
     """
         create server by template,
         if external_resource set return without creation,
@@ -133,10 +132,10 @@ def create(vca_client, **kwargs):
         ctx.logger.info(
             "External resource {0} has been used".format(res_id))
     else:
-        _create(vca_client, config, server)
+        _create(ctx, vca_client, config, server)
 
 
-def _create(vca_client, config, server):
+def _create(ctx, vca_client, config, server):
     """
         create server by template,
         customize:
@@ -147,7 +146,7 @@ def _create(vca_client, config, server):
     vapp_name = server['name']
     vapp_template = server['template']
     vapp_catalog = server['catalog']
-    connections = _create_connections_list(vca_client)
+    connections = _create_connections_list(ctx, vca_client)
     ctx.logger.info("Creating VApp with parameters: {0}".format(server))
     task = vca_client.create_vapp(config['vdc'],
                                   vapp_name,
@@ -214,7 +213,7 @@ def _create(vca_client, config, server):
             wait_for_task(vca_client, task)
 
 
-def _power_on_vm(vca_client, vapp, vapp_name):
+def _power_on_vm(ctx, vca_client, vapp, vapp_name):
     """Poweron VM"""
     if _vapp_is_on(vapp) is False:
         ctx.logger.info("Power-on VApp {0}".format(vapp_name))
@@ -228,7 +227,7 @@ def _power_on_vm(vca_client, vapp, vapp_name):
 
 @operation(resumable=True)
 @with_vca_client
-def start(vca_client, **kwargs):
+def start(ctx, vca_client, **kwargs):
     """
     power on server and wait network connection availability for host
     """
@@ -245,9 +244,9 @@ def start(vca_client, **kwargs):
         config = get_vcloud_config()
         vdc = vca_client.get_vdc(config['vdc'])
         vapp = vca_client.get_vapp(vdc, vapp_name)
-        _power_on_vm(vca_client, vapp, vapp_name)
+        _power_on_vm(ctx, vca_client, vapp, vapp_name)
 
-    if not _get_state(vca_client):
+    if not _get_state(ctx=ctx, vca_client=vca_client):
         return ctx.operation.retry(
             message="Waiting for VM's configuration to complete",
             retry_after=5)
@@ -255,7 +254,7 @@ def start(vca_client, **kwargs):
 
 @operation(resumable=True)
 @with_vca_client
-def stop(vca_client, **kwargs):
+def stop(ctx, vca_client, **kwargs):
     """
         poweroff server, if external resource - server stay poweroned
     """
@@ -282,7 +281,7 @@ def stop(vca_client, **kwargs):
 
 @operation(resumable=True)
 @with_vca_client
-def delete(vca_client, **kwargs):
+def delete(ctx, vca_client, **kwargs):
     """
         delete server
     """
@@ -326,7 +325,7 @@ def _is_primary_connection_has_ip(vapp):
 
 @operation(resumable=True)
 @with_vca_client
-def configure(vca_client, **kwargs):
+def configure(ctx, vca_client, **kwargs):
     # combine properties
     obj = combine_properties(
         ctx, kwargs=kwargs, names=['server'],
@@ -344,7 +343,7 @@ def configure(vca_client, **kwargs):
         vapp_name = server['name']
         config = get_vcloud_config()
         custom = server.get(GUEST_CUSTOMIZATION, {})
-        public_keys = _get_connected_keypairs()
+        public_keys = _get_connected_keypairs(ctx)
 
         vdc = vca_client.get_vdc(config['vdc'])
         vapp = vca_client.get_vapp(vdc, vapp_name)
@@ -360,28 +359,31 @@ def configure(vca_client, **kwargs):
             memory = hardware.get('memory')
             _check_hardware(cpu, memory)
             if memory:
+                task = None
                 try:
                     ctx.logger.info(
                         "Customize VM memory: '{0}'.".format(memory)
                     )
                     task = vapp.modify_vm_memory(vapp_name, memory)
                     wait_for_task(vca_client, task)
-                except Exception:
+                except Exception as e:
                     raise cfy_exc.NonRecoverableError(
-                        "Customize VM memory failed: '{0}'. {1}".
-                        format(task, error_response(vapp)))
+                        "Customize VM memory failed: {task}. "
+                        "Vapp: {app} Error: {e} ".
+                        format(e=e, task=task, app=error_response(vapp)))
             if cpu:
+                task = None
                 try:
                     ctx.logger.info(
                         "Customize VM cpu: '{0}'.".format(cpu)
                     )
                     task = vapp.modify_vm_cpu(vapp_name, cpu)
                     wait_for_task(vca_client, task)
-                except Exception:
+                except Exception as e:
                     raise cfy_exc.NonRecoverableError(
-                        "Customize VM cpu failed: '{0}'. {1}".
-                        format(task, error_response(vapp)))
-
+                        "Customize VM cpu failed: {task}. "
+                        "Vapp: {app} Error: {e} ".
+                        format(e=e, task=task, app=error_response(vapp)))
         if custom or public_keys:
             script = _build_script(custom, public_keys)
             password = custom.get('admin_password')
@@ -421,7 +423,7 @@ def configure(vca_client, **kwargs):
         if not _is_primary_connection_has_ip(vapp):
             ctx.logger.info("Power on server for get dhcp ip.")
             # we have to start vapp before continue
-            _power_on_vm(vca_client, vapp, vapp_name)
+            _power_on_vm(ctx, vca_client, vapp, vapp_name)
             for attempt in xrange(RETRY_COUNT):
                 vapp = vca_client.get_vapp(vdc, vapp_name)
                 if _is_primary_connection_has_ip(vapp):
@@ -436,7 +438,7 @@ def configure(vca_client, **kwargs):
 
 @operation(resumable=True)
 @with_vca_client
-def remove_keys(vca_client, **kwargs):
+def remove_keys(ctx, vca_client, **kwargs):
     ctx.logger.info("Remove public keys from VM.")
     relationships = getattr(ctx.target.instance, 'relationships', None)
     if relationships:
@@ -506,7 +508,7 @@ def _remove_key_script(commands, user, ssh_dir, keys_file, public_key):
     )
 
 
-def _get_state(vca_client):
+def _get_state(ctx, vca_client):
     """
         check network connection availability for host
     """
@@ -599,7 +601,7 @@ fi
     return script
 
 
-def _get_connected_keypairs():
+def _get_connected_keypairs(ctx):
     """
         return public keys connected to node
     """
@@ -660,7 +662,7 @@ def _build_public_keys_script(public_keys, script_function):
     return "\n".join(key_commands)
 
 
-def _create_connections_list(vca_client):
+def _create_connections_list(ctx, vca_client):
     """
         return full list connections for node
     """
@@ -671,7 +673,7 @@ def _create_connections_list(vca_client):
     management_network_name = ctx.node.properties.get('management_network')
 
     for port in ports:
-        obj = combine_properties(port, names=['port'])
+        obj = combine_properties(port, names=['port'], copy_back=False)
         port_properties = obj['port']
         connections.append(
             _create_connection(port_properties['network'],
@@ -684,7 +686,7 @@ def _create_connections_list(vca_client):
         )
 
     for net in networks:
-        obj = combine_properties(net, names=['network'])
+        obj = combine_properties(net, names=['network'], copy_back=False)
         connections.append(
             _create_connection(get_network_name(net.node.properties),
                                None, None, 'POOL'))

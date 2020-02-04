@@ -13,7 +13,6 @@
 # limitations under the License.
 import time
 
-from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (wait_for_task, with_vca_client,
@@ -25,7 +24,7 @@ from vcloud_network_plugin import get_vapp_name, SSH_PUBLIC_IP, SSH_PORT
 
 @operation(resumable=True)
 @with_vca_client
-def create_volume(vca_client, **kwargs):
+def create_volume(ctx, vca_client, **kwargs):
     """
         create new volume, e.g.:
         {
@@ -60,7 +59,7 @@ def create_volume(vca_client, **kwargs):
 
 @operation(resumable=True)
 @with_vca_client
-def delete_volume(vca_client, **kwargs):
+def delete_volume(ctx, vca_client, **kwargs):
     """
         drop volume
     """
@@ -87,7 +86,7 @@ def delete_volume(vca_client, **kwargs):
 
 @operation(resumable=True)
 @with_vca_client
-def creation_validation(vca_client, **kwargs):
+def creation_validation(ctx, vca_client, **kwargs):
     """
         check volume description
     """
@@ -117,22 +116,22 @@ def creation_validation(vca_client, **kwargs):
 
 @operation(resumable=True)
 @with_vca_client
-def attach_volume(vca_client, **kwargs):
+def attach_volume(ctx, vca_client, **kwargs):
     """attach volume"""
-    _wait_for_boot()
-    _volume_operation(vca_client, "ATTACH")
+    _wait_for_boot(ctx)
+    _volume_operation(ctx, vca_client, "ATTACH")
 
 
 @operation(resumable=True)
 @with_vca_client
-def detach_volume(vca_client, **kwargs):
+def detach_volume(ctx, vca_client, **kwargs):
     """
         detach volume
     """
-    _volume_operation(vca_client, "DETACH")
+    _volume_operation(ctx, vca_client, "DETACH")
 
 
-def _volume_operation(vca_client, operation):
+def _volume_operation(ctx, vca_client, operation):
     """
         attach/detach volume
     """
@@ -177,7 +176,7 @@ def _volume_operation(vca_client, operation):
                     "Unknown operation '{0}'".format(operation))
 
 
-def _wait_for_boot():
+def _wait_for_boot(ctx):
     """
     Whait for loading os.
     This function just check if sshd is available.

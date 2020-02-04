@@ -22,18 +22,6 @@ from vcloud_network_plugin import port
 
 class NetworkPluginPortMockTestCase(test_mock_base.TestBase):
 
-    def test_create(self):
-        fake_client = self.generate_client()
-        with mock.patch(
-            'vcloud_plugin_common.VcloudAirClient.get',
-            mock.MagicMock(return_value=fake_client)
-        ):
-            # no port
-            fake_ctx = self.generate_node_context_with_current_ctx(
-                properties={}
-            )
-            port.create(ctx=fake_ctx)
-
     def test_delete(self):
         fake_client = self.generate_client()
         with mock.patch(
@@ -44,7 +32,7 @@ class NetworkPluginPortMockTestCase(test_mock_base.TestBase):
             fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={}
             )
-            port.delete(ctx=fake_ctx)
+            port.delete(ctx=fake_ctx, vca_client=None)
 
     def test_creation_validation(self):
         fake_client = self.generate_client()
@@ -57,7 +45,7 @@ class NetworkPluginPortMockTestCase(test_mock_base.TestBase):
                 properties={}
             )
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                port.creation_validation(ctx=fake_ctx)
+                port.creation_validation(ctx=fake_ctx, vca_client=None)
             # port without allocation
             fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
@@ -66,7 +54,7 @@ class NetworkPluginPortMockTestCase(test_mock_base.TestBase):
                     }
                 }
             )
-            port.creation_validation(ctx=fake_ctx)
+            port.creation_validation(ctx=fake_ctx, vca_client=None)
             # wrong allocation mode
             fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
@@ -76,7 +64,7 @@ class NetworkPluginPortMockTestCase(test_mock_base.TestBase):
                 }
             )
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                port.creation_validation(ctx=fake_ctx)
+                port.creation_validation(ctx=fake_ctx, vca_client=None)
             # correct allocation
             for mode in ['manual', 'dhcp', 'pool']:
                 fake_ctx = self.generate_node_context_with_current_ctx(
@@ -86,7 +74,7 @@ class NetworkPluginPortMockTestCase(test_mock_base.TestBase):
                         }
                     }
                 )
-                port.creation_validation(ctx=fake_ctx)
+                port.creation_validation(ctx=fake_ctx, vca_client=None)
             # wrong manual ip
             fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
@@ -97,7 +85,7 @@ class NetworkPluginPortMockTestCase(test_mock_base.TestBase):
                 }
             )
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                port.creation_validation(ctx=fake_ctx)
+                port.creation_validation(ctx=fake_ctx, vca_client=None)
             # correct manual ip
             fake_ctx = self.generate_node_context_with_current_ctx(
                 properties={
@@ -107,7 +95,7 @@ class NetworkPluginPortMockTestCase(test_mock_base.TestBase):
                     }
                 }
             )
-            port.creation_validation(ctx=fake_ctx)
+            port.creation_validation(ctx=fake_ctx, vca_client=None)
 
 
 if __name__ == '__main__':

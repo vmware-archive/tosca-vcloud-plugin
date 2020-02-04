@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (combine_properties, delete_properties)
@@ -34,9 +33,9 @@ SSH_KEY = 'ssh_key'
 
 
 @operation(resumable=True)
-def creation_validation(**kwargs):
+def creation_validation(ctx, **kwargs):
     """
-        check availability of path used in field private_key_path of
+        check availability of path used in field private key path of
         node properties
     """
     # combine properties
@@ -53,7 +52,7 @@ def creation_validation(**kwargs):
 
 
 @operation(resumable=True)
-def create(**kwargs):
+def create(ctx, **kwargs):
     ctx.instance.runtime_properties[PUBLIC_KEY] = {}
     ctx.instance.runtime_properties[PRIVATE_KEY] = {}
     ctx.instance.runtime_properties[PUBLIC_KEY][USER] = \
@@ -71,7 +70,8 @@ def create(**kwargs):
         ctx.instance.runtime_properties[PRIVATE_KEY][KEY] = private
         ctx.instance.runtime_properties[PUBLIC_KEY][KEY] = public
         if obj.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
-            ctx.instance.runtime_properties[PRIVATE_KEY][PATH] = _create_path()
+            ctx.instance.runtime_properties[
+                PRIVATE_KEY][PATH] = _create_path(ctx)
             _save_key_file(ctx.instance.runtime_properties[PRIVATE_KEY][PATH],
                            ctx.instance.runtime_properties[PRIVATE_KEY][KEY])
     else:
@@ -84,14 +84,14 @@ def create(**kwargs):
         if obj.get(PRIVATE_KEY, {}).get(CREATE_PRIVATE_KEY_FILE):
             if obj.get(PRIVATE_KEY, {}).get(KEY):
                 ctx.instance.runtime_properties[
-                    PRIVATE_KEY][PATH] = _create_path()
+                    PRIVATE_KEY][PATH] = _create_path(ctx)
                 _save_key_file(
                     ctx.instance.runtime_properties[PRIVATE_KEY][PATH],
                     ctx.instance.runtime_properties[PRIVATE_KEY][KEY])
 
 
 @operation(resumable=True)
-def delete(**kwargs):
+def delete(ctx, **kwargs):
     # combine properties
     obj = combine_properties(ctx, kwargs=kwargs,
                              names=[PRIVATE_KEY, PUBLIC_KEY],
@@ -112,7 +112,7 @@ def delete(**kwargs):
 
 
 @operation(resumable=True)
-def server_connect_to_keypair(**kwargs):
+def server_connect_to_keypair(ctx, **kwargs):
     host_rt_properties = ctx.source.instance.runtime_properties
     target_rt_properties = ctx.target.instance.runtime_properties
     if SSH_KEY not in host_rt_properties:
@@ -133,7 +133,7 @@ def server_connect_to_keypair(**kwargs):
 
 
 @operation(resumable=True)
-def server_disconnect_from_keypair(**kwargs):
+def server_disconnect_from_keypair(ctx, **kwargs):
     host_rt_properties = ctx.source.instance.runtime_properties
     if SSH_KEY in host_rt_properties:
         del host_rt_properties[SSH_KEY]
@@ -149,7 +149,7 @@ def _generate_pair():
     return public_value, private_value
 
 
-def _create_path():
+def _create_path(ctx):
     if ctx._local:
         key_dir = ctx._context['storage']._storage_dir
     else:

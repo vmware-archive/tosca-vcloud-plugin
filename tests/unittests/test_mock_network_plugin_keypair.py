@@ -147,19 +147,14 @@ class NetworkPluginKeyPairpMockTestCase(test_mock_base.TestBase):
         fake_ctx._context = {}
         fake_ctx._context['storage'] = mock.MagicMock()
         fake_ctx._context['storage']._storage_dir = 'storage_dir'
-        patcher1 = mock.patch('vcloud_network_plugin.keypair.ctx', fake_ctx)
-        patcher2 = mock.patch('vcloud_network_plugin.keypair.os.environ',
-                              {'VIRTUALENV': '/path/to/dir'})
-        patcher1.start()
-        patcher2.start()
-        path = keypair._create_path()
+        patcher = mock.patch('vcloud_network_plugin.keypair.os.environ',
+                             {'VIRTUALENV': '/path/to/dir'})
+        patcher.start()
+        path = keypair._create_path(ctx=fake_ctx)
         self.assertEqual('storage_dir/id_private.key', path)
 
-        patcher1.stop()
         fake_ctx._local = False
-        patcher1 = mock.patch('vcloud_network_plugin.keypair.ctx', fake_ctx)
-        patcher1.start()
-        path = keypair._create_path()
+        path = keypair._create_path(ctx=fake_ctx)
         self.assertEqual('/path/to/id_private.key', path)
 
         mock.patch.stopall()

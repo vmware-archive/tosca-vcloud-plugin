@@ -48,7 +48,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                volume.creation_validation(ctx=fake_ctx)
+                volume.creation_validation(ctx=fake_ctx, vca_client=None)
         fake_client.get_disks.assert_called_with('vdc_name')
         # with resource id, but without disks(no disks for this client)
         fake_ctx = cfy_mocks.MockCloudifyContext(
@@ -68,7 +68,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                volume.creation_validation(ctx=fake_ctx)
+                volume.creation_validation(ctx=fake_ctx, vca_client=None)
         # good case for external resource
         fake_client.get_disks = mock.MagicMock(return_value=[
             [
@@ -80,7 +80,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            volume.creation_validation(ctx=fake_ctx)
+            volume.creation_validation(ctx=fake_ctx, vca_client=None)
 
     def test_creation_validation_internal(self):
         fake_client = self.generate_client()
@@ -102,7 +102,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                volume.creation_validation(ctx=fake_ctx)
+                volume.creation_validation(ctx=fake_ctx, vca_client=None)
         fake_client.get_disks.assert_called_with('vdc_name')
         # internal resource wit volume and name,
         # but already exist such volume
@@ -131,7 +131,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                volume.creation_validation(ctx=fake_ctx)
+                volume.creation_validation(ctx=fake_ctx, vca_client=None)
         # correct name but without size
         fake_ctx = cfy_mocks.MockCloudifyContext(
             node_id='test',
@@ -152,7 +152,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                volume.creation_validation(ctx=fake_ctx)
+                volume.creation_validation(ctx=fake_ctx, vca_client=None)
         # good case
         fake_ctx = cfy_mocks.MockCloudifyContext(
             node_id='test',
@@ -173,7 +173,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            volume.creation_validation(ctx=fake_ctx)
+            volume.creation_validation(ctx=fake_ctx, vca_client=None)
 
     def test_delete_volume(self):
         fake_client = self.generate_client()
@@ -193,7 +193,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            volume.delete_volume(ctx=fake_ctx)
+            volume.delete_volume(ctx=fake_ctx, vca_client=None)
         # cant't add disk
         fake_ctx = cfy_mocks.MockCloudifyContext(
             node_id='test',
@@ -215,7 +215,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                volume.delete_volume(ctx=fake_ctx)
+                volume.delete_volume(ctx=fake_ctx, vca_client=None)
         fake_client.delete_disk.assert_called_with(
             'vdc_name', 'some-other'
         )
@@ -231,7 +231,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            volume.delete_volume(ctx=fake_ctx)
+            volume.delete_volume(ctx=fake_ctx, vca_client=None)
 
     def test_create_volume(self):
         fake_client = self.generate_client()
@@ -251,7 +251,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            volume.create_volume(ctx=fake_ctx)
+            volume.create_volume(ctx=fake_ctx, vca_client=None)
         # fail on create volume
         fake_ctx = cfy_mocks.MockCloudifyContext(
             node_id='test',
@@ -273,7 +273,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                volume.create_volume(ctx=fake_ctx)
+                volume.create_volume(ctx=fake_ctx, vca_client=None)
         fake_client.add_disk.assert_called_with(
             'vdc_name', 'some-other', 11534336
         )
@@ -291,7 +291,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            volume.create_volume(ctx=fake_ctx)
+            volume.create_volume(ctx=fake_ctx, vca_client=None)
 
     def test_volume_operation(self):
         fake_ctx, fake_client = self._gen_volume_context_and_client()
@@ -300,10 +300,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
             with mock.patch(
                 'vcloud_plugin_common.ctx', fake_ctx
             ):
-                with mock.patch(
-                    'vcloud_storage_plugin.volume.ctx', fake_ctx
-                ):
-                    volume._volume_operation(fake_client, operation)
+                volume._volume_operation(fake_ctx, fake_client, operation)
 
         # use external resource, no disks
         _run_volume_operation(fake_ctx, fake_client, 'ATTACH')
@@ -400,7 +397,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
                 'vcloud_storage_plugin.volume._wait_for_boot',
                 mock.MagicMock()
             ):
-                volume.attach_volume(ctx=fake_ctx)
+                volume.attach_volume(ctx=fake_ctx, vca_client=None)
 
     def test_detach_volume(self):
         """
@@ -411,10 +408,9 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
             'vcloud_plugin_common.VcloudAirClient.get',
             mock.MagicMock(return_value=fake_client)
         ):
-            volume.detach_volume(ctx=fake_ctx)
+            volume.detach_volume(ctx=fake_ctx, vca_client=None)
 
-    @unittest.skip("Fabric changed api, skip for now")
-    def run_wait_boot(self, fabric_settings, fabric_run, sleep_call=True):
+    def run_wait_boot(self, fabric_settings, fabric_run, ctx, sleep_call=True):
         sleep_function = mock.MagicMock()
         with mock.patch(
             'fabric.api.settings', fabric_settings
@@ -425,7 +421,7 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
                 with mock.patch(
                     'time.sleep', sleep_function
                 ):
-                    volume._wait_for_boot()
+                    volume._wait_for_boot(ctx)
         # check for sleep calls
         if sleep_call:
             sleep_function.assert_called_with(5)
@@ -444,27 +440,27 @@ class StoragePluginVolumeMockTestCase(test_mock_base.TestBase):
         with mock.patch(
             'vcloud_plugin_common.ctx', fake_ctx
         ):
-            with mock.patch(
-                'vcloud_storage_plugin.volume.ctx', fake_ctx
-            ):
-                # can't connect and run
-                with self.assertRaises(cfy_exc.NonRecoverableError):
-                    self.run_wait_boot(fabric_settings, fabric_run)
-                # command successfully finished
+            # can't connect and run
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                self.run_wait_boot(fabric_settings, fabric_run,
+                                   ctx=fake_ctx)
+            # command successfully finished
 
-                def _sysexit(_):
-                    raise SystemExit
+            def _sysexit(_):
+                raise SystemExit
 
-                fabric_run = mock.MagicMock(side_effect=_sysexit)
-                self.run_wait_boot(fabric_settings, fabric_run, False)
-                # raised some exception during run
+            fabric_run = mock.MagicMock(side_effect=_sysexit)
+            self.run_wait_boot(fabric_settings, fabric_run,
+                               sleep_call=False, ctx=fake_ctx)
+            # raised some exception during run
 
-                def _raiseex(_):
-                    raise Exception
+            def _raiseex(_):
+                raise Exception
 
-                fabric_run = mock.MagicMock(side_effect=_raiseex)
-                with self.assertRaises(cfy_exc.NonRecoverableError):
-                    self.run_wait_boot(fabric_settings, fabric_run)
+            fabric_run = mock.MagicMock(side_effect=_raiseex)
+            with self.assertRaises(cfy_exc.NonRecoverableError):
+                self.run_wait_boot(fabric_settings, fabric_run,
+                                   ctx=fake_ctx)
 
 
 if __name__ == '__main__':

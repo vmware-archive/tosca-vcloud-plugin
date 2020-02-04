@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, wait_for_task,
@@ -34,7 +33,7 @@ CANT_DELETE = "cannot be deleted, because it is in use"
 
 @operation(resumable=True)
 @with_vca_client
-def create(vca_client, **kwargs):
+def create(ctx, vca_client, **kwargs):
     """
         create new vcloud air network, e.g.:
         {
@@ -106,14 +105,14 @@ def create(vca_client, **kwargs):
                 "Could not create network {0}: {1}".
                 format(network_name, result))
         ctx.instance.runtime_properties[VCLOUD_NETWORK_NAME] = network_name
-    if not _dhcp_operation(vca_client, obj, network_name, ADD_POOL):
+    if not _dhcp_operation(ctx, vca_client, obj, network_name, ADD_POOL):
         ctx.instance.runtime_properties[SKIP_CREATE_NETWORK] = True
         return set_retry(ctx)
 
 
 @operation(resumable=True)
 @with_vca_client
-def delete(vca_client, **kwargs):
+def delete(ctx, vca_client, **kwargs):
     """
         delete vcloud air network
     """
@@ -126,7 +125,7 @@ def delete(vca_client, **kwargs):
                         " been used")
         return
     network_name = get_network_name(obj)
-    if not _dhcp_operation(vca_client, obj, network_name, DELETE_POOL):
+    if not _dhcp_operation(ctx, vca_client, obj, network_name, DELETE_POOL):
         return set_retry(ctx)
     ctx.logger.info("Delete network '{0}'".format(network_name))
     success, task = vca_client.delete_vdc_network(
@@ -147,7 +146,7 @@ def delete(vca_client, **kwargs):
 
 @operation(resumable=True)
 @with_vca_client
-def creation_validation(vca_client, **kwargs):
+def creation_validation(ctx, vca_client, **kwargs):
     """
         check network description from node description
     """
@@ -196,7 +195,7 @@ def creation_validation(vca_client, **kwargs):
             "IP addresses in different subnets.")
 
 
-def _dhcp_operation(vca_client, obj, network_name, operation):
+def _dhcp_operation(ctx, vca_client, obj, network_name, operation):
     """
         update dhcp setting for network
     """

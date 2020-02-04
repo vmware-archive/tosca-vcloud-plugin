@@ -240,7 +240,7 @@ class VcloudPluginCommonMockTestCase(test_mock_base.TestBase):
                     return vca_client
 
                 self.assertEqual(
-                    _some_function(ctx=fake_ctx),
+                    _some_function(ctx=fake_ctx, vca_client=None),
                     fake_client
                 )
         # context.DEPLOYMENT

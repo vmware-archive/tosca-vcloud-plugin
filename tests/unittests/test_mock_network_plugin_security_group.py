@@ -77,11 +77,10 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         gateway.delete_fw_rule = mock.MagicMock(return_value=None)
         # any networks will be routed
         self.set_network_routed_in_client(fake_client)
-        with mock.patch('vcloud_network_plugin.security_group.ctx', fake_ctx):
-            with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
-                security_group._rule_operation(
-                    rule_type, fake_client
-                )
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            security_group._rule_operation(
+                fake_ctx, rule_type, fake_client
+            )
         return gateway
 
     def check_rule_operation_fail(self, rule_type, rules):
@@ -96,11 +95,10 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
         self.set_services_conf_result(
             fake_client._vdc_gateway, None
         )
-        with mock.patch('vcloud_network_plugin.security_group.ctx', fake_ctx):
-            with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
-                self.assertFalse(security_group._rule_operation(
-                    rule_type, fake_client
-                ))
+        with mock.patch('vcloud_plugin_common.ctx', fake_ctx):
+            self.assertFalse(security_group._rule_operation(
+                fake_ctx, rule_type, fake_client
+            ))
 
     def test_rule_operation_empty_rule(self):
         for rule_type in [
@@ -356,10 +354,10 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             # success case
-            security_group.create(ctx=fake_ctx)
+            security_group.create(ctx=fake_ctx, vca_client=None)
             # with retry
             self.prepere_gatway_busy_retry(fake_client, fake_ctx)
-            security_group.create(ctx=fake_ctx)
+            security_group.create(ctx=fake_ctx, vca_client=None)
             self.check_retry_realy_called(fake_ctx)
 
     def test_delete(self):
@@ -388,10 +386,10 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
             mock.MagicMock(return_value=fake_client)
         ):
             # successful
-            security_group.delete(ctx=fake_ctx)
+            security_group.delete(ctx=fake_ctx, vca_client=None)
             # with retry
             self.prepere_gatway_busy_retry(fake_client, fake_ctx)
-            security_group.delete(ctx=fake_ctx)
+            security_group.delete(ctx=fake_ctx, vca_client=None)
             self.check_retry_realy_called(fake_ctx)
 
     def check_creation_validation(self, rule):
@@ -409,23 +407,8 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
                     'rules': [rule]
                 }
             )
-            security_group.creation_validation(ctx=fake_ctx)
-
-    def test_create_node(self):
-        fake_client = self.generate_client()
-        with mock.patch(
-            'vcloud_plugin_common.VcloudAirClient.get',
-            mock.MagicMock(return_value=fake_client)
-        ):
-            fake_ctx = self.generate_node_context_with_current_ctx(
-                properties={
-                    'vcloud_config': {
-                        'edge_gateway': 'some_edge_gateway',
-                        'vdc': 'vdc_name'
-                    }
-                }
-            )
-            security_group.create_node(ctx=fake_ctx)
+            security_group.creation_validation(ctx=fake_ctx,
+                                               vca_client=None)
 
     def test_creation_validation(self):
         fake_client = self.generate_client()
@@ -446,13 +429,15 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
             )
             #  Gateway firewall is disabled
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                security_group.creation_validation(ctx=fake_ctx)
+                security_group.creation_validation(ctx=fake_ctx,
+                                                   vca_client=None)
             fake_client._vdc_gateway.is_fw_enabled = mock.MagicMock(
                 return_value=True
             )
             # no rules
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                security_group.creation_validation(ctx=fake_ctx)
+                security_group.creation_validation(ctx=fake_ctx,
+                                                   vca_client=None)
             # wrong description
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 self.check_creation_validation({
@@ -465,7 +450,8 @@ class NetworkPluginSecurityGroupMockTestCase(test_mock_base.TestBase):
                     "source": 11
                 })
             with self.assertRaises(cfy_exc.NonRecoverableError):
-                security_group.creation_validation(ctx=fake_ctx)
+                security_group.creation_validation(ctx=fake_ctx,
+                                                   vca_client=None)
             # wrong ip
             with self.assertRaises(cfy_exc.NonRecoverableError):
                 self.check_creation_validation({

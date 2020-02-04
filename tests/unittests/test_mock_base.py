@@ -412,7 +412,7 @@ class TestBase(unittest.TestCase):
         )
 
         fake_ctx._instance = cfy_mocks.MockNodeInstanceContext(
-            fake_ctx.instance._id, fake_ctx.instance._runtime_properties
+            fake_ctx.instance.id, fake_ctx.instance.runtime_properties
         )
 
         relationship = self.generate_relation_context()

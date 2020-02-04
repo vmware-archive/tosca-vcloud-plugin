@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cloudify import ctx
 from cloudify import exceptions as cfy_exc
 from cloudify.decorators import operation
 from vcloud_plugin_common import (with_vca_client, get_mandatory,
@@ -32,42 +31,30 @@ ACTIONS = ("allow", "deny")
 
 @operation(resumable=True)
 @with_vca_client
-def create_node(vca_client, **kwargs):
-    """
-        save properties on create step
-    """
-    # combine properties
-    combine_properties(
-        ctx, kwargs=kwargs, names=['security_group'],
-        properties=['rules'])
-
-
-@operation(resumable=True)
-@with_vca_client
 @lock_gateway
-def create(vca_client, **kwargs):
+def create(ctx, vca_client, **kwargs):
     """
         create firewall rules for node
     """
-    if not _rule_operation(CREATE_RULE, vca_client):
+    if not _rule_operation(ctx, CREATE_RULE, vca_client):
         return set_retry(ctx)
 
 
 @operation(resumable=True)
 @with_vca_client
 @lock_gateway
-def delete(vca_client, **kwargs):
+def delete(ctx, vca_client, **kwargs):
     """
         drop firewall rules for node
     """
-    if not _rule_operation(DELETE_RULE, vca_client):
+    if not _rule_operation(ctx, DELETE_RULE, vca_client):
         return set_retry(ctx)
     delete_properties(ctx.target)
 
 
 @operation(resumable=True)
 @with_vca_client
-def creation_validation(vca_client, **kwargs):
+def creation_validation(ctx, vca_client, **kwargs):
     """
         validate firewall rules for node
     """
@@ -124,7 +111,7 @@ def creation_validation(vca_client, **kwargs):
                 "Parameter 'log_traffic' must be boolean.")
 
 
-def _rule_operation(operation, vca_client):
+def _rule_operation(ctx, operation, vca_client):
     """
         create/delete firewall rules in gateway for current node
     """
@@ -132,7 +119,8 @@ def _rule_operation(operation, vca_client):
     gateway = get_gateway(vca_client, gateway_name)
     # combine properties
     obj = combine_properties(
-        ctx.target, names=['security_group'], properties=['rules'])
+        ctx.target, names=['security_group'], properties=['rules'],
+        copy_back=False)
     for rule in obj['rules']:
         description = rule.get('description', "Rule added by pyvcloud").strip()
         source_ip = rule.get("source", "external")
