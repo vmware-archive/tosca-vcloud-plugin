@@ -24,7 +24,7 @@ AUTO_GENERATE = 'auto_generate'
 PRIVATE_KEY = 'private_key'
 PUBLIC_KEY = 'public_key'
 CREATE_PRIVATE_KEY_FILE = 'create_file'
-CLOUDIFY_AGENT = 'agent_config'
+AGENT_CONFIG = 'agent_config'
 PATH = 'path'
 KEY = 'key'
 USER = 'user'
@@ -126,8 +126,8 @@ def server_connect_to_keypair(ctx, **kwargs):
         host_rt_properties[SSH_KEY][USER] = target_rt_properties[
             PUBLIC_KEY].get(USER)
     if target_rt_properties[PRIVATE_KEY].get(PATH):
-        host_rt_properties[CLOUDIFY_AGENT] = {}
-        host_rt_properties[CLOUDIFY_AGENT][KEY] = target_rt_properties[
+        host_rt_properties[AGENT_CONFIG] = {}
+        host_rt_properties[AGENT_CONFIG][KEY] = target_rt_properties[
             PRIVATE_KEY].get(PATH)
     ctx.source.instance.update()
 
@@ -137,8 +137,8 @@ def server_disconnect_from_keypair(ctx, **kwargs):
     host_rt_properties = ctx.source.instance.runtime_properties
     if SSH_KEY in host_rt_properties:
         del host_rt_properties[SSH_KEY]
-    if CLOUDIFY_AGENT in host_rt_properties:
-        del host_rt_properties[CLOUDIFY_AGENT]
+    if AGENT_CONFIG in host_rt_properties:
+        del host_rt_properties[AGENT_CONFIG]
 
 
 def _generate_pair():

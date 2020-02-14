@@ -197,7 +197,7 @@ class NetworkPluginKeyPairpMockTestCase(test_mock_base.TestBase):
         self.assertEqual(
             fake_ctx.source.instance.runtime_properties,
             {
-                keypair.CLOUDIFY_AGENT: {
+                keypair.AGENT_CONFIG: {
                     keypair.KEY: '/path/'
                 },
                 keypair.SSH_KEY: {
@@ -212,7 +212,7 @@ class NetworkPluginKeyPairpMockTestCase(test_mock_base.TestBase):
         # test drop all keys informations from node
         fake_ctx = self.generate_relation_context_with_current_ctx()
         fake_ctx.source.instance.runtime_properties = {
-            keypair.CLOUDIFY_AGENT: {
+            keypair.AGENT_CONFIG: {
                 keypair.KEY: '/path/'
             },
             keypair.SSH_KEY: {
