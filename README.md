@@ -54,3 +54,6 @@ tox -e ondemand -- \test_network_plugin.py:ValidationOperationsTestCase
 tox -e ondemand -- \test_network_plugin.py:ValidationOperationsTestCase.test_validation
 
 ```
+
+## Examples
+For official blueprint examples using this Cloudify plugin, please see [Cloudify Community Blueprints Examples](https://github.com/cloudify-community/blueprint-examples/).
