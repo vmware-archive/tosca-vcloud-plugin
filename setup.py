@@ -32,6 +32,6 @@ setup(
         'pycrypto==2.6.1',
         # used in volume creation
         'paramiko>=1.18.3',
-        'fabric>=1.13.1,<2.0', # 2+ branch has API changes
+        'fabric>=1.13.1,<2.0',  # 2+ branch has API changes
     ]
 )

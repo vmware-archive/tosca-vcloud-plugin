@@ -8,7 +8,7 @@ plugins:
 
 data_types:
 
-  cloudify.datatypes.vlcoud.config:
+  cloudify.datatypes.vcloud.config:
     properties:
       username:
         type: string
@@ -82,7 +82,7 @@ data_types:
           Only applicable for a private cloud service with self-signed
           certificates. Defaults to True
 
-  cloudify.datatypes.vlcoud.server_key:
+  cloudify.datatypes.vcloud.server_key:
     properties:
       key:
         type: string
@@ -95,7 +95,7 @@ data_types:
         description: >
           The user name.
 
-  cloudify.datatypes.vlcoud.server_customization:
+  cloudify.datatypes.vcloud.server_customization:
     properties:
       public_keys:
         type: string
@@ -128,7 +128,7 @@ data_types:
         description: >
           The script executor. The default is /bin/bash.
 
-  cloudify.datatypes.vlcoud.server_hardware:
+  cloudify.datatypes.vcloud.server_hardware:
     properties:
       cpu:
         type: integer
@@ -141,7 +141,7 @@ data_types:
         description: >
           The VM memory size, in MB.
 
-  cloudify.datatypes.vlcoud.server:
+  cloudify.datatypes.vcloud.server:
     properties:
       name:
         type: string
@@ -159,17 +159,17 @@ data_types:
         description: >
           The vApp templates catalog.
       guest_customization:
-        type: cloudify.datatypes.vlcoud.server_customization
+        type: cloudify.datatypes.vcloud.server_customization
         required: false
         description: >
            The guest customization section
       hardware:
-        type: cloudify.datatypes.vlcoud.server_hardware
+        type: cloudify.datatypes.vcloud.server_hardware
         required: false
         description: >
           The key-value hardware customization section, including:
 
-  cloudify.datatypes.vlcoud.network_dhcp:
+  cloudify.datatypes.vcloud.network_dhcp:
     properties:
       dhcp_range:
         type: string
@@ -187,7 +187,7 @@ data_types:
         description: >
           The maximum lease, in seconds.
 
-  cloudify.datatypes.vlcoud.network:
+  cloudify.datatypes.vcloud.network:
     properties:
       edge_gateway:
         type: string
@@ -224,11 +224,11 @@ data_types:
         description: >
           The DNS suffix.
       dhcp:
-        type: cloudify.datatypes.vlcoud.network_dhcp
+        type: cloudify.datatypes.vcloud.network_dhcp
         description: >
           The DHCP settings.
 
-  cloudify.datatypes.vlcoud.port:
+  cloudify.datatypes.vcloud.port:
     properties:
       network:
         type: string
@@ -257,7 +257,7 @@ data_types:
           Specifies whether the interface is the primary interface (true or
           false).
 
-  cloudify.datatypes.vlcoud.floatingip:
+  cloudify.datatypes.vcloud.floatingip:
     properties:
       edge_gateway:
         type: string
@@ -271,7 +271,7 @@ data_types:
           The public IP address. If not specified, the public IP is allocated
           from the pool of free public IPs.
 
-  cloudify.datatypes.vlcoud.nat:
+  cloudify.datatypes.vcloud.nat:
     properties:
       edge_gateway:
         type: string
@@ -285,7 +285,7 @@ data_types:
           The public IP. If not specified, the public IP is allocated from
           the pool of free public IPs.
 
-  cloudify.datatypes.vlcoud.security_group:
+  cloudify.datatypes.vcloud.security_group:
     properties:
       edge_gateway:
         type: string
@@ -293,7 +293,7 @@ data_types:
         description: >
           The vCloud gateway name.
 
-  cloudify.datatypes.vlcoud.volume:
+  cloudify.datatypes.vcloud.volume:
     properties:
       name:
         type: string
@@ -306,7 +306,7 @@ data_types:
         description: >
           Volume size
 
-  cloudify.datatypes.vlcoud.private_key:
+  cloudify.datatypes.vcloud.private_key:
     properties:
       create_file:
         type: string
@@ -314,7 +314,7 @@ data_types:
         description: >
           Whether to save the file. Use with auto_generate: true.
 
-  cloudify.datatypes.vlcoud.public_key:
+  cloudify.datatypes.vcloud.public_key:
     properties:
       key:
         type: string
@@ -342,14 +342,14 @@ node_types:
                 description: >
                    Resource Id
             server:
-                type: cloudify.datatypes.vlcoud.server
+                type: cloudify.datatypes.vcloud.server
             management_network:
                 type: string
                 default: ""
                 description: >
                   The management network name.
             vcloud_config:
-                type: cloudify.datatypes.vlcoud.config
+                type: cloudify.datatypes.vcloud.config
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
@@ -376,7 +376,7 @@ node_types:
         derived_from: cloudify.nodes.Network
         properties:
             network:
-                type: cloudify.datatypes.vlcoud.network
+                type: cloudify.datatypes.vcloud.network
             use_external_resource:
                 type: boolean
                 default: false
@@ -387,7 +387,7 @@ node_types:
                 description: >
                    Resource Id
             vcloud_config:
-                type: cloudify.datatypes.vlcoud.config
+                type: cloudify.datatypes.vcloud.config
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
@@ -405,9 +405,9 @@ node_types:
         derived_from: cloudify.nodes.Port
         properties:
             port:
-                type: cloudify.datatypes.vlcoud.port
+                type: cloudify.datatypes.vcloud.port
             vcloud_config:
-                type: cloudify.datatypes.vlcoud.config
+                type: cloudify.datatypes.vcloud.config
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
@@ -423,9 +423,9 @@ node_types:
         derived_from: cloudify.nodes.VirtualIP
         properties:
             floatingip:
-                type: cloudify.datatypes.vlcoud.floatingip
+                type: cloudify.datatypes.vcloud.floatingip
             vcloud_config:
-                type: cloudify.datatypes.vlcoud.config
+                type: cloudify.datatypes.vcloud.config
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
@@ -443,7 +443,7 @@ node_types:
                 description: >
                    Use predefined resource
             nat:
-                type: cloudify.datatypes.vlcoud.nat
+                type: cloudify.datatypes.vcloud.nat
                 description: >
                   The key-value NAT configuration.
             rules:
@@ -457,7 +457,7 @@ node_types:
                       DNAT.
                     type - The list of NAT types. Can be SNAT, DNAT or both.
             vcloud_config:
-                type: cloudify.datatypes.vlcoud.config
+                type: cloudify.datatypes.vcloud.config
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
@@ -474,7 +474,7 @@ node_types:
         derived_from: cloudify.nodes.SecurityGroup
         properties:
             security_group:
-                type: cloudify.datatypes.vlcoud.security_group
+                type: cloudify.datatypes.vcloud.security_group
                 description: >
                   The key-value SecurityGroup configuration
             rules:
@@ -494,7 +494,7 @@ node_types:
                     log_traffic - Used to capture traffic. true or false.
                     description - The rule description.
             vcloud_config:
-                type: cloudify.datatypes.vlcoud.config
+                type: cloudify.datatypes.vcloud.config
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
@@ -514,11 +514,11 @@ node_types:
                 description: >
                   Use to auto-generate the key.
             private_key:
-                type: cloudify.datatypes.vlcoud.private_key
+                type: cloudify.datatypes.vcloud.private_key
                 description: >
                   The key-value private key configuration
             public_key:
-                type: cloudify.datatypes.vlcoud.public_key
+                type: cloudify.datatypes.vcloud.public_key
                 description: >
                   The key-value public key configuration
         interfaces:
@@ -543,7 +543,7 @@ node_types:
                 description: >
                    Device name
             volume:
-                type: cloudify.datatypes.vlcoud.volume
+                type: cloudify.datatypes.vcloud.volume
                 description: >
                   The key-value volume configuration
                 default: {}
@@ -557,7 +557,7 @@ node_types:
                 description: >
                    Resource Id
             vcloud_config:
-                type: cloudify.datatypes.vlcoud.config
+                type: cloudify.datatypes.vcloud.config
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
@@ -589,7 +589,7 @@ node_types:
                 description: >
                    Resource Id
             vcloud_config:
-                type: cloudify.datatypes.vlcoud.config
+                type: cloudify.datatypes.vcloud.config
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
